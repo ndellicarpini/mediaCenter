@@ -1,5 +1,4 @@
 /ahk/bin/**
-/ahk/config/**
+/ahk/beta/**
 
 !/ahk/bin/README.MD
-!/ahk/config/README.MD
