@@ -1,2 +1,5 @@
-ahk/bin/*
-ahk/config/*
+ahk/bin/
+ahk/config/
+
+!ahk/bin/README.MD
+!ahk/config/README.MD
