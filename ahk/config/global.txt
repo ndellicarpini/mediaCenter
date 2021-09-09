@@ -1,0 +1,38 @@
+[General]
+; forces the window to activate if its the current program in main
+ForceActivateWindow = false
+
+; enables multitasking through a double press of the xbox home button
+AllowMultiTasking = false
+
+; allows multitasking to be done during a game (NOTE: this could crash many older games due to them hating alt-tab)
+AllowMultiTaskingGame = false
+
+; required to use xbox controllers (file should be C:\Windows\System32\xinput1_3.dll)
+XInputDLL = C:\Windows\System32\xinput1_3.dll
+
+
+[Display]
+; monitor number to get sizing info / display loading screen (any non-valid num = primary) 
+MonitorNum = 2
+
+; width & height for loading screen (if 0 = autodetect size of monitor)
+Width = 0
+Height = 0
+
+
+[Executables]
+; priority one program -> boots into home menu & stays at bottom
+Home = kodi.exe
+HomeDir = C:\Kodi
+
+; priority two program -> launches from home menu
+GameLauncher = BigBox.exe
+GameLauncerDir = C:\LaunchBox
+
+; priority three program -> highest level
+Browser = chrome.exe
+BrowserDir = 
+
+WinGameList = winEXE.txt
+EmulatorList = emuEXE.txt

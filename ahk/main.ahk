@@ -1,6 +1,16 @@
-﻿#WarnContinuableException Off
+﻿#SingleInstance Force
+#WarnContinuableException Off
 
 #Include mclib\confio.ahk
+#Include 'mclib\display.ahk'
 
-MsgBox("test")
-Config.New()
+; ----- READ GLOBAL CONFIG -----
+globalConfig := readConfig("config\global.txt", , "brackets")
+globalConfig.cleanAllItems()
+
+; get monitor sizing
+temp := getDisplaySize(globalConfig.subConfigs["Display"])
+monitorW := temp[1]
+monitorH := temp[2]
+
+MsgBox(monitorH)
