@@ -1,4 +1,5 @@
-#Include string.ahk
+#Include 'string.ahk'
+#Include 'std.ahk'
 
 ; class containing configuration data from a file
 ;  subConfig - map of configs based on groupings from config file
@@ -44,27 +45,22 @@ class Config {
 ;
 ; returns Config object
 readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "") {
-	configString := ""
-	
-	if (FileExist(toRead)) {
-		file := FileOpen(toRead, "r")
-		configString := file.Read()
-		file.Close()
-	}
-	else {
-		configString := toRead
-	}
-
 	retConfig := Config.New()
-
+	configString := fileOrString(toRead)
+	
+	; helper
 	readConfigLoop(confName := "") {
 		tempConfig := Config.New()
 
 		currentConf := ""
 		currentItem := []
 
+		leftItem := ""
+		rightItem := ""
+
 		loop parse configString, "`n", "`r" {
 			cleanLine := Trim(A_LoopField, " `t`r`n")
+			subConfigLine := false
 			
 			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;")) {
 				continue
@@ -82,20 +78,30 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 						currentConf := RegExReplace(currentConf, "U)\] *\[", "-")
 
 						tempConfig.subConfigs[currentConf] := Config.New()
+
+						subConfigLine := true
 					}
 			}
 			
-			currentItem := StrSplit(cleanLine, deliminator,, 2)
+			if (!subConfigLine) {
+				; create redundent map if no denominator
+				if (deliminator != "") {
+					currentItem := StrSplit(cleanLine, deliminator,, 2)
 
-			if (currentItem.Length = 2) {
-				left := Trim(currentItem[1], " `t`r`n")
-				right := Trim(currentItem[2], " `t`r`n")
-				
-				if (currentConf != "") {
-					tempConfig.subConfigs[currentConf].items[left] := right
+					leftItem := Trim(currentItem[1], " `t`r`n")
+					rightItem := Trim(currentItem[2], " `t`r`n")
 				}
 				else {
-					tempConfig.items[left] := right
+					leftItem := cleanLine
+					rightItem := ""
+				}
+				
+				; add to generic items if no current subConfig
+				if (currentConf != "") {
+					tempConfig.subConfigs[currentConf].items[leftItem] := rightItem
+				}
+				else {
+					tempConfig.items[leftItem] := rightItem
 				}
 			}
 			

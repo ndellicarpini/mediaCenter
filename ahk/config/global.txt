@@ -34,5 +34,14 @@ GameLauncerDir = C:\LaunchBox
 Browser = chrome.exe
 BrowserDir = 
 
-WinGameList = winEXE.txt
-EmulatorList = emuEXE.txt
+[BGExecutables]
+Steam = Steam.exe
+SteamDir = C:\Steam.exe
+
+JoyToKey = JoyToKey.exe
+JoyToKeyDir = C:\JoyToKey
+
+
+[Games]
+WinGameList = config\games\winEXE.txt
+EmulatorList = config\games\emuEXE.txt
