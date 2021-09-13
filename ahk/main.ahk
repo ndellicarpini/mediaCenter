@@ -2,44 +2,76 @@
 #WarnContinuableException Off
 
 #Include 'mclib\confio.ahk'
+#Include 'mclib\thread.ahk'
 #Include 'mclib\display.ahk'
+#Include 'mclib\std.ahk'
 
 ; ----- READ GLOBAL CONFIG -----
 globalConfig := readConfig("config\global.txt", , "brackets")
-globalConfig.cleanAllItems()
+globalConfig.cleanAllItems()        
 
-; get monitor sizing
-temp := getDisplaySize(globalConfig.subConfigs["Display"])
-monitorW := temp[1]
-monitorH := temp[2]
+; create thread safe config
+c_config := CriticalObject({
+    ; generic settings
+    monitorW: getDisplaySize(globalConfig.subConfigs["Display"])[1],
+    monitorH: getDisplaySize(globalConfig.subConfigs["Display"])[2],
+    forceActivateWindow: globalConfig.subConfigs["General"].items["ForceActivateWindow"],
+    allowMultiTasking: globalConfig.subConfigs["General"].items["AllowMultiTasking"],
+    allowMultiTaskingGame: globalConfig.subConfigs["General"].items["AllowMultiTaskingGame"],
+    maxXinput: globalConfig.subConfigs["General"].items["MaxXInputControllers"],
+    xinputDLL: globalConfig.subConfigs["General"].items["XInputDLL"],
 
-ForceActivateWindow :=   globalConfig.subConfigs["General"].items["ForceActivateWindow"]
-AllowMultiTasking :=     globalConfig.subConfigs["General"].items["AllowMultiTasking"]
-AllowMultiTaskingGame := globalConfig.subConfigs["General"].items["AllowMultiTaskingGame"]
-XInputDLL :=             globalConfig.subConfigs["General"].items["XInputDLL"]
+    ; executables & paths
+    homeEXE: globalConfig.subConfigs["Executables"].items["Home"],
+    homeDir: globalConfig.subConfigs["Executables"].items["HomeDir"],
+    
+    browserEXE: globalConfig.subConfigs["Executables"].items["Browser"],
+    browserDir:  globalConfig.subConfigs["Executables"].items["BrowserDir"],
 
-; get game executable lists
-gameConfigs := globalConfig.subConfigs["Games"].items
+    gameLauncherEXE: globalConfig.subConfigs["Executables"].items["GameLauncher"],
+    gameLauncherDir: globalConfig.subConfigs["Executables"].items["GameLauncherDir"],
 
-critGameObj := {}
-critGameObj.currGame := ""
-critGameObj.winGameList := readConfig(gameConfigs["WinGameList"], "").items
-critGameObj.emuGameList := readConfig(gameConfigs["EmulatorList"], "").items
+    steamEXE: globalConfig.subConfigs["BGExecutables"].items["Steam"],
+    steamDir: globalConfig.subConfigs["BGExecutables"].items["SteamDir"],
 
-; need critical object to have between thread info - doesn't seem to add much overhead
-critGameList := CriticalObject(critGameObj)
+    joyToKeyEXE: globalConfig.subConfigs["BGExecutables"].items["JoyToKey"],
+    joyToKeyDir: globalConfig.subConfigs["BGExecutables"].items["JoyToKeyDir"],
 
-; create check game running thread
-checkGameThread := AhkThread("
-(
-    #Include 'mclib\games.ahk'
-    critGameList := CriticalObject(A_Args[1])
-    Loop {
-        critGameList.currGame := checkGameEXE(critGameList.winGameList, critGameList.emuGameList)
-        Sleep(100)
-    }
-)"
-, ObjPtr(critGameList) . "")
+    ; executable lists from file
+    winGameList: readConfig(globalConfig.subConfigs["Lists"].items["WinGameList"], "").items,
+    emuGameList: readConfig(globalConfig.subConfigs["Lists"].items["EmulatorList"], "").items,
+    loadOverrideList: readConfig(globalConfig.subConfigs["Lists"].items["LoadOverrideList"], "").items,
+})
 
+; create thread safe current status of media center
+c_status := CriticalObject({
+    ; pause all scripting
+    pauseScript: false,
 
-checkGameThread.ahkTerminate()
+    ; current modes
+    ; valid modes: [boot, shutdown, restart, home, gamelauncher, game, browser, override, load]
+    mode: "",
+    pauseMenu: false,
+    modifier: {
+        override: false,
+        multi: false,
+    },
+
+    currControllers: [],
+
+    ; current programs running
+    currHome: "",
+    currGameLauncher: "",
+    currGame: "",
+    currBrowser: "",
+
+    ; override is either a loadscreen override or something like pause screen browser
+    currOverride: "",
+})
+
+; create check running program thread
+threads := ThreadList.New(ObjPtr(c_config), ObjPtr(c_status))
+
+Sleep(10000)
+
+threads.CloseAllThreads()

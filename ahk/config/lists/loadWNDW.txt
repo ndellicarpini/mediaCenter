@@ -1,0 +1,15 @@
+Origin
+Adapter 
+Configuration
+Play 
+SUPERHOT LAUNCHER
+
+ahk_exe Launcher.exe
+ahk_exe game_launcher.exe
+ahk_exe SkyrimSELauncher.exe 
+ahk_exe FalloutLauncher.exe
+ahk_exe FalloutNVLauncher.exe
+ahk_exe Fallout4Launcher.exe
+ahk_exe OblivionLauncher.exe
+ahk_exe SA2ModManager.exe
+ahk_exe BmLauncher.exe
