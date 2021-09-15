@@ -20,12 +20,12 @@ MaxXInputControllers = 4
 XInputDLL = C:\Windows\System32\xinput1_3.dll
 
 ; highest -> lowest priority of executables (Games from gamelist included)
-PriorityOrder = Override, Browser, Game, GameLauncher, Home
+PriorityOrder = Browser, Game, GameLauncher, Home
 
 
 [Display]
 ; monitor number to get sizing info / display loading screen (any non-valid num = primary) 
-MonitorNum = 2
+MonitorNum = 0
 
 ; width & height for loading screen (if 0 = autodetect size of monitor)
 Width = 0
@@ -37,7 +37,7 @@ Height = 0
 EnableBoot = false
 
 ; an AHK script that runs after the global config is digested, but before any main actions take place [TODO - better explanation]
-BootScript = lib-custom\boot.ahk
+BootScript = 
 
 
 [LoadScreen]
@@ -45,38 +45,37 @@ BootScript = lib-custom\boot.ahk
 EnableLoadScreen = false
 
 ; an AHK script that creates the gui for the loadscreen
-CreateLoadScript = lib-custom\loadscreen\create.ahk
+CreateLoadScript = 
 
 ; an AHK script that updates the loadscreen with whatever kwargs user passes
-UpdateLoadScript = lib-custom\loadscreen\update.ahk
+UpdateLoadScript = 
 
 ; an AHK script that destroys the loadscreen
-DestroyLoadScript = lib-custom\loadscreen\destroy.ahk
+DestroyLoadScript = 
 
 
 [Pause]
 ; enables pause menu that activates from the script in PauseScript
 EnablePause = false
 
-; disables the pause menu on specific programs/programlists
-DisablePausePrograms = WinGameList
+; disables the pause menu on specific programs/programlists as a comma-deliminated list
+DisablePausePrograms = 
 
 ; an AHK script that is handled when pause is activated
-PauseScript = lib-custom\pause.ahk
+PauseScript = 
 
 
 [Executables]
 ; list of executables to be checked if running & will be affected by priority
 ; NOTE: Home IS REQUIRED
+Home = 
+HomeDir = 
 
-Home = kodi.exe
-HomeDir = C:\Kodi
+GameLauncher = 
+GameLauncherDir = 
 
-GameLauncher = BigBox.exe
-GameLauncherDir = C:\LaunchBox
-
-Browser = chrome.exe
-BrowserDir = C:\chrome
+Browser = 
+BrowserDir = 
 
 
 [ListExecutables]
@@ -89,13 +88,9 @@ BrowserDir = C:\chrome
 ;    EmuGame_EXE = config\lists\emu_EXE.txt
 
 ; overrides are determined if list contains string "Override"
-; an override is a program that supersedes the priority list
+; an override is a program that supersedes the priority lsit
 ; Ex.
 ;    LoadOverride_WNDW = config\lists\load_WNDW.txt
-
-Game_EXE = config\lists\win_EXE.txt, config\lists\emu_EXE.txt
-
-Override_WNDW = config\lists\load_WNDW.txt
 
 
 [BGExecutables]
@@ -104,9 +99,3 @@ Override_WNDW = config\lists\load_WNDW.txt
 ; Ex.
 ;    Steam = Steam.exe
 ;    SteamDir = C:\Steam
-
-Steam = Steam.exe
-SteamDir = C:\Steam
-
-JoyToKey = JoyToKey.exe
-JoyToKeyDir = C:\JoyToKey

@@ -1,77 +1,122 @@
 ﻿#SingleInstance Force
 #WarnContinuableException Off
 
-#Include 'mclib\confio.ahk'
-#Include 'mclib\thread.ahk'
-#Include 'mclib\display.ahk'
-#Include 'mclib\std.ahk'
+#Include 'lib-mc\confio.ahk'
+#Include 'lib-mc\thread.ahk'
+#Include 'lib-mc\display.ahk'
+#Include 'lib-mc\std.ahk'
+
+; might need to figure out dynamic includes uhhhhhh yut oh
 
 ; ----- READ GLOBAL CONFIG -----
-globalConfig := readConfig("config\global.txt", , "brackets")
-globalConfig.cleanAllItems()        
+globalConfig := readGlobalConfig()
 
-; create thread safe config
-c_config := CriticalObject({
-    ; generic settings
-    monitorW: getDisplaySize(globalConfig.subConfigs["Display"])[1],
-    monitorH: getDisplaySize(globalConfig.subConfigs["Display"])[2],
-    forceActivateWindow: globalConfig.subConfigs["General"].items["ForceActivateWindow"],
-    allowMultiTasking: globalConfig.subConfigs["General"].items["AllowMultiTasking"],
-    allowMultiTaskingGame: globalConfig.subConfigs["General"].items["AllowMultiTaskingGame"],
-    maxXinput: globalConfig.subConfigs["General"].items["MaxXInputControllers"],
-    xinputDLL: globalConfig.subConfigs["General"].items["XInputDLL"],
+; globalConfigObj := {
+;     ; generic settings (added to critical object manually)
+;     ; ForceActivateWindow: globalConfig.subConfigs["General"].items["ForceActivateWindow"],
+;     ; AllowMultiTasking: globalConfig.subConfigs["General"].items["AllowMultiTasking"],
+;     ; AllowMultiTaskingGame: globalConfig.subConfigs["General"].items["AllowMultiTaskingGame"],
+;     ; MaxXInput: globalConfig.subConfigs["General"].items["MaxXInputControllers"],
+;     ; XinputDLL: globalConfig.subConfigs["General"].items["XInputDLL"],
+;     ; PriorityOrder: globalConfig.subConfigs["General"].items["PriorityOrder"],
 
-    ; executables & paths
-    homeEXE: globalConfig.subConfigs["Executables"].items["Home"],
-    homeDir: globalConfig.subConfigs["Executables"].items["HomeDir"],
+;     ; MonitorW: getDisplaySize(globalConfig.subConfigs["Display"])[1],
+;     ; MonitorH: getDisplaySize(globalConfig.subConfigs["Display"])[2],
+
+;     ; EnableBoot: globalConfig.subConfigs["Boot"].items["EnableBoot"],
+;     ; BootScript: globalConfig.subConfigs["Boot"].items["BootScript"],
+; }
+
+; globalStatusObj := {
+;     ; pause all scripting
+;     pauseScript: false,
+
+;     ; current modes
+;     ; valid modes: [boot, shutdown, restart, home, gamelauncher, game, browser, override, load]
+;     mode: "",
+;     pauseMenu: false,
+;     modifier: {
+;         override: false,
+;         multi: false,
+;     },
+
+;     currControllers: [],
+; }
+
+globalConfigObj := Map()
+
+globalStatusObj := Map()
+
+globalStatusObj["paused"] := false
+globalStatusObj["mode"] := ""
+globalStatusObj["currControllers"] := false
+
+globalStatusObj["modifier"] := Map()
+globalStatusObj["modifier"]["override"] := false
+globalStatusObj["modifier"]["multi"] := false
+
+globalStatusObj["suspendScript"] := false
+
+for key, value in globalConfig.subConfigs {
+    configObj := Map()
+    statusObj := Map()
     
-    browserEXE: globalConfig.subConfigs["Executables"].items["Browser"],
-    browserDir:  globalConfig.subConfigs["Executables"].items["BrowserDir"],
+    if (key = "Monitor") {
+        temp := getDisplaySize(globalConfig.subConfigs["Display"])
+        configObj["MonitorW"] := temp[1]
+        configObj["MonitorH"] := temp[2]
+        
+        continue
+    }
 
-    gameLauncherEXE: globalConfig.subConfigs["Executables"].items["GameLauncher"],
-    gameLauncherDir: globalConfig.subConfigs["Executables"].items["GameLauncherDir"],
+    for key2, value2, in value.items {
+        if (value2 = "") {
+            continue
+        }
 
-    steamEXE: globalConfig.subConfigs["BGExecutables"].items["Steam"],
-    steamDir: globalConfig.subConfigs["BGExecutables"].items["SteamDir"],
+        if (InStr(key, "List")) {
+            configObj[key2] := readConfig(value2, "").items
+        }
+        else {
+            configObj[key2] := value2
+            
+            if (InStr(key, "Executables") && !InStr(key2, "Dir")) {
+                statusObj[key2] := ""
+            }
+        }
+    }
 
-    joyToKeyEXE: globalConfig.subConfigs["BGExecutables"].items["JoyToKey"],
-    joyToKeyDir: globalConfig.subConfigs["BGExecutables"].items["JoyToKeyDir"],
+    globalConfigObj[key] := configObj
 
-    ; executable lists from file
-    winGameList: readConfig(globalConfig.subConfigs["Lists"].items["WinGameList"], "").items,
-    emuGameList: readConfig(globalConfig.subConfigs["Lists"].items["EmulatorList"], "").items,
-    loadOverrideList: readConfig(globalConfig.subConfigs["Lists"].items["LoadOverrideList"], "").items,
-})
+    ; check if executables in list are running
+    if (InStr(key, "Executables")) {
+        globalStatusObj[("curr" . key)] := statusObj
+    }
+}
 
-; create thread safe current status of media center
-c_status := CriticalObject({
-    ; pause all scripting
-    pauseScript: false,
+; add currGame to statusObj, kinda weird but i think it could work
+if (globalStatusObj.Has("currExecutables") && globalConfigObj.Has("ListExecutables")) {
+    for key, value in globalConfigObj["ListExecutables"] {
+        globalStatusObj["currExecutables"][(StrSplit(key, "_")[1])] := ""
+    }
+}
 
-    ; current modes
-    ; valid modes: [boot, shutdown, restart, home, gamelauncher, game, browser, override, load]
-    mode: "",
-    pauseMenu: false,
-    modifier: {
-        override: false,
-        multi: false,
-    },
+; create thread safe global config
+c_config := CriticalObject(globalConfigObj)
 
-    currControllers: [],
+; create thread safe current status
+c_status := CriticalObject(globalStatusObj)
 
-    ; current programs running
-    currHome: "",
-    currGameLauncher: "",
-    currGame: "",
-    currBrowser: "",
+; pre running program thread intialize xinput
 
-    ; override is either a loadscreen override or something like pause screen browser
-    currOverride: "",
-})
+; after xinput run boot script
 
 ; create check running program thread
 threads := ThreadList.New(ObjPtr(c_config), ObjPtr(c_status))
 
-Sleep(10000)
+; big time crash issue
+Loop {
+    MsgBox(CriticalObject(ObjPtr(c_status))["currExecutables"]["Browser"])
+}
 
 threads.CloseAllThreads()

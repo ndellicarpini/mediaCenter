@@ -20,6 +20,9 @@ class Config {
 				else if (StrLower(value) = "false") {
 					this.items[key] := false
 				}
+				else if (InStr(value, ",")) {
+					this.items[key] := StrSplit(value, ",")
+				}
 			}
 		}
 	}
@@ -133,4 +136,91 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 findMultiCfg(fileName, configList := "", configListType := "or", checkDefault := true
 	, deliminator := "=", subConfigType := "none", subConfig := "") {
 
+}
+
+; creates the config\global.txt if it doesn't exist (copying global.default.txt), and tells the user to
+; fill out the config file. Otherwise returns the cleaned config object
+;
+; returns an error message or the cleaned config object from global.txt
+readGlobalConfig() {
+	; first check if global.txt exists
+	if (FileExist("config\global.txt")) {
+		gConfig := readConfig("config\global.txt", , "brackets")
+
+		; check the required settings from the config file (you bet they're hardcoded)
+		if (!gConfig.subConfigs.Has("General") || !gConfig.subConfigs.Has("Display")
+		|| !gConfig.subConfigs.Has("LoadScreen") || !gConfig.subConfigs.Has("Pause")
+		|| !gConfig.subConfigs.Has("Boot") || !gConfig.subConfigs.Has("Executables")) {
+			MsgBox("
+				(
+					ERROR
+					Config global.txt is missing required setting categories
+					Please check that all of the required settings exist
+				)"
+			)
+
+			WinWaitClose()
+
+			ExitApp()
+		}
+		else if ((!gConfig.subConfigs["Executables"].items.Has("Home")
+		|| !gConfig.subConfigs["Executables"].items.Has("HomeDir"))
+		|| (gConfig.subConfigs["Executables"].items["Home"] = "" 
+		|| gConfig.subConfigs["Executables"].items["HomeDir"] = "")) {
+			MsgBox("
+				(
+					ERROR
+					No Home/HomeDir Executables in config\global.txt
+					These settings are required to have values for the 
+					scripts to function.
+				)"
+			)
+
+			WinWaitClose()
+
+			ExitApp()
+		}
+
+		; if global.txt is valid, return the cleaned copy of it
+		gConfig.cleanAllItems()
+		return gConfig
+	}
+	else {
+		; if there is no global.txt or global.default.txt, you have to find them
+		if (!FileExist("config\global.default.txt")) {
+			MsgBox("
+				(
+					ERROR
+					There are literally no config files in config\
+					No global.txt & No global.default.txt
+					You really screwed the pooch on this one bud
+				)"
+			)
+
+			WinWaitClose()
+
+			ExitApp()
+		}
+
+		defaultGlobal := FileOpen("config\global.default.txt", "r")
+		defaultContents := defaultGlobal.Read()
+		defaultGlobal.Close()
+
+		newGlobal := FileOpen("config\global.txt", "w")
+		newGlobal.Write(defaultContents)
+		newGlobal.Close()
+		
+		MsgBox("
+			(
+				Welcome to the Media Center AHK Scripts
+				A new config file has been generated at config\global.txt
+				based on the default settings. Please review the config file
+				before trying to run the program again.
+			)"
+		)
+
+		WinWaitClose()
+
+		ExitApp()
+	}
 }

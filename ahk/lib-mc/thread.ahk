@@ -5,7 +5,7 @@ class ThreadList {
     items := Map()
     threadHeader := "
     (
-        #Include 'mclib\std.ahk'
+        #Include 'lib-mc\std.ahk'
 
         T_Args := StrSplit(A_Args[1], '.')
 
@@ -22,7 +22,7 @@ class ThreadList {
     ;  pointers - period seperated string containing pointers for critical objects config & status
     ;
     ; returns null
-    programThread(pointers) {
+    programThreadOld(pointers) {
         return AhkThread(this.threadHeader . "
         (
             c_config := CriticalObject(T_Args[1])
@@ -67,6 +67,60 @@ class ThreadList {
                     }
                 }
 
+                Sleep(100)
+            }
+        )", pointers)
+    }
+
+    ; creates the thread to monitor which programs are running & updates mode appropriately
+    ;  pointers - period seperated string containing pointers for critical objects config & status
+    ;
+    ; returns null
+    programThread(pointers) {
+        return AhkThread(this.threadHeader . "
+        (
+            c_config := CriticalObject(T_Args[1])
+            c_status := CriticalObject(T_Args[2])
+        
+            Loop {
+                for key, value in c_status {
+                    
+                    ; check for status starting with curr (supposed to be programs to be checked if running)
+                    if (InStr(key, "curr")) {
+                        configKey := StrReplace(key, "curr")
+
+                        ; if there is list of type of program, use checkexe/wndwlist
+                        if (c_config.Has("List" . configKey)) {
+                            listKey := "List" . configKey
+                            
+                            for key2, value2 in c_config[listKey] {
+                                listKeyArr := StrSplit(key2, "_")
+
+                                if (c_status[key].Has(listKeyArr[1])) {
+                                    if (StrLower(listKeyArr[2]) = "exe") {
+                                        c_status[key][listKeyArr[1]] := checkEXEList(c_config[listKey][key2])
+                                    }
+                                    else if (StrLower(listKeyArr[2]) = "wndw") {
+                                        c_status[key][listKeyArr[1]] := checkWNDWList(c_config[listKey][key2])
+                                    }
+                                }
+                            }                         
+                        }
+                        
+                        ; if program is running, set variable in curr[Status]
+                        if (c_config.Has(configKey) && IsObject(c_config[configKey])) {
+                            for key2, value2 in c_config[configKey] {   
+                                
+                                if (c_config[configKey].Has(key2)) {
+                                    temp := c_config[configKey][key2]
+                                    c_status[key][key2] := ProcessExist(temp) ? temp : ""
+                                }
+                            }
+                        }
+                    }
+                }
+            
+                ; add mode switcher
                 Sleep(100)
             }
         )", pointers)

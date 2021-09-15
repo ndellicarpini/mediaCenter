@@ -29,6 +29,18 @@ ptrListToString(ptrs*) {
 	return RTrim(retVal, ".")
 }
 
+; reads a file and returns the entire contents as a string
+;  toRead - filepath to read
+;
+; returns string of file contents
+fileToString(toRead) {
+	file := FileOpen(toRead, "r")
+	retString := file.Read()
+	file.Close()
+
+	return retString
+}
+
 ; checks if the toRead string is a file, if not then returns toRead
 ;  toRead - either filepath string or normal string
 ;
@@ -37,9 +49,7 @@ fileOrString(toRead) {
     retString := ""
 
     if (FileExist(toRead)) {
-		file := FileOpen(toRead, "r")
-		retString := file.Read()
-		file.Close()
+		retString := fileToString(toRead)
 	}
 	else {
 		retString := toRead
