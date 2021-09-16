@@ -1,10 +1,10 @@
 ﻿#SingleInstance Force
 #WarnContinuableException Off
 
-#Include 'lib-mc\confio.ahk'
-#Include 'lib-mc\thread.ahk'
-#Include 'lib-mc\display.ahk'
-#Include 'lib-mc\std.ahk'
+#Include lib-mc\confio.ahk
+#Include lib-mc\thread.ahk
+#Include lib-mc\display.ahk
+#Include lib-mc\std.ahk
 
 ; might need to figure out dynamic includes uhhhhhh yut oh
 
@@ -75,7 +75,21 @@ for key, value in globalConfig.subConfigs {
         }
 
         if (InStr(key, "List")) {
-            configObj[key2] := readConfig(value2, "").items
+            if (IsObject(value2)) {
+                tempMap := Map()
+                for item in value2 {
+                    tempItem := readConfig(item, "").items
+                    
+                    for key4, value4 in tempItem {
+                        tempMap[key4] := value4
+                    }
+                }
+
+                configObj[key2] := tempMap
+            }
+            else {
+                configObj[key2] := readConfig(value2, "").items
+            }
         }
         else {
             configObj[key2] := value2
@@ -115,8 +129,5 @@ c_status := CriticalObject(globalStatusObj)
 threads := ThreadList.New(ObjPtr(c_config), ObjPtr(c_status))
 
 ; big time crash issue
-Loop {
-    MsgBox(CriticalObject(ObjPtr(c_status))["currExecutables"]["Browser"])
-}
-
+Sleep(30000)
 threads.CloseAllThreads()

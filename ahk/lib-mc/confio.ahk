@@ -1,5 +1,5 @@
-#Include 'string.ahk'
-#Include 'std.ahk'
+#Include string.ahk
+#Include std.ahk
 
 ; class containing configuration data from a file
 ;  subConfig - map of configs based on groupings from config file
