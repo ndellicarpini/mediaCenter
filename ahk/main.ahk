@@ -6,8 +6,11 @@
 #Include lib-mc\display.ahk
 #Include lib-mc\std.ahk
 #Include lib-mc\xinput.ahk
+#Include lib-mc\messaging.ahk
 
 ; might need to figure out dynamic includes uhhhhhh yut oh
+setCurrentWinTitle("MediaCenterMain")
+enableMainMessageListener()
 
 ; ----- READ GLOBAL CONFIG -----
 globalConfig := readGlobalConfig()
@@ -89,7 +92,7 @@ gConfig := addKeyListString(gConfig)
 gStatus := addKeyListString(gStatus)
 gControllers := addKeyListString(gControllers)
 
-; create xinput thread
+; ----- START THREADS & BOOT -----
 threads["controllerThread"] := controllerThread(ObjShare(gControllers))
 
 ; after xinput run boot script
@@ -99,5 +102,9 @@ threads["programThread"] := programThread(ObjShare(gConfig), ObjShare(gStatus))
 
 Sleep(30000)
 
+disableMainMessageListener()
 xFreeLib(xLib)
 CloseAllThreads(threads)
+
+Sleep(500)
+ExitApp()

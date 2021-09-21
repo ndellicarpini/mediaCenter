@@ -15,20 +15,6 @@ toString(value) {
 	return "" . value
 }
 
-; converts a list of pointers to a string with each pointer seperated by a period
-;  ptrs* - variable amount of pointers
-;
-; returns string of pointers seperated by periods
-ptrListToString(ptrs*) {
-	retVal := ""
-
-	for value in ptrs {
-		retVal .= value . ","
-	}
-
-	return RTrim(retVal, ",")
-}
-
 ; reads a file and returns the entire contents as a string
 ;  toRead - filepath to read
 ;
@@ -56,6 +42,56 @@ fileOrString(toRead) {
 	}
 
     return retString
+}
+
+; converts a list of pointers to a string with each pointer seperated by a period
+;  ptrs* - variable amount of pointers
+;
+; returns string of pointers seperated by periods
+ptrListToString(ptrs*) {
+	retVal := ""
+
+	for value in ptrs {
+		retVal .= value . ","
+	}
+
+	return RTrim(retVal, ",")
+}
+
+; adds a new member to an object called "keys" that contains a comma-deliminated string with all
+; of the keys in the object (specifically for ComObject as it cannot enumerate through its keys)
+;  obj - the map object to be given the member "keys"
+;
+; returns the obj with the new member
+addKeyListString(obj) {
+	tempString := ""
+
+	for key, value in obj {
+		if (key != "keys") {
+			tempString .= key . ","
+		}
+
+		; apply to all sub-maps in the object as well
+		if (Type(value) = "Map") {
+			obj["keys"] := addKeyListString(value)
+		}
+	}
+
+	obj["keys"] := RTrim(tempString, ",")
+
+	return obj
+}
+
+; sets the current script's window title to the string in name
+;  name - new window name for current script
+;
+; returns null
+setCurrentWinTitle(name) {
+	resetDHW := A_DetectHiddenWindows
+
+	DetectHiddenWindows(true)
+	WinSetTitle(name, "ahk_pid" . DllCall("GetCurrentProcessId"))
+	DetectHiddenWindows(resetDHW)
 }
 
 ; takes a variable amount of exe maps (key=exe) and returns the process exe if its running
@@ -97,28 +133,4 @@ checkWNDWList(lists*) {
 	}
 
 	return ""
-}
-
-; adds a new member to an object called "keys" that contains a comma-deliminated string with all
-; of the keys in the object (specifically for ComObject as it cannot enumerate through its keys)
-;  obj - the map object to be given the member "keys"
-;
-; returns the obj with the new member
-addKeyListString(obj) {
-	tempString := ""
-
-	for key, value in obj {
-		if (key != "keys") {
-			tempString .= key . ","
-		}
-
-		; apply to all sub-maps in the object as well
-		if (Type(value) = "Map") {
-			obj["keys"] := addKeyListString(value)
-		}
-	}
-
-	obj["keys"] := RTrim(tempString, ",")
-
-	return obj
 }

@@ -52,37 +52,37 @@ class XController {
         
         if (!this.connected) {
             this.reset()
+            return
         }
-        else {
-            this.LT  := NumGet(xBuffer, 6, "uchar") / 255
-            this.RT  := NumGet(xBuffer, 7, "uchar") / 255
+        
+        this.LT  := NumGet(xBuffer, 6, "uchar") / 255
+        this.RT  := NumGet(xBuffer, 7, "uchar") / 255
 
-            this.LSX := NumGet(xBuffer, 8, "short") / 32768
-            this.LSY := NumGet(xBuffer, 10, "short") / 32768
-            this.RSX := NumGet(xBuffer, 12, "short") / 32768
-            this.RSY := NumGet(xBuffer, 14, "short") / 32768
+        this.LSX := NumGet(xBuffer, 8, "short") / 32768
+        this.LSY := NumGet(xBuffer, 10, "short") / 32768
+        this.RSX := NumGet(xBuffer, 12, "short") / 32768
+        this.RSY := NumGet(xBuffer, 14, "short") / 32768
 
-            buttons  := NumGet(xBuffer, 4, "ushort")
+        buttons  := NumGet(xBuffer, 4, "ushort")
 
-            this.DU      := (buttons & 0x0001) ? true : false
-            this.DD      := (buttons & 0x0002) ? true : false
-            this.DL      := (buttons & 0x0004) ? true : false
-            this.DR      := (buttons & 0x0008) ? true : false
+        this.DU      := (buttons & 0x0001) ? true : false
+        this.DD      := (buttons & 0x0002) ? true : false
+        this.DL      := (buttons & 0x0004) ? true : false
+        this.DR      := (buttons & 0x0008) ? true : false
 
-            this.A       := (buttons & 0x1000) ? true : false
-            this.B       := (buttons & 0x2000) ? true : false
-            this.X       := (buttons & 0x4000) ? true : false
-            this.Y       := (buttons & 0x8000) ? true : false
-            
-            this.LB      := (buttons & 0x0100) ? true : false
-            this.RB      := (buttons & 0x0200) ? true : false
-            this.LSB     := (buttons & 0x0040) ? true : false
-            this.RSB     := (buttons & 0x0080) ? true : false
-            
-            this.SELECT  := (buttons & 0x0020) ? true : false
-            this.START   := (buttons & 0x0010) ? true : false
-            this.HOME    := (buttons & 0x0400) ? true : false
-        }
+        this.A       := (buttons & 0x1000) ? true : false
+        this.B       := (buttons & 0x2000) ? true : false
+        this.X       := (buttons & 0x4000) ? true : false
+        this.Y       := (buttons & 0x8000) ? true : false
+        
+        this.LB      := (buttons & 0x0100) ? true : false
+        this.RB      := (buttons & 0x0200) ? true : false
+        this.LSB     := (buttons & 0x0040) ? true : false
+        this.RSB     := (buttons & 0x0080) ? true : false
+        
+        this.SELECT  := (buttons & 0x0020) ? true : false
+        this.START   := (buttons & 0x0010) ? true : false
+        this.HOME    := (buttons & 0x0400) ? true : false
     }
 
     ; resets the controller's buttons & axis values back to the default
@@ -148,7 +148,7 @@ xInitialize(lib, maxControllers) {
     if (lib != 0) {
         xAddress := DllCall("GetProcAddress", "uint", lib, "uint", 100)
 
-        Loop maxControllers {
+        loop maxControllers {
             controllerMap[(A_Index - 1)] := XController.New((A_Index - 1), xAddress)
         }
     }
