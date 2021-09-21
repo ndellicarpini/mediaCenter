@@ -5,57 +5,25 @@
 #Include lib-mc\thread.ahk
 #Include lib-mc\display.ahk
 #Include lib-mc\std.ahk
+#Include lib-mc\xinput.ahk
 
 ; might need to figure out dynamic includes uhhhhhh yut oh
 
 ; ----- READ GLOBAL CONFIG -----
 globalConfig := readGlobalConfig()
 
-; globalConfigObj := {
-;     ; generic settings (added to critical object manually)
-;     ; ForceActivateWindow: globalConfig.subConfigs["General"].items["ForceActivateWindow"],
-;     ; AllowMultiTasking: globalConfig.subConfigs["General"].items["AllowMultiTasking"],
-;     ; AllowMultiTaskingGame: globalConfig.subConfigs["General"].items["AllowMultiTaskingGame"],
-;     ; MaxXInput: globalConfig.subConfigs["General"].items["MaxXInputControllers"],
-;     ; XinputDLL: globalConfig.subConfigs["General"].items["XInputDLL"],
-;     ; PriorityOrder: globalConfig.subConfigs["General"].items["PriorityOrder"],
+threads := Map()
+gConfig := Map()
+gStatus := Map()
 
-;     ; MonitorW: getDisplaySize(globalConfig.subConfigs["Display"])[1],
-;     ; MonitorH: getDisplaySize(globalConfig.subConfigs["Display"])[2],
+gStatus["paused"] := false
+gStatus["mode"] := ""
 
-;     ; EnableBoot: globalConfig.subConfigs["Boot"].items["EnableBoot"],
-;     ; BootScript: globalConfig.subConfigs["Boot"].items["BootScript"],
-; }
+gStatus["modifier"] := Map()
+gStatus["modifier"]["override"] := false
+gStatus["modifier"]["multi"] := false
 
-; globalStatusObj := {
-;     ; pause all scripting
-;     pauseScript: false,
-
-;     ; current modes
-;     ; valid modes: [boot, shutdown, restart, home, gamelauncher, game, browser, override, load]
-;     mode: "",
-;     pauseMenu: false,
-;     modifier: {
-;         override: false,
-;         multi: false,
-;     },
-
-;     currControllers: [],
-; }
-
-globalConfigObj := Map()
-
-globalStatusObj := Map()
-
-globalStatusObj["paused"] := false
-globalStatusObj["mode"] := ""
-globalStatusObj["currControllers"] := false
-
-globalStatusObj["modifier"] := Map()
-globalStatusObj["modifier"]["override"] := false
-globalStatusObj["modifier"]["multi"] := false
-
-globalStatusObj["suspendScript"] := false
+gStatus["suspendScript"] := false
 
 for key, value in globalConfig.subConfigs {
     configObj := Map()
@@ -70,10 +38,6 @@ for key, value in globalConfig.subConfigs {
     }
 
     for key2, value2, in value.items {
-        if (value2 = "") {
-            continue
-        }
-
         if (InStr(key, "List")) {
             if (IsObject(value2)) {
                 tempMap := Map()
@@ -100,34 +64,40 @@ for key, value in globalConfig.subConfigs {
         }
     }
 
-    globalConfigObj[key] := configObj
+    gConfig[key] := configObj
 
     ; check if executables in list are running
     if (InStr(key, "Executables")) {
-        globalStatusObj[("curr" . key)] := statusObj
+        gStatus[("curr" . key)] := statusObj
     }
 }
 
 ; add currGame to statusObj, kinda weird but i think it could work
-if (globalStatusObj.Has("currExecutables") && globalConfigObj.Has("ListExecutables")) {
-    for key, value in globalConfigObj["ListExecutables"] {
-        globalStatusObj["currExecutables"][(StrSplit(key, "_")[1])] := ""
+if (gStatus.Has("currExecutables") && gConfig.Has("ListExecutables")) {
+    for key, value in gConfig["ListExecutables"] {
+        gStatus["currExecutables"][(StrSplit(key, "_")[1])] := ""
     }
 }
 
-; create thread safe global config
-c_config := CriticalObject(globalConfigObj)
-
-; create thread safe current status
-c_status := CriticalObject(globalStatusObj)
-
 ; pre running program thread intialize xinput
+xLib := xLoadLib(gConfig["General"]["XInputDLL"])
+gControllers := xInitialize(xLib, gConfig["General"]["MaxXInputControllers"])
+
+; adds the list of keys to the map as a string so that the map can be enumerated
+; despite being a ComObject in the threads
+gConfig := addKeyListString(gConfig)
+gStatus := addKeyListString(gStatus)
+gControllers := addKeyListString(gControllers)
+
+; create xinput thread
+threads["controllerThread"] := controllerThread(ObjShare(gControllers))
 
 ; after xinput run boot script
 
 ; create check running program thread
-threads := ThreadList.New(ObjPtr(c_config), ObjPtr(c_status))
+threads["programThread"] := programThread(ObjShare(gConfig), ObjShare(gStatus))
 
-; big time crash issue
 Sleep(30000)
-threads.CloseAllThreads()
+
+xFreeLib(xLib)
+CloseAllThreads(threads)

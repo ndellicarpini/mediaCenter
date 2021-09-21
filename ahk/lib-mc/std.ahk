@@ -23,10 +23,10 @@ ptrListToString(ptrs*) {
 	retVal := ""
 
 	for value in ptrs {
-		retVal .= value . "."
+		retVal .= value . ","
 	}
 
-	return RTrim(retVal, ".")
+	return RTrim(retVal, ",")
 }
 
 ; reads a file and returns the entire contents as a string
@@ -80,12 +80,45 @@ checkEXEList(lists*) {
 ; return either "" if the process is not running, or the name of the process
 checkWNDWList(lists*) {
 	for functionList in lists {
-		for key, empty in functionList {
-			if (WinShown(key)) {
-				return key
+		if (functionList.Has("keys")) {
+			for key in StrSplit(functionList["keys"], ",") {
+				if (WinShown(key)) {
+					return key
+				}
+			}
+		}
+		else {
+			for key, empty in functionList {
+				if (WinShown(key)) {
+					return key
+				}
 			}
 		}
 	}
 
 	return ""
+}
+
+; adds a new member to an object called "keys" that contains a comma-deliminated string with all
+; of the keys in the object (specifically for ComObject as it cannot enumerate through its keys)
+;  obj - the map object to be given the member "keys"
+;
+; returns the obj with the new member
+addKeyListString(obj) {
+	tempString := ""
+
+	for key, value in obj {
+		if (key != "keys") {
+			tempString .= key . ","
+		}
+
+		; apply to all sub-maps in the object as well
+		if (Type(value) = "Map") {
+			obj["keys"] := addKeyListString(value)
+		}
+	}
+
+	obj["keys"] := RTrim(tempString, ",")
+
+	return obj
 }
