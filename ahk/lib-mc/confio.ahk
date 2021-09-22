@@ -21,7 +21,12 @@ class Config {
 					this.items[key] := false
 				}
 				else if (InStr(value, ",")) {
-					this.items[key] := StrSplit(value, ",")
+					tempArr := StrSplit(value, ",")
+
+					this.items[key] := []
+					for item in tempArr {
+						this.items[key].Push(Trim(item, "`t "))
+					}
 				}
 			}
 		}

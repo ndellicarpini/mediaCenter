@@ -7,6 +7,9 @@
 ; forces the window to activate if its the current program in main
 ForceActivateWindow = false
 
+; sets the ms for more complicated loops to sleep for to reduce cpu usage
+LoopSleep = 70
+
 ; enables multitasking through a double press of the xbox home button
 AllowMultiTasking = false
 
@@ -75,7 +78,7 @@ HomeDir = C:\Kodi
 GameLauncher = BigBox.exe
 GameLauncherDir = C:\LaunchBox
 
-Browser = chrome.exe
+Browser = msedge.exe
 BrowserDir = C:\chrome
 
 

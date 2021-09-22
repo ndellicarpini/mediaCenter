@@ -3,8 +3,26 @@
 ;
 ; returns winexist
 WinShown(window) {
+	resetDHW := A_DetectHiddenWindows
+
 	DetectHiddenWindows(false)
-	return WinExist(window)
+	retVal := WinExist(window)
+	DetectHiddenWindows(resetDHW)
+
+	return retVal
+}
+
+; returns true if media center running, false otherwise
+;
+; returns boolean
+mediaCenterRunning() {
+	resetDHW := A_DetectHiddenWindows
+
+	DetectHiddenWindows(true)
+	retVal := WinExist("MediaCenterMain")
+	DetectHiddenWindows(resetDHW)
+
+	return retVal ? true : false
 }
 
 ; converts the value to a string by appending it to empty string
@@ -66,20 +84,32 @@ ptrListToString(ptrs*) {
 addKeyListString(obj) {
 	tempString := ""
 
-	for key, value in obj {
-		if (key != "keys") {
-			tempString .= key . ","
+	if (Type(obj) = "Map") {
+		for key, value in obj {
+			if (key != "keys") {
+				tempString .= key . ","
+			}
+
+			; apply to all sub-objs in the object as well
+			if (IsObject(value)) {
+				obj[key] := addKeyListString(value)
+			}
 		}
 
-		; apply to all sub-maps in the object as well
-		if (Type(value) = "Map") {
-			obj["keys"] := addKeyListString(value)
-		}
+		obj["keys"] := RTrim(tempString, ",")
+		return obj
 	}
+	else {
+		newObj := Map()
+		tempString := ""
+		loop obj.Length {
+			tempString .= toString(A_Index) . ","
+			newObj[toString(A_Index)] := obj[A_Index]
+		} 
 
-	obj["keys"] := RTrim(tempString, ",")
-
-	return obj
+		newObj["keys"] := RTrim(tempString, ",")
+		return newObj
+	}
 }
 
 ; sets the current script's window title to the string in name

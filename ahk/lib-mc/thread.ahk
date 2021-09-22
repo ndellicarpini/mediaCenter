@@ -7,15 +7,30 @@ programThread(configShare, statusShare) {
     return ThreadObj(
     (
         "#Include lib-mc\std.ahk
+
         configShare := ObjShare(" configShare ")
         statusShare := ObjShare(" statusShare ")
+
+        loopSleep := configShare['General']['LoopSleep']
         
-        Loop {
+        loop {
             for key in StrSplit(statusShare['keys'], ',') {
                 
                 ; check for status starting with curr (supposed to be programs to be checked if running)
                 if (InStr(key, 'curr') && IsObject(statusShare[key])) {
                     configKey := StrReplace(key, 'curr')
+                    
+                    ; if program is running, set variable in curr[Status]
+                    if (configShare.Has(configKey) && IsObject(configShare[configKey])) {
+                        for key2 in StrSplit(configShare[configKey]['keys'], ',') {   
+                            
+                            if (statusShare[key].Has(key2)) {
+                                statusShare[key][key2] := ProcessExist(configShare[configKey][key2]) ? configShare[configKey][key2] : ''
+                            }
+                        }
+                    }
+
+                    Sleep(loopSleep)
 
                     ; if there is list of type of program, use checkexe/wndwlist
                     if (configShare.Has('List' . configKey)) {
@@ -34,24 +49,44 @@ programThread(configShare, statusShare) {
                             }
                         }                         
                     }
-
-                    Sleep(50)
-                    
-                    ; if program is running, set variable in curr[Status]
-                    if (configShare.Has(configKey) && IsObject(configShare[configKey])) {
-                        for key2 in StrSplit(configShare[configKey]['keys'], ',') {   
-                            
-                            if (configShare[configKey].Has(key2)) {
-                                statusShare[key][key2] := ProcessExist(configShare[configKey][key2]) ? configShare[configKey][key2] : ''
-                            }
-                        }
-                    }
-
-                    Sleep(50)
                 }
             }
 
-            ; add mode switcher
+            ; mode switcher
+            ; need to come up with a procedure for handling when multitasking is enabled
+
+            if (!statusShare['modifier']['multi']) {
+                if (statusShare['override'] != '') {
+                    
+                    ; check if program specified as override is still running, if not clear override
+                    if (statusShare['currExecutables'][(statusShare['override'])] != '') {
+                        statusShare['mode'] := statusShare['override']
+                    }
+                    else {
+                        statusShare['override'] := ''
+                    }
+                }
+                else {
+                    for key in StrSplit(configShare['General']['PriorityOrder']['keys'], ',') {                        
+
+                        ; set mode based on priority order
+                        if (statusShare['currExecutables'][(configShare['General']['PriorityOrder'][key])] != '') {
+                            if (key = 'Override') {
+                                statusShare['override'] := configShare['General']['PriorityOrder'][key]
+                            }
+
+                            statusShare['mode'] := configShare['General']['PriorityOrder'][key]
+                            break
+                        }
+                    }
+                }
+            }
+
+            if (!mediaCenterRunning()) {
+                ExitApp()
+            }
+
+            Sleep(loopSleep)
         }"
     ))
 }
@@ -60,18 +95,27 @@ programThread(configShare, statusShare) {
 ;  controllerShare - gControllers as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that checks controller statuses
-controllerThread(controllerShare) {
+controllerThread(configShare, controllerShare) {
     return ThreadObj(
     (
-        "#Include lib-mc\xinput.ahk
+        "#Include lib-mc\std.ahk
+         #Include lib-mc\xinput.ahk
+        
+        configShare := ObjShare(" configShare ")
         controllerShare := ObjShare(" controllerShare ")
 
-        Loop {
+        loopSleep := configShare['General']['LoopSleep']
+
+        loop {
             for key in StrSplit(controllerShare['keys'], ',') {
                 controllerShare[Integer(key)].update()
-
-                Sleep(50)
             }
+
+            if (!mediaCenterRunning()) {
+                ExitApp()
+            }
+
+            Sleep(loopSleep)
         }"
     ))
 }
@@ -82,6 +126,10 @@ controllerThread(controllerShare) {
 ; returns null
 CloseAllThreads(threads) {
     for key, value in threads {
-        value.ExitApp()
+        try {
+            value.ExitApp()
+        }
+        catch
+        {}
     }
 }

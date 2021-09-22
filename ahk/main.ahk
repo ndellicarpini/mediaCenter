@@ -21,9 +21,9 @@ gStatus := Map()
 
 gStatus["paused"] := false
 gStatus["mode"] := ""
+gStatus["override"] := ""
 
 gStatus["modifier"] := Map()
-gStatus["modifier"]["override"] := false
 gStatus["modifier"]["multi"] := false
 
 gStatus["suspendScript"] := false
@@ -60,7 +60,7 @@ for key, value in globalConfig.subConfigs {
         }
         else {
             configObj[key2] := value2
-            
+        
             if (InStr(key, "Executables") && !InStr(key2, "Dir")) {
                 statusObj[key2] := ""
             }
@@ -75,7 +75,7 @@ for key, value in globalConfig.subConfigs {
     }
 }
 
-; add currGame to statusObj, kinda weird but i think it could work
+; adds lists to currExecutables
 if (gStatus.Has("currExecutables") && gConfig.Has("ListExecutables")) {
     for key, value in gConfig["ListExecutables"] {
         gStatus["currExecutables"][(StrSplit(key, "_")[1])] := ""
@@ -93,7 +93,7 @@ gStatus := addKeyListString(gStatus)
 gControllers := addKeyListString(gControllers)
 
 ; ----- START THREADS & BOOT -----
-threads["controllerThread"] := controllerThread(ObjShare(gControllers))
+threads["controllerThread"] := controllerThread(ObjShare(gConfig), ObjShare(gControllers))
 
 ; after xinput run boot script
 
