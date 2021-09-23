@@ -8,18 +8,26 @@ class Config {
 	subConfigs := Map()
 	items := Map()
 
+	; convert the items into the proper types
+	;
+	; returns null
 	cleanItems() {
 		for key, value in this.items {
+
+			; try to convert the item into a float, if successful save as number
 			try {
 				this.items[key] := Float(value)
 			}
 			catch {
+				; check if value is a string representing a bool, convert to bool
 				if (StrLower(value) = "true") {
 					this.items[key] := true
 				}
 				else if (StrLower(value) = "false") {
 					this.items[key] := false
 				}
+				
+				; check if value is an array (contains ","), and convert appropriately
 				else if (InStr(value, ",")) {
 					tempArr := StrSplit(value, ",")
 
@@ -32,6 +40,9 @@ class Config {
 		}
 	}
 
+	; perform cleanItems on subConfigs
+	;
+	; returns null
 	cleanAllItems() {
 		this.cleanItems()
 

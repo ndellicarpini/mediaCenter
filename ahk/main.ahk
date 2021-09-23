@@ -10,28 +10,32 @@
 
 ; might need to figure out dynamic includes uhhhhhh yut oh
 setCurrentWinTitle("MediaCenterMain")
+
+global mainMessage := []
 enableMainMessageListener()
 
 ; ----- READ GLOBAL CONFIG -----
 globalConfig := readGlobalConfig()
 
 threads := Map()
-gConfig := Map()
-gStatus := Map()
+mainConfig := Map()
+mainStatus := Map()
 
-gStatus["paused"] := false
-gStatus["mode"] := ""
-gStatus["override"] := ""
+mainStatus["paused"] := false
+mainStatus["mode"] := ""
+mainStatus["override"] := ""
 
-gStatus["modifier"] := Map()
-gStatus["modifier"]["multi"] := false
+mainStatus["modifier"] := Map()
+mainStatus["modifier"]["multi"] := false
 
-gStatus["suspendScript"] := false
+mainStatus["suspendScript"] := false
 
+; setup status and config 
 for key, value in globalConfig.subConfigs {
     configObj := Map()
     statusObj := Map()
     
+    ; if getting monitor config -> convert to monitorH and monitorW
     if (key = "Monitor") {
         temp := getDisplaySize(globalConfig.subConfigs["Display"])
         configObj["MonitorW"] := temp[1]
@@ -40,7 +44,10 @@ for key, value in globalConfig.subConfigs {
         continue
     }
 
+    ; for each subconfig (not monitor), convert to appropriate config & status objects
     for key2, value2, in value.items {
+        
+        ; check if subconfig is called ListX, if so read each value as a file
         if (InStr(key, "List")) {
             if (IsObject(value2)) {
                 tempMap := Map()
@@ -67,40 +74,57 @@ for key, value in globalConfig.subConfigs {
         }
     }
 
-    gConfig[key] := configObj
+    mainConfig[key] := configObj
 
     ; check if executables in list are running
-    if (InStr(key, "Executables")) {
-        gStatus[("curr" . key)] := statusObj
+    if (InStr(key, "Executables") && !InStr(key, "List")) {
+        mainStatus[("curr" . key)] := statusObj
     }
 }
 
-; adds lists to currExecutables
-if (gStatus.Has("currExecutables") && gConfig.Has("ListExecutables")) {
-    for key, value in gConfig["ListExecutables"] {
-        gStatus["currExecutables"][(StrSplit(key, "_")[1])] := ""
+; adds ListX to currX status where X is the same
+for key, value in mainConfig {
+    if (InStr(key, "List") && Type(mainConfig[key]) = "Map" 
+    && mainStatus.Has("curr" . StrReplace(key, "List"))) {
+        for key2, value2 in mainConfig[key] {
+            mainStatus["curr" . StrReplace(key, "List")][(StrSplit(key2, "_")[1])] := ""
+        }
     }
 }
 
 ; pre running program thread intialize xinput
-xLib := xLoadLib(gConfig["General"]["XInputDLL"])
-gControllers := xInitialize(xLib, gConfig["General"]["MaxXInputControllers"])
+xLib := xLoadLib(mainConfig["General"]["XInputDLL"])
+mainControllers := xInitialize(xLib, mainConfig["General"]["MaxXInputControllers"])
 
 ; adds the list of keys to the map as a string so that the map can be enumerated
 ; despite being a ComObject in the threads
-gConfig := addKeyListString(gConfig)
-gStatus := addKeyListString(gStatus)
-gControllers := addKeyListString(gControllers)
+mainConfig      := addKeyListString(mainConfig)
+mainStatus      := addKeyListString(mainStatus)
+mainControllers := addKeyListString(mainControllers)
 
-; ----- START THREADS & BOOT -----
-threads["controllerThread"] := controllerThread(ObjShare(gConfig), ObjShare(gControllers))
+; ----- START CONTROLLER THEAD -----
+threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
-; after xinput run boot script
+; ----- START BOOT -----
+addFile(mainConfig["Boot"]["BootScript"], 1)
 
-; create check running program thread
-threads["programThread"] := programThread(ObjShare(gConfig), ObjShare(gStatus))
+; ----- START PROGRAM -----
+threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus))
+threads["loopThread"] := "check for loop program running"
 
-Sleep(30000)
+; Sleep(30000)
+
+; loop {
+;     ;perform actions based on mode & main message
+
+;     if (mainMessage != []) {
+;         ; do something based on main message
+;         mainMessage := []
+;     }
+
+;     ; need sleep in order to 
+;     Sleep(mainConfig["General"]["AvgLoopSleep"])
+; }
 
 disableMainMessageListener()
 xFreeLib(xLib)

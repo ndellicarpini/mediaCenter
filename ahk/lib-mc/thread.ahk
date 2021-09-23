@@ -6,12 +6,13 @@
 programThread(configShare, statusShare) {
     return ThreadObj(
     (
-        "#Include lib-mc\std.ahk
+        "
+        #Include lib-mc\std.ahk
 
         configShare := ObjShare(" configShare ")
         statusShare := ObjShare(" statusShare ")
 
-        loopSleep := configShare['General']['LoopSleep']
+        loopSleep := configShare['General']['AvgLoopSleep']
         
         loop {
             for key in StrSplit(statusShare['keys'], ',') {
@@ -87,7 +88,8 @@ programThread(configShare, statusShare) {
             }
 
             Sleep(loopSleep)
-        }"
+        }
+        "
     ))
 }
 
@@ -98,13 +100,14 @@ programThread(configShare, statusShare) {
 controllerThread(configShare, controllerShare) {
     return ThreadObj(
     (
-        "#Include lib-mc\std.ahk
-         #Include lib-mc\xinput.ahk
+        "
+        #Include lib-mc\std.ahk
+        #Include lib-mc\xinput.ahk
         
         configShare := ObjShare(" configShare ")
         controllerShare := ObjShare(" controllerShare ")
 
-        loopSleep := configShare['General']['LoopSleep']
+        loopSleep := configShare['General']['AvgLoopSleep'] / 3
 
         loop {
             for key in StrSplit(controllerShare['keys'], ',') {
@@ -116,7 +119,8 @@ controllerThread(configShare, controllerShare) {
             }
 
             Sleep(loopSleep)
-        }"
+        }
+        "
     ))
 }
 
@@ -129,7 +133,8 @@ CloseAllThreads(threads) {
         try {
             value.ExitApp()
         }
-        catch
-        {}
+        catch {
+            continue
+        }
     }
 }

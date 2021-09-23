@@ -8,7 +8,7 @@
 ForceActivateWindow = false
 
 ; sets the ms for more complicated loops to sleep for to reduce cpu usage
-LoopSleep = 70
+AvgLoopSleep = 100
 
 ; enables multitasking through a double press of the xbox home button
 AllowMultiTasking = false

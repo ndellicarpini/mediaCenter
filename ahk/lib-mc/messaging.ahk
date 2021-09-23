@@ -61,11 +61,8 @@ handleMessage(wParam, lParam, msg, hwnd) {
         if (messageData = MESSAGE_END) {
             MESSAGE_ENABLE := false
 
-            ; perform actions with message data
-            for item in MESSAGE_DATA{
-                MsgBox(item)
-            }
-
+            ; send message to main
+            mainMessage := MESSAGE_DATA
             MESSAGE_DATA := []
         }
         else {

@@ -83,33 +83,34 @@ ptrListToString(ptrs*) {
 ; returns the obj with the new member
 addKeyListString(obj) {
 	tempString := ""
+	newObj := Map()
 
+	; if the obj is a map, just add the "keys" to the map
 	if (Type(obj) = "Map") {
-		for key, value in obj {
+		newObj := obj
+
+		for key, value in newObj {
 			if (key != "keys") {
 				tempString .= key . ","
 			}
 
 			; apply to all sub-objs in the object as well
 			if (IsObject(value)) {
-				obj[key] := addKeyListString(value)
+				newObj[key] := addKeyListString(value)
 			}
 		}
-
-		obj["keys"] := RTrim(tempString, ",")
-		return obj
 	}
+
+	; if the obj is not a map, convert the obj to a map and add the "keys" key
 	else {
-		newObj := Map()
-		tempString := ""
 		loop obj.Length {
 			tempString .= toString(A_Index) . ","
 			newObj[toString(A_Index)] := obj[A_Index]
 		} 
-
-		newObj["keys"] := RTrim(tempString, ",")
-		return newObj
 	}
+
+	newObj["keys"] := RTrim(tempString, ",")
+	return newObj
 }
 
 ; sets the current script's window title to the string in name
@@ -146,6 +147,7 @@ checkEXEList(lists*) {
 ; return either "" if the process is not running, or the name of the process
 checkWNDWList(lists*) {
 	for functionList in lists {
+		
 		if (functionList.Has("keys")) {
 			for key in StrSplit(functionList["keys"], ",") {
 				if (WinShown(key)) {
