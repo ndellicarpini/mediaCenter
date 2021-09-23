@@ -225,3 +225,6 @@ PuyoPuyoTetris2.exe
 SOR4.exe
 ASN_App_PcDx9_Final.exe
 SuperliminalSteam.exe
+Adventures of Chris.exe
+DH-Win64-Shipping.exe
+Vanquish.exe
