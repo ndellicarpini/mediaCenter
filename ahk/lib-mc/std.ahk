@@ -12,25 +12,30 @@ WinShown(window) {
 	return retVal
 }
 
-; returns true if media center running, false otherwise
-;
-; returns boolean
-mediaCenterRunning() {
-	resetDHW := A_DetectHiddenWindows
-
-	DetectHiddenWindows(true)
-	retVal := WinExist("MediaCenterMain")
-	DetectHiddenWindows(resetDHW)
-
-	return retVal ? true : false
-}
-
 ; converts the value to a string by appending it to empty string
 ;  value - value to convert to string
 ; 
 ; returns string containing value
 toString(value) {
 	return "" . value
+}
+
+; gets the string's eol setup (either `r, `n, or `r`n)
+;  toRead - string to check eol
+;
+; returns either `r, `n, or `r`n based on string eol
+getEOL(toRead) {
+	if (InStr(toRead, "`r")) {
+		if (InStr(toRead, "`r`n")) {
+			return "`r`n"
+		}
+		else {
+			return "`r"
+		}
+	}
+	else {
+		return "`n"
+	}
 }
 
 ; masks list with mask (only values in mask show up in retList)
@@ -57,9 +62,9 @@ maskList(list, mask) {
 ;
 ; returns string of file contents
 fileToString(toRead) {
-	file := FileOpen(toRead, "r")
-	retString := file.Read()
-	file.Close()
+	fileObj := FileOpen(toRead, "r")
+	retString := fileObj.Read()
+	fileObj.Close()
 
 	return retString
 }
@@ -184,4 +189,17 @@ checkWNDWList(lists*) {
 	}
 
 	return ""
+}
+
+; returns true if media center running, false otherwise
+;
+; returns boolean
+mediaCenterRunning() {
+	resetDHW := A_DetectHiddenWindows
+
+	DetectHiddenWindows(true)
+	retVal := WinExist("MediaCenterMain")
+	DetectHiddenWindows(resetDHW)
+
+	return retVal ? true : false
 }

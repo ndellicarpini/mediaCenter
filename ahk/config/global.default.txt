@@ -36,11 +36,11 @@ Height = 0
 
 
 [Boot]
-; enables the boot script determined by BootScript
+; enables the boot script determined by BootFunc
 EnableBoot = false
 
 ; an AHK script that runs after the global config is digested, but before any main actions take place [TODO - better explanation]
-BootScript = 
+BootFunc = 
 
 
 [LoadScreen]
@@ -48,24 +48,24 @@ BootScript =
 EnableLoadScreen = false
 
 ; an AHK script that creates the gui for the loadscreen
-CreateLoadScript = 
+CreateLoadFunc = 
 
 ; an AHK script that updates the loadscreen with whatever kwargs user passes
-UpdateLoadScript = 
+UpdateLoadFunc = 
 
 ; an AHK script that destroys the loadscreen
-DestroyLoadScript = 
+DestroyLoadFunc = 
 
 
 [Pause]
-; enables pause menu that activates from the script in PauseScript
+; enables pause menu that activates from the script in PauseFunc
 EnablePause = false
 
 ; disables the pause menu on specific programs/programlists as a comma-deliminated list
 DisablePausePrograms = 
 
 ; an AHK script that is handled when pause is activated
-PauseScript = 
+PauseFunc = 
 
 
 [Executables]

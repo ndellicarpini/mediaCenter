@@ -1,5 +1,11 @@
-﻿#SingleInstance Force
+#SingleInstance Force
 #WarnContinuableException Off
+
+; ----- DYNAMIC INCLUDE START -----
+#Include lib-custom\boot.ahk
+#Include lib-custom\loadscreen.ahk
+#Include lib-custom\pause.ahk
+; -----  DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
 #Include lib-mc\thread.ahk
@@ -8,7 +14,6 @@
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
 
-; might need to figure out dynamic includes uhhhhhh yut oh
 setCurrentWinTitle("MediaCenterMain")
 
 global mainMessage := []
@@ -105,10 +110,8 @@ mainControllers := addKeyListString(mainControllers)
 ; ----- START CONTROLLER THEAD -----
 threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
-; ----- START BOOT -----
-; this is causing some sort of memory error??
-; TODO - better way to handle dynamic imports
-; addFile(mainConfig["Boot"]["BootScript"], 1)
+cuntfig := readMultiCfg("config\consoles.mcfg", ["Arcade", "Playstation 3"])
+MsgBox(cuntfig.subConfigs["Playstation 3"].items["dir"])
 
 ; ----- START PROGRAM -----
 threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus))
@@ -130,9 +133,11 @@ threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainSta
 ;     Sleep(mainConfig["General"]["AvgLoopSleep"])
 ; }
 
+Sleep(10000)
+
 disableMainMessageListener()
 CloseAllThreads(threads)
 xFreeLib(xLib)
 
-Sleep(500)
+Sleep(100)
 ExitApp()
