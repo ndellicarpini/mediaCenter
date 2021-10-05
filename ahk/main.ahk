@@ -106,11 +106,13 @@ mainControllers := addKeyListString(mainControllers)
 threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
 ; ----- START BOOT -----
-addFile(mainConfig["Boot"]["BootScript"], 1)
+; this is causing some sort of memory error??
+; TODO - better way to handle dynamic imports
+; addFile(mainConfig["Boot"]["BootScript"], 1)
 
 ; ----- START PROGRAM -----
 threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus))
-threads["loopThread"] := "check for loop program running"
+; threads["loopThread"] := "check for loop program running"
 
 ; Sleep(30000)
 
@@ -122,13 +124,15 @@ threads["loopThread"] := "check for loop program running"
 ;         mainMessage := []
 ;     }
 
+;     MsgBox(mainControllers[0].A)
+
 ;     ; need sleep in order to 
 ;     Sleep(mainConfig["General"]["AvgLoopSleep"])
 ; }
 
 disableMainMessageListener()
-xFreeLib(xLib)
 CloseAllThreads(threads)
+xFreeLib(xLib)
 
 Sleep(500)
 ExitApp()

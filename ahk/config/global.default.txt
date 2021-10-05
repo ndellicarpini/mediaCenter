@@ -70,6 +70,8 @@ PauseScript =
 
 [Executables]
 ; list of executables to be checked if running & will be affected by priority
+; will be referenced by checking lib-exec for the name of the exec.toLower
+; (ei. lib-exec\gamelauncher.ahk)
 ; NOTE: Home IS REQUIRED
 Home = 
 HomeDir = 

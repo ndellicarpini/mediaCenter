@@ -33,6 +33,25 @@ toString(value) {
 	return "" . value
 }
 
+; masks list with mask (only values in mask show up in retList)
+;  list - list to mask
+;  mask - list mask
+;
+; returns list masked with mask
+maskList(list, mask) {
+	retList := []
+
+	for value in mask {
+		for value2 in list {
+			if (value = value2) {
+				retList.Push(value)
+			}
+		}
+	}
+
+	return retList
+}
+
 ; reads a file and returns the entire contents as a string
 ;  toRead - filepath to read
 ;
@@ -95,7 +114,7 @@ addKeyListString(obj) {
 			}
 
 			; apply to all sub-objs in the object as well
-			if (IsObject(value)) {
+			if (Type(value) = "Map" || Type(value) = "Array") {
 				newObj[key] := addKeyListString(value)
 			}
 		}
