@@ -1,3 +1,4 @@
+#Include lib-mc\std.ahk
 #Include lib-mc\messaging.ahk
 
 ; check that mediacenter is actually running

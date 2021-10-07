@@ -4,6 +4,9 @@
 ; NOTE: lines that START WITH ; are registered as comments and will be ignored by config reading functions
 
 [General]
+; forces media center to always run by using companion script to ensure running
+ForceMaintainMain = false
+
 ; forces the window to activate if its the current program in main
 ForceActivateWindow = false
 
@@ -39,7 +42,7 @@ Height = 0
 
 [Boot]
 ; enables the boot script determined by BootFunc
-EnableBoot = false
+EnableBoot = true
 
 ; an AHK script that runs after the global config is digested, but before any main actions take place [TODO - better explanation]
 StartBoot = boot

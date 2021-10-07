@@ -1,3 +1,20 @@
+; ----- GLOBAL VARIABLES -----
+global MAINNAME := "MediaCenterMain"
+global MAINLOOP := "MediaCenterLoop"
+
+global DYNASTART := "; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----"
+global DYNAEND   := "; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----"
+
+; ----- FUNCTIONS -----
+
+; closes a window's process based on window
+;  window - window whose process to close
+;
+; return ProcessClose
+ProcessWinClose(window) {
+	return ProcessClose(WinGetPID(WinHidden(window)))
+}
+
 ; returns the winexist of the window only if the window is not hidden
 ;  window - window to check based on WinTitle
 ;
@@ -6,6 +23,20 @@ WinShown(window) {
 	resetDHW := A_DetectHiddenWindows
 
 	DetectHiddenWindows(false)
+	retVal := WinExist(window)
+	DetectHiddenWindows(resetDHW)
+
+	return retVal
+}
+
+; returns the winexist of the window even if its hidden
+;  window - window to check based on WinTitle
+;
+; returns winexist
+WinHidden(window) {
+	resetDHW := A_DetectHiddenWindows
+
+	DetectHiddenWindows(true)
 	retVal := WinExist(window)
 	DetectHiddenWindows(resetDHW)
 
@@ -117,20 +148,6 @@ fileOrString(toRead) {
     return retString
 }
 
-; converts a list of pointers to a string with each pointer seperated by a period
-;  ptrs* - variable amount of pointers
-;
-; returns string of pointers seperated by periods
-ptrListToString(ptrs*) {
-	retVal := ""
-
-	for value in ptrs {
-		retVal .= value . ","
-	}
-
-	return RTrim(retVal, ",")
-}
-
 ; adds a new member to an object called "keys" that contains a comma-deliminated string with all
 ; of the keys in the object (specifically for ComObject as it cannot enumerate through its keys)
 ;  obj - the map object to be given the member "keys"
@@ -222,15 +239,33 @@ checkWNDWList(lists*) {
 	return ""
 }
 
-; returns true if media center running, false otherwise
+; returns the string containing the dynamic includes if it exists
+;  toRead - string/file to check for dynamic include section
 ;
-; returns boolean
-mediaCenterRunning() {
-	resetDHW := A_DetectHiddenWindows
+; returns dynamic include string or ""
+getDynamicIncludes(toRead) {
+	mainString := fileOrString(toRead)
+	eol := getEOL(mainString)
 
-	DetectHiddenWindows(true)
-	retVal := WinExist("MediaCenterMain")
-	DetectHiddenWindows(resetDHW)
+	retString := ""
+	startReplace := false
+	if (InStr(mainString, DYNASTART)) {
+		loop parse mainString, eol {
+			if (InStr(A_LoopField, DYNASTART)) {
+				retString .= A_LoopField . eol
+				startReplace := true
+			}
+			else if (InStr(A_LoopField, DYNAEND)) {
+				retString .= A_LoopField . eol
+				startReplace := false
 
-	return retVal ? true : false
+				break
+			}
+			else if (startReplace) {
+				retString .= A_LoopField . eol
+			}
+		}
+	}
+
+	return retString
 }

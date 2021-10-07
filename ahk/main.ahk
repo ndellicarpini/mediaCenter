@@ -1,4 +1,4 @@
-﻿#SingleInstance Force
+#SingleInstance Force
 #WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
@@ -7,9 +7,8 @@
 #Include lib-custom\games.ahk
 #Include lib-custom\loadscreen.ahk
 #Include lib-custom\pausescreen.ahk
+#Include lib-custom\emulators\retroarch.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
-; TODO - NEED TO SETUP WAY TO TURN THESE INCLUDES INTO A VARIABLE &
-;        APPLY IT TO THREADS
 
 #Include lib-mc\confio.ahk
 #Include lib-mc\thread.ahk
@@ -18,17 +17,19 @@
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
 
-setCurrentWinTitle("MediaCenterMain")
+setCurrentWinTitle(MAINNAME)
 
+global dynamicInclude := getDynamicIncludes(A_ScriptFullPath)
 global mainMessage := []
-enableMainMessageListener()
 
 ; ----- READ GLOBAL CONFIG -----
-globalConfig := readGlobalConfig()
-
-threads := Map()
 mainConfig := Map()
 mainStatus := Map()
+
+globalConfig := readGlobalConfig()
+
+; initialize startup arguments
+mainConfig["StartArgs"] := A_Args
 
 ; initialize basic status features
 ; TODO - ensure pause screen shows the correct options based on mode?
@@ -122,33 +123,65 @@ mainConfig      := addKeyListString(mainConfig)
 mainStatus      := addKeyListString(mainStatus)
 mainControllers := addKeyListString(mainControllers)
 
+; configure objects to be used in a thread-safe manner
+shareConfig      := ObjShare(ObjShare(mainConfig))
+shareStatus      := ObjShare(ObjShare(mainStatus))
+shareControllers := ObjShare(ObjShare(mainControllers))
+
+threads := Map()
+
 ; ----- START CONTROLLER THEAD -----
+; this thread just updates the status of each controller in a loop
 threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
-; ----- START PROGRAM -----
+; ----- BOOT -----
+if (shareConfig["Boot"]["EnableBoot"]) {
+    %shareConfig["Boot"]["StartBoot"]%(shareConfig)
+}
+
+; ----- START PROGRAM ----- 
+; this thread updates the status mode based on checking running programs
 threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus))
-; threads["loopThread"] := "check for loop program running"
 
-; Sleep(30000)
+; ----- START ACTION -----
+; this thread reads controller & status to determine what actions needing to be taken
+; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
+; threads["actionThread"] := actionThread()
 
-; loop {
-;     ;perform actions based on mode & main message
+; ----- ENABLE LISTENER -----
+enableMainMessageListener()
 
-;     if (mainMessage != []) {
-;         ; do something based on main message
-;         mainMessage := []
-;     }
+; ----- MAIN THREAD LOOP -----
+loopSleep := shareConfig["General"]["AvgLoopSleep"] * 3
+loop {
+    ;perform actions based on mode & main message
 
-;     MsgBox(mainControllers[0].A)
+    if (mainMessage != []) {
+        ; do something based on main message
+        mainMessage := []
+    }
 
-;     ; need sleep in order to 
-;     Sleep(mainConfig["General"]["AvgLoopSleep"])
-; }
+    if (shareControllers[0].A) {
+        shareStatus["suspendScript"] := shareStatus["suspendScript"] ? false : true
 
-Sleep(10000)
+        while(shareControllers[0].A) {
+            Sleep(10)
+        }
+    }
+
+    ; need to check that threads are running - currently no way to do this without there being a debug print
+
+    ; check looper
+    if (shareConfig["General"]["ForceMaintainMain"] && !shareStatus["suspendScript"] && !WinHidden(MAINLOOP)) {
+        Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
+    }
+
+    ; need sleep in order to 
+    Sleep(loopSleep)
+}
 
 disableMainMessageListener()
-CloseAllThreads(threads)
+closeAllThreads(threads)
 xFreeLib(xLib)
 
 Sleep(100)

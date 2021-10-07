@@ -3,7 +3,9 @@
 ;
 ; returns null
 WinCheckActivate(window, mainConfig, type := "") {
+    ; check status if minimized
 
+    ; after restored, if force window activate on -> clean activate
     
 
 }

@@ -40,7 +40,7 @@ if (generalConfig.items.Has("CustomLibDir") && generalConfig.items["CustomLibDir
 
     else {
         ; close main if its already running
-        if (mediaCenterRunning()) {
+        if (WinHidden(MAINNAME)) {
             DetectHiddenWindows(true)
             pid := WinGetPID("MediaCenterMain")
 
@@ -53,38 +53,18 @@ if (generalConfig.items.Has("CustomLibDir") && generalConfig.items["CustomLibDir
 
         eol := getEOL(mainString)
 
-        ; create dynamic include string
-        dynaStringStart := "; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----"
-        dynaStringEnd   := "; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----"
-
-        includeString := dynaStringStart . eol
-        loop files (customLibDir . "*.ahk") {
+        ; build new dynamic include string
+        includeString := DYNASTART . eol
+        loop files (customLibDir . "*.ahk"), "R" {
             includeString .= "#Include " . A_LoopFileShortPath . eol
         }
-        includeString .= dynaStringEnd . eol
+        includeString .= DYNAEND . eol
 
-        toReplace := ""
+        toReplace := getDynamicIncludes(mainString)
         startReplace := false
 
         ; if dynamic include has already been generated
-        if (InStr(mainString, dynaStringStart)) {
-            loop parse mainString, eol {
-                if (InStr(A_LoopField, dynaStringStart)) {
-                    toReplace .= A_LoopField . eol
-                    startReplace := true
-                }
-                else if (InStr(A_LoopField, dynaStringEnd)) {
-                    toReplace .= A_LoopField . eol
-                    startReplace := false
-
-                    break
-                }
-                else if (startReplace) {
-                    toReplace .= A_LoopField . eol
-                }
-            }
-        }
-        else {
+        if (toReplace = "") {
             loop parse mainString, eol {
                 if (InStr(A_LoopField, "#Include ")) {
                     toReplace := A_LoopField

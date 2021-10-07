@@ -4,8 +4,8 @@
 ;
 ; returns the ThreadObj that checks running programs
 programThread(configShare, statusShare) {
-    return ThreadObj(
-    (
+    return ThreadObj(dynamicInclude
+    (   
         "
         #Include lib-mc\std.ahk
         #Include lib-mc\status.ahk
@@ -31,68 +31,71 @@ programThread(configShare, statusShare) {
         }
     
         loop {
+            if (!statusShare['suspendScript']) {
 
-            ; check which programs are running based on values taken from global.txt
-            for key, value in execMaps {
-                isList := false
-                currKey := key
-                
-                if (InStr(key, 'list', false)) {
-                    isList := true
-                    currKey := StrReplace(key, 'list',, false)
-                }
-
-                if (isList) {
-                    for key2, value2 in value {
-                        if (InStr(key2, '_EXE', true)) {
-                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkEXEList(value2)
-                        }
-                        else if (InStr(key2, '_WNDW', true)) {
-                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkWNDWList(value2)
-                        }
+                ; check which programs are running based on values taken from global.txt
+                for key, value in execMaps {
+                    isList := false
+                    currKey := key
+                    
+                    if (InStr(key, 'list', false)) {
+                        isList := true
+                        currKey := StrReplace(key, 'list',, false)
                     }
-                }
-                else {
-                    for key2, value2 in value {
-                        if (InStr(key2, '_EXE', true)) {
-                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := ProcessExist(value2) ? value2 : ''
+    
+                    if (isList) {
+                        for key2, value2 in value {
+                            if (InStr(key2, '_EXE', true)) {
+                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkEXEList(value2)
+                            }
+                            else if (InStr(key2, '_WNDW', true)) {
+                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkWNDWList(value2)
+                            }
                         }
-                        else if (InStr(key2, '_WNDW', true)) {
-                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := WinShown(value2) ? value2 : ''
-                        }
-                    }
-                }                
-            }
-
-            ; switch the mode based on running programs
-            if (statusShare['override'] != '') {
-                ; check if program specified as override is still running, if not clear override
-                if (statusShare['currExecutables'][(statusShare['override'])] != '') {
-                    WinCheckActivate(statusShare['currExecutables'][(statusShare['override'])], configShare, statusShare['override'])
-                }
-                else {
-                    statusShare['override'] := ''
-                }
-            }
-            else {
-                if (statusShare['load']['show']) {
-                    %configShare['LoadScreen']['Update']%(statusShare['load']['text'], configShare['General']['ForceActivateWindow'])
-                }
-                else if (statusShare['pause']) {
-                    ; check if pause screen exist 
-                    if (configShare['General']['ForceActivateWindow'] && %configShare['PauseScreen']['Exist']%()) {
-                        %configShare['PauseScreen']['Activate']%()
                     }
                     else {
-                        statusShare['pause'] := false
+                        for key2, value2 in value {
+                            if (InStr(key2, '_EXE', true)) {
+                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := ProcessExist(value2) ? value2 : ''
+                            }
+                            else if (InStr(key2, '_WNDW', true)) {
+                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := WinShown(value2) ? value2 : ''
+                            }
+                        }
+                    }                
+                }
+    
+                ; switch the mode based on running programs
+                if (statusShare['override'] != '') {
+                    ; check if program specified as override is still running, if not clear override
+                    if (statusShare['currExecutables'][(statusShare['override'])] != '') {
+                        WinCheckActivate(statusShare['currExecutables'][(statusShare['override'])], configShare, statusShare['override'])
+                    }
+                    else {
+                        statusShare['override'] := ''
                     }
                 }
                 else {
-                    updateMode(configShare, statusShare)
+                    if (statusShare['load']['show']) {
+                        %configShare['LoadScreen']['Update']%(statusShare['load']['text'], configShare['General']['ForceActivateWindow'])
+                    }
+                    else if (statusShare['pause']) {
+                        ; check if pause screen exist 
+                        if (configShare['General']['ForceActivateWindow'] && %configShare['PauseScreen']['Exist']%()) {
+                            %configShare['PauseScreen']['Activate']%()
+                        }
+                        else {
+                            statusShare['pause'] := false
+                        }
+                    }
+                    else {
+                        updateMode(configShare, statusShare)
+                    }
                 }
+
             }
 
-            if (!mediaCenterRunning()) {
+            if (!WinHidden(MAINNAME)) {
                 ExitApp()
             }
 
@@ -123,7 +126,7 @@ controllerThread(configShare, controllerShare) {
                 controllerShare[Integer(key)].update()
             }
 
-            if (!mediaCenterRunning()) {
+            if (!WinHidden(MAINNAME)) {
                 ExitApp()
             }
 
@@ -133,11 +136,13 @@ controllerThread(configShare, controllerShare) {
     ))
 }
 
+; 
+
 ; closes all threads
 ;  threads - map of all current threads
 ;
 ; returns null
-CloseAllThreads(threads) {
+closeAllThreads(threads) {
     for key, value in threads {
         try {
             value.ExitApp()
