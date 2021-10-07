@@ -8,78 +8,87 @@ programThread(configShare, statusShare) {
     (
         "
         #Include lib-mc\std.ahk
+        #Include lib-mc\status.ahk
 
         configShare := ObjShare(" configShare ")
         statusShare := ObjShare(" statusShare ")
 
         loopSleep := configShare['General']['AvgLoopSleep']
-        
-        loop {
-            for key in StrSplit(statusShare['keys'], ',') {
-                
-                ; check for status starting with curr (supposed to be programs to be checked if running)
-                if (InStr(key, 'curr') && IsObject(statusShare[key])) {
-                    configKey := StrReplace(key, 'curr')
-                    
-                    ; if program is running, set variable in curr[Status]
-                    if (configShare.Has(configKey) && IsObject(configShare[configKey])) {
-                        for key2 in StrSplit(configShare[configKey]['keys'], ',') {   
-                            
-                            if (statusShare[key].Has(key2)) {
-                                statusShare[key][key2] := ProcessExist(configShare[configKey][key2]) ? configShare[configKey][key2] : ''
-                            }
-                        }
-                    }
 
-                    Sleep(loopSleep)
+        execMaps := Map()
+        for key in StrSplit(configShare['keys'], ',') {
+            if (InStr(key, 'executable', false) && Type(configShare[key] = 'Map')) {
+                tempMap := Map()
 
-                    ; if there is list of type of program, use checkexe/wndwlist
-                    if (configShare.Has('List' . configKey)) {
-                        listKey := 'List' . configKey
-                        
-                        for key2 in StrSplit(configShare[listKey]['keys'], ',') {
-                            listKeyArr := StrSplit(key2, '_')
-
-                            if (statusShare[key].Has(listKeyArr[1])) {
-                                if (StrLower(listKeyArr[2]) = 'exe') {
-                                    statusShare[key][listKeyArr[1]] := checkEXEList(configShare[listKey][key2])
-                                }
-                                else if (StrLower(listKeyArr[2]) = 'wndw') {
-                                    statusShare[key][listKeyArr[1]] := checkWNDWList(configShare[listKey][key2])
-                                }
-                            }
-                        }                         
+                for key2 in StrSplit(configShare[key]['keys'], ',') {
+                    if (InStr(key2, '_exe', false) || InStr(key2, '_wndw', false)) {
+                        tempMap[key2] := configShare[key][key2]
                     }
                 }
+
+                execMaps[key] := tempMap
             }
+        }
+    
+        loop {
 
-            ; mode switcher
-            ; need to come up with a procedure for handling when multitasking is enabled
+            ; check which programs are running based on values taken from global.txt
+            for key, value in execMaps {
+                isList := false
+                currKey := key
+                
+                if (InStr(key, 'list', false)) {
+                    isList := true
+                    currKey := StrReplace(key, 'list',, false)
+                }
 
-            if (!statusShare['modifier']['multi']) {
-                if (statusShare['override'] != '') {
-                    
-                    ; check if program specified as override is still running, if not clear override
-                    if (statusShare['currExecutables'][(statusShare['override'])] != '') {
-                        statusShare['mode'] := statusShare['override']
-                    }
-                    else {
-                        statusShare['override'] := ''
+                if (isList) {
+                    for key2, value2 in value {
+                        if (InStr(key2, '_EXE', true)) {
+                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkEXEList(value2)
+                        }
+                        else if (InStr(key2, '_WNDW', true)) {
+                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkWNDWList(value2)
+                        }
                     }
                 }
                 else {
-                    for key in StrSplit(configShare['General']['PriorityOrder']['keys'], ',') {                        
-
-                        ; set mode based on priority order
-                        if (statusShare['currExecutables'][(configShare['General']['PriorityOrder'][key])] != '') {
-                            if (key = 'Override') {
-                                statusShare['override'] := configShare['General']['PriorityOrder'][key]
-                            }
-
-                            statusShare['mode'] := configShare['General']['PriorityOrder'][key]
-                            break
+                    for key2, value2 in value {
+                        if (InStr(key2, '_EXE', true)) {
+                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := ProcessExist(value2) ? value2 : ''
+                        }
+                        else if (InStr(key2, '_WNDW', true)) {
+                            statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := WinShown(value2) ? value2 : ''
                         }
                     }
+                }                
+            }
+
+            ; switch the mode based on running programs
+            if (statusShare['override'] != '') {
+                ; check if program specified as override is still running, if not clear override
+                if (statusShare['currExecutables'][(statusShare['override'])] != '') {
+                    WinCheckActivate(statusShare['currExecutables'][(statusShare['override'])], configShare, statusShare['override'])
+                }
+                else {
+                    statusShare['override'] := ''
+                }
+            }
+            else {
+                if (statusShare['load']['show']) {
+                    %configShare['LoadScreen']['Update']%(statusShare['load']['text'], configShare['General']['ForceActivateWindow'])
+                }
+                else if (statusShare['pause']) {
+                    ; check if pause screen exist 
+                    if (configShare['General']['ForceActivateWindow'] && %configShare['PauseScreen']['Exist']%()) {
+                        %configShare['PauseScreen']['Activate']%()
+                    }
+                    else {
+                        statusShare['pause'] := false
+                    }
+                }
+                else {
+                    updateMode(configShare, statusShare)
                 }
             }
 
@@ -102,7 +111,7 @@ controllerThread(configShare, controllerShare) {
     (
         "
         #Include lib-mc\std.ahk
-        #Include lib-mc\xinput.ahk
+        #Include lib-mc\xinput.ahk        
         
         configShare := ObjShare(" configShare ")
         controllerShare := ObjShare(" controllerShare ")

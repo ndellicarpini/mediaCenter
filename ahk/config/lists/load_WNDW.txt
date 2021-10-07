@@ -13,3 +13,6 @@ ahk_exe Fallout4Launcher.exe
 ahk_exe OblivionLauncher.exe
 ahk_exe SA2ModManager.exe
 ahk_exe BmLauncher.exe
+
+; check for steam updates
+; check for multitasking window

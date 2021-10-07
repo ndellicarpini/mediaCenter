@@ -1,5 +1,5 @@
 ; returns the winexist of the window only if the window is not hidden
-;  window - window to check
+;  window - window to check based on WinTitle
 ;
 ; returns winexist
 WinShown(window) {
@@ -16,8 +16,39 @@ WinShown(window) {
 ;  value - value to convert to string
 ; 
 ; returns string containing value
-toString(value) {
-	return "" . value
+toString(value, prefix := "") {
+	retString := ""
+
+	if (Type(value) = "Array") {
+		retString .= "["
+		for item in value {
+			if (IsObject(item)) {
+				retString .= toString(item, prefix)
+			}
+			else {
+				retString .= item . ", "
+			}
+		}
+
+		retString := RegExReplace(retString, "U), $")
+
+		return retString . "]"
+	}
+	else if (Type(value) = "Map") {
+		for key, item in value {
+			if (Type(item) = "Map") {
+				retString .= prefix . key . " : {`n" . toString(item, (prefix . "`t")) . prefix . "}`n"
+			}
+			else {
+				retString .= prefix . key . " : " . toString(item, prefix) . "`n"
+			}
+		}
+
+		return retString
+	}
+	else {
+		return retString . value
+	}
 }
 
 ; gets the string's eol setup (either `r, `n, or `r`n)

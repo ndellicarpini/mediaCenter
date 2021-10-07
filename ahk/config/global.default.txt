@@ -23,7 +23,7 @@ MaxXInputControllers = 4
 XInputDLL = C:\Windows\System32\xinput1_3.dll
 
 ; highest -> lowest priority of executables (Games from gamelist included)
-PriorityOrder = Browser, Game, GameLauncher, Home
+PriorityOrder = Override, Browser, Game, GameLauncher, Home
 
 
 [Display]
@@ -40,63 +40,89 @@ Height = 0
 EnableBoot = false
 
 ; an AHK script that runs after the global config is digested, but before any main actions take place [TODO - better explanation]
-BootFunc = 
+StartBoot = boot
 
 
 [LoadScreen]
 ; enables whether or not a loadscreen will be shown between executables
-EnableLoadScreen = false
+Enable = false
 
 ; an AHK script that creates the gui for the loadscreen
-CreateLoadFunc = 
+Build = buildLoadScreen
+
+; an AHK script that checks if the loadscreen is shown
+Show = showLoadScreen
 
 ; an AHK script that updates the loadscreen with whatever kwargs user passes
-UpdateLoadFunc = 
+; NOTE - update should build and/or show loadscreen if its not
+Update = updateLoadScreen
 
-; an AHK script that destroys the loadscreen
-DestroyLoadFunc = 
+; an AHK script that destroys the loadscreen (usually shutdown)
+Destroy = destroyLoadScreen
 
 
-[Pause]
+[PauseScreen]
 ; enables pause menu that activates from the script in PauseFunc
 EnablePause = false
 
-; disables the pause menu on specific programs/programlists as a comma-deliminated list
-DisablePausePrograms = 
+; an AHK script that is handled when pause is created
+Build = buildPauseScreen
+
+; an AHK script that gets the status of the pausescreen
+Exist = existPauseScreen
+
+; an AHK script that is handled when pause is opened (will check to see if appropriate to create)
+Show = showPauseScreen
 
 ; an AHK script that is handled when pause is activated
-PauseFunc = 
+; NOTE - activate should build and/or show pause screen if its not
+Activate = activatePauseScreen
+
+; an AHK script that is handled when pause is closed
+Hide = hidePauseScreen
+
+; an AHK script that is handled when pause is destroyed (usually shutdown)
+Destroy = destroyPauseScreen
 
 
 [Executables]
 ; list of executables to be checked if running & will be affected by priority
-; will be referenced by checking lib-exec for the name of the exec.toLower
-; (ei. lib-exec\gamelauncher.ahk)
+
+; if name contains string "_EXE" -> checks for program using ProcessExist()
+; if name contains string "_WNDW" -> checks for program using WinShown()/WinExist()
+; NAME MUST CONTAIN ONE OF THE ABOVE TO BE RECOGNIZED AS AN EXECUTABLE
+
+; if _Function exists, it overrides the default behavior of that function
+
+; will be referenced by checking lib-custom for function names
+; (ei. lib-custom\home.ahk:homeMin())
 ; NOTE: Home IS REQUIRED
-Home = 
-HomeDir = 
 
-GameLauncher = 
-GameLauncherDir = 
+Home = C:\kodi\kodi.lnk
+Home_EXE = kodi.exe
+Home_Minimize = homeMin
+Home_Restore = homeRestore
 
-Browser = 
-BrowserDir = 
+GameLauncher = C:\LaunchBox\BigBox.lnk
+GameLauncher_EXE = BigBox.exe
+GameLauncher_Minimize = gameLauncherMin
+GameLauncher_Restore = gameLauncherRestore
+
+Browser = C:\fakepath\chrome.exe
+Browser_EXE = chrome.exe
+Browser_Minimize = browserMin
+Browser_Restore = browserRestore
 
 
 [ListExecutables]
-; if listname contains string "_EXE" -> checks for program using ProcessExist()
-; if listname contains string "_WNDW" -> checks for program using WinShown()/WinExist()
+; follows the same rules as Executables, but treats an entire list(s) of 
+; executables with the same configuration
 
-; games are determined if listname contains string "Game"
-; Ex.
-;    WinGame_EXE = config\lists\win_EXE.txt
-;    EmuGame_EXE = config\lists\emu_EXE.txt
+Game_EXE = config\lists\win_EXE.txt, config\lists\emu_EXE.txt
+Game_Minimize = gameMin
+Game_Restore = gameRestore
 
-; overrides are determined if list contains string "Override"
-; an override is a program that supersedes the priority lsit
-; Ex.
-;    LoadOverride_WNDW = config\lists\load_WNDW.txt
-
+Override_WNDW = config\lists\load_WNDW.txt
 
 [BGExecutables]
 ; programs that can be checked in specific user-custom code, they are not recognized by the
@@ -104,3 +130,9 @@ BrowserDir =
 ; Ex.
 ;    Steam = Steam.exe
 ;    SteamDir = C:\Steam
+
+Steam = C:\Steam\Steam.lnk
+Steam_EXE = Steam.exe
+
+JoyToKey = C:\JoyToKey_en\JoyToKey.lnk
+JoyToKey_EXE = JoyToKey.exe

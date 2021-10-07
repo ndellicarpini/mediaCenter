@@ -403,7 +403,7 @@ readGlobalConfig() {
 
 		; check the required settings from the config file (you bet they're hardcoded)
 		if (!gConfig.subConfigs.Has("General") || !gConfig.subConfigs.Has("Display")
-		|| !gConfig.subConfigs.Has("LoadScreen") || !gConfig.subConfigs.Has("Pause")
+		|| !gConfig.subConfigs.Has("LoadScreen") || !gConfig.subConfigs.Has("PauseScreen")
 		|| !gConfig.subConfigs.Has("Boot") || !gConfig.subConfigs.Has("Executables")) {
 			MsgBox("
 				(
@@ -417,10 +417,9 @@ readGlobalConfig() {
 
 			ExitApp()
 		}
-		else if ((!gConfig.subConfigs["Executables"].items.Has("Home")
-		|| !gConfig.subConfigs["Executables"].items.Has("HomeDir"))
-		|| (gConfig.subConfigs["Executables"].items["Home"] = "" 
-		|| gConfig.subConfigs["Executables"].items["HomeDir"] = "")) {
+		else if ((!gConfig.subConfigs["Executables"].items.Has("Home") || gConfig.subConfigs["Executables"].items["Home"] = "")
+		|| ((!gConfig.subConfigs["Executables"].items.Has("Home_EXE") || gConfig.subConfigs["Executables"].items["Home_EXE"] = "")
+		&& (!gConfig.subConfigs["Executables"].items.Has("Home_WNDW") || gConfig.subConfigs["Executables"].items["Home_WNDW"] = ""))) {
 			MsgBox("
 				(
 					ERROR

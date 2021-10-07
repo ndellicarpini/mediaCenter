@@ -54,8 +54,8 @@ if (generalConfig.items.Has("CustomLibDir") && generalConfig.items["CustomLibDir
         eol := getEOL(mainString)
 
         ; create dynamic include string
-        dynaStringStart := "; ----- DYNAMIC INCLUDE START -----"
-        dynaStringEnd   := "; -----  DYNAMIC INCLUDE END  -----"
+        dynaStringStart := "; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----"
+        dynaStringEnd   := "; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----"
 
         includeString := dynaStringStart . eol
         loop files (customLibDir . "*.ahk") {
