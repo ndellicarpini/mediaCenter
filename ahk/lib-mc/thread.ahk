@@ -1,6 +1,41 @@
+; creates the thread that does actions based on current mainStatus & mainControllers
+;  configShare - mainConfig as gotten as a ComObject through ObjShare
+;  statusShare - mainStatus as gotten as a ComObject through ObjShare 
+;  controllerShare - mainControllers as gotten as a ComObject through ObjShare
+;
+; returns the ThreadObj that does x & y based on mainStatus
+actionThread(configShare, statusShare, controllerShare) {
+    return ThreadObj(dynamicInclude
+    (
+        "
+        #Include lib-mc\std.ahk
+        #Include lib-mc\xinput.ahk
+
+        configShare     := ObjShare(" configShare ")
+        statusShare     := ObjShare(" statusShare ")
+        controllerShare := ObjShare(" controllerShare ")
+
+        loopSleep := configShare['General']['AvgLoopSleep'] / 2
+
+        loop {
+            if (xAllDevices(controllerShare,, 'start', 'select', 'RB', 'RT', 'LB', 'LT')) {
+                MsgBox('Hello')
+            }
+
+            ; close if main is no running
+            if (!WinHidden(MAINNAME)) {
+                ExitApp()
+            }
+
+            Sleep(loopSleep)
+        }
+        "
+    ))
+}
+
 ; creates the thread to monitor which programs are running & updates mode appropriately
-;  configShare - gConfig as gotten as a ComObject through ObjShare
-;  statusShare - gStatus as gotten as a ComObject through ObjShare
+;  configShare - mainConfig as gotten as a ComObject through ObjShare
+;  statusShare - mainStatus as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that checks running programs
 programThread(configShare, statusShare) {
@@ -95,6 +130,7 @@ programThread(configShare, statusShare) {
 
             }
 
+            ; close if main is no running
             if (!WinHidden(MAINNAME)) {
                 ExitApp()
             }
@@ -106,7 +142,7 @@ programThread(configShare, statusShare) {
 }
 
 ; creates the controller thread to check the input status of each connected controller
-;  controllerShare - gControllers as gotten as a ComObject through ObjShare
+;  controllerShare - mainControllers as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that checks controller statuses
 controllerThread(configShare, controllerShare) {
@@ -116,7 +152,7 @@ controllerThread(configShare, controllerShare) {
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk        
         
-        configShare := ObjShare(" configShare ")
+        configShare     := ObjShare(" configShare ")
         controllerShare := ObjShare(" controllerShare ")
 
         loopSleep := configShare['General']['AvgLoopSleep'] / 3
@@ -126,6 +162,7 @@ controllerThread(configShare, controllerShare) {
                 controllerShare[Integer(key)].update()
             }
 
+            ; close if main is no running
             if (!WinHidden(MAINNAME)) {
                 ExitApp()
             }

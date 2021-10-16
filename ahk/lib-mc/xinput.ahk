@@ -155,3 +155,46 @@ xInitialize(lib, maxControllers) {
 
     return controllerMap
 }
+
+; checks all controllers that all buttons specificed are pressed
+;  controllerMap - map of controllers
+;  mode - either "and" or "or" logical operator between buttons
+;  buttons* - all buttons to check with mode's operator
+;
+; returns boolean if 1 controller has buttons based on mode
+xAllDevices(controllerMap, mode := "and", buttons*) {
+    for key in StrSplit(controllerMap["keys"], ",") {
+        if (!controllerMap[Integer(key)].connected) {
+            continue
+        }
+
+        buttonStatus := (mode != "or") ? true : false
+
+        for button in buttons {
+            currButt := StrUpper(button)
+            
+            if (mode != "or") {
+                if (currButt = "RT" || currButt = "LT") {
+                    buttonStatus := buttonStatus && (controllerMap[Integer(key)].%currButt% > 0.1)
+                }
+                else {
+                    buttonStatus := buttonStatus && controllerMap[Integer(key)].%currButt%
+                }
+            }
+            else {
+                if (currButt = "RT" || currButt = "LT") {
+                    buttonStatus := buttonStatus || (controllerMap[Integer(key)].%currButt% > 0.1)
+                }
+                else {
+                    buttonStatus := buttonStatus || controllerMap[Integer(key)].%currButt%
+                }
+            }
+        }
+
+        if (buttonStatus) {
+            return true
+        }
+    }
+
+    return false
+}

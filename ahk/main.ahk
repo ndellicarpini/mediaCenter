@@ -124,9 +124,9 @@ mainStatus      := addKeyListString(mainStatus)
 mainControllers := addKeyListString(mainControllers)
 
 ; configure objects to be used in a thread-safe manner
-shareConfig      := ObjShare(ObjShare(mainConfig))
-shareStatus      := ObjShare(ObjShare(mainStatus))
-shareControllers := ObjShare(ObjShare(mainControllers))
+localConfig      := ObjShare(ObjShare(mainConfig))
+localStatus      := ObjShare(ObjShare(mainStatus))
+localControllers := ObjShare(ObjShare(mainControllers))
 
 threads := Map()
 
@@ -135,8 +135,8 @@ threads := Map()
 threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
 ; ----- BOOT -----
-if (shareConfig["Boot"]["EnableBoot"]) {
-    %shareConfig["Boot"]["StartBoot"]%(shareConfig)
+if (localConfig["Boot"]["EnableBoot"]) {
+    %localConfig["Boot"]["StartBoot"]%(localConfig)
 }
 
 ; ----- START PROGRAM ----- 
@@ -146,33 +146,28 @@ threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainSta
 ; ----- START ACTION -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-; threads["actionThread"] := actionThread()
+threads["actionThread"] := actionThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers))
 
 ; ----- ENABLE LISTENER -----
 enableMainMessageListener()
 
 ; ----- MAIN THREAD LOOP -----
-loopSleep := shareConfig["General"]["AvgLoopSleep"] * 3
+; the main thread monitors the other threads, checks that looper is running
+; the main thread launches programs with appropriate settings, which are then maintained by action thread
+; probably going to need to figure out updating loadscreen?
+loopSleep := localConfig["General"]["AvgLoopSleep"] * 3
 loop {
     ;perform actions based on mode & main message
 
     if (mainMessage != []) {
-        ; do something based on main message
+        ; do something based on main message (like launching app)
         mainMessage := []
-    }
-
-    if (shareControllers[0].A) {
-        shareStatus["suspendScript"] := shareStatus["suspendScript"] ? false : true
-
-        while(shareControllers[0].A) {
-            Sleep(10)
-        }
     }
 
     ; need to check that threads are running - currently no way to do this without there being a debug print
 
     ; check looper
-    if (shareConfig["General"]["ForceMaintainMain"] && !shareStatus["suspendScript"] && !WinHidden(MAINLOOP)) {
+    if (localConfig["General"]["ForceMaintainMain"] && !localStatus["suspendScript"] && !WinHidden(MAINLOOP)) {
         Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
     }
 
