@@ -3,7 +3,7 @@
 ;  statusShare - mainStatus as gotten as a ComObject through ObjShare 
 ;  controllerShare - mainControllers as gotten as a ComObject through ObjShare
 ;
-; returns the ThreadObj that does x & y based on mainStatus
+; returns the ThreadObj that does x based on mainStatus
 actionThread(configShare, statusShare, controllerShare) {
     return ThreadObj(dynamicInclude
     (
@@ -11,15 +11,31 @@ actionThread(configShare, statusShare, controllerShare) {
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
 
-        configShare     := ObjShare(" configShare ")
-        statusShare     := ObjShare(" statusShare ")
-        controllerShare := ObjShare(" controllerShare ")
+        ; --- GLOBAL VARIABLES ---
+        ; variables are global to be accessed in timers
+        global configShare     := ObjShare(" configShare ")
+        global statusShare     := ObjShare(" statusShare ")
+        global controllerShare := ObjShare(" controllerShare ")
 
-        loopSleep := configShare['General']['AvgLoopSleep'] / 2
+        global homeButtonStatus := []
 
+        global loopSleep := configShare['General']['AvgLoopSleep'] / 2
+
+        ; --- MAIN LOOP ---
         loop {
-            if (xAllDevices(controllerShare,, 'start', 'select', 'RB', 'RT', 'LB', 'LT')) {
-                MsgBox('Hello')
+            if (!statusShare['suspendScript']) {
+                
+                ; check home button (TODO - CHANGE TO HOME INSTEAD OF A)
+                homeButtonStatus := xCheckAllControllers(controllerShare,, true, 'A')
+                
+                if (homeButtonStatus[1]) {
+                    SetTimer 'HomeButtonTimer', (-1.2 * configShare['General']['AvgLoopSleep'])
+                    while (controllerShare[homeButtonStatus[2]].A) {
+                        Sleep(loopSleep / 4)
+                    }
+                    SetTimer 'HomeButtonTimer', 0
+                }
+                
             }
 
             ; close if main is no running
@@ -28,6 +44,19 @@ actionThread(configShare, statusShare, controllerShare) {
             }
 
             Sleep(loopSleep)
+        }
+
+        ; --- TIMERS ---
+        HomeButtonTimer() {
+            if (xCheckController(controllerShare[homeButtonStatus[2]],, 'RT')) {
+                MsgBox('RT too')
+            }
+            else if (xCheckController(controllerShare[homeButtonStatus[2]],, 'LT')) {
+                MsgBox('LT deez nuts')
+            }
+            else {
+                activatePauseScreen()
+            }
         }
         "
     ))
