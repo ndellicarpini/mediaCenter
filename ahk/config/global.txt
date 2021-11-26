@@ -25,11 +25,12 @@ MaxXInputControllers = 4
 ; required to use xbox controllers (file should be C:\Windows\System32\xinput1_3.dll)
 XInputDLL = C:\Windows\System32\xinput1_3.dll
 
-; highest -> lowest priority of executables (Games from gamelist included)
-PriorityOrder = Override, Browser, Game, GameLauncher, Home
-
 ; sets the directory for custom libraries to be included in main
 CustomLibDir = lib-custom\
+
+; sets the directory for executable config jsons
+ExeConfigDir = config\executables\
+
 
 [Display]
 ; monitor number to get sizing info / display loading screen (any non-valid num = primary) 
@@ -88,56 +89,3 @@ Hide = hidePauseScreen
 
 ; an AHK script that is handled when pause is destroyed (usually shutdown)
 Destroy = destroyPauseScreen
-
-
-[Executables]
-; list of executables to be checked if running & will be affected by priority
-
-; if name contains string "_EXE" -> checks for program using ProcessExist()
-; if name contains string "_WNDW" -> checks for program using WinShown()/WinExist()
-; NAME MUST CONTAIN ONE OF THE ABOVE TO BE RECOGNIZED AS AN EXECUTABLE
-
-; if _Function exists, it overrides the default behavior of that function
-
-; will be referenced by checking lib-custom for function names
-; (ei. lib-custom\home.ahk:homeMin())
-; NOTE: Home IS REQUIRED
-
-Home = C:\kodi\kodi.lnk
-Home_EXE = kodi.exe
-Home_Minimize = homeMin
-Home_Restore = homeRestore
-
-GameLauncher = C:\LaunchBox\BigBox.lnk
-GameLauncher_EXE = BigBox.exe
-GameLauncher_Minimize = gameLauncherMin
-GameLauncher_Restore = gameLauncherRestore
-
-Browser = C:\fakepath\chrome.exe
-Browser_EXE = chrome.exe
-Browser_Minimize = browserMin
-Browser_Restore = browserRestore
-
-
-[ListExecutables]
-; follows the same rules as Executables, but treats an entire list(s) of 
-; executables with the same configuration
-
-Game_EXE = config\lists\win_EXE.txt, config\lists\emu_EXE.txt
-Game_Minimize = gameMin
-Game_Restore = gameRestore
-
-Override_WNDW = config\lists\load_WNDW.txt
-
-[BGExecutables]
-; programs that can be checked in specific user-custom code, they are not recognized by the
-; priority list and are run minimized
-; Ex.
-;    Steam = Steam.exe
-;    SteamDir = C:\Steam
-
-Steam = C:\Steam\Steam.lnk
-Steam_EXE = Steam.exe
-
-JoyToKey = C:\JoyToKey_en\JoyToKey.lnk
-JoyToKey_EXE = JoyToKey.exe

@@ -4,7 +4,9 @@
 ;  controllerShare - mainControllers as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that does x based on mainStatus
-actionThread(configShare, statusShare, controllerShare) {
+hotkeyThread(configShare, statusShare, controllerShare) {
+    ; TODO - new "current exe" using last launched exe (based on time) rather than priority
+
     return ThreadObj(dynamicInclude
     (
         "

@@ -7,6 +7,25 @@ global DYNAEND   := "; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----"
 
 ; ----- FUNCTIONS -----
 
+;
+ErrorMsg(message, exit := false) {
+	MsgBox(
+		(
+			((exit) ? "FATAL " : "") "ERROR:
+			" message "
+			"
+		)
+	)
+
+	WinWaitClose()
+
+	if (exit) {
+		ExitApp()
+	}
+}
+
+
+
 ; closes a window's process based on window
 ;  window - window whose process to close
 ;
@@ -43,6 +62,37 @@ WinHidden(window) {
 	return retVal
 }
 
+; sums all values in each list
+;  lists - kwargs lists
+;
+; returns sum of all values
+Sum(lists*) {
+	sumHelper(list) {
+		helperVal := 0
+
+		for value in list {
+
+			if (IsObject(value)) {
+				helperVal += sumHelper(value)
+			}
+			else {
+				helperVal += value
+			}
+		}
+
+		return helperVal
+	}
+
+	retVal := 0
+	for list in lists {
+		if (Type(list) = "Array") {
+			retVal += sumHelper(list)
+		}
+	}
+
+	return retVal
+}
+
 ; converts the value to a string by appending it to empty string
 ;  value - value to convert to string
 ; 
@@ -65,21 +115,128 @@ toString(value, prefix := "") {
 
 		return retString . "]"
 	}
+
+	; TODO - fix submaps/subconfigs not printing right
 	else if (Type(value) = "Map") {
 		for key, item in value {
 			if (Type(item) = "Map") {
-				retString .= prefix . key . " : {`n" . toString(item, (prefix . "`t")) . prefix . "}`n"
+				retString .= prefix . key . " : {`n" . toString(item, (prefix . "  ")) . prefix . "}`n"
 			}
 			else {
-				retString .= prefix . key . " : " . toString(item, prefix) . "`n"
+				retString .= prefix . key . " : " . toString(item) . "`n"
 			}
 		}
 
 		return retString
 	}
-	else {
-		return retString . value
+	else if (Type(value) = "Config") {
+		retString .= "`n" . prefix . "INDENT[" . toString(StrLen(value.indent)) . "]`n"
+		retString .= prefix . toString(value.items, prefix . "  ") . "`n"
+		retString .= prefix . toString(value.subConfigs, prefix . "  ") . "`n"
+
+		return retString
 	}
+	else {
+		return (prefix = "") ? Trim(retString . value, " `t`r`n") : retString . value
+	}
+}
+
+; checks if the given value(s) is in the array
+;  value - single value or list to check if in array
+;  arr - array to check if value is in
+;  mode - either "or" or "and" to handle value lists
+;  perfectMatch - only applies to strings -> if value needs to exactly match array
+;
+; returns boolean if value(s) are in arr
+inArray(value, arr, mode := "and", perfectMatch := true) {
+	if (Type(value) != "Array") {
+		value := [value]
+	}
+
+	inCount := 0
+	for item in value {
+		for arrItem in arr {
+			if ((perfectMatch) ? (item = arrItem) : (InStr(arrItem, item) || InStr(item, arrItem))) {
+				inCount += 1
+
+				if (mode != "and" || inCount = arr.Length) {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
+}
+
+; puts the object into a 1 length array if its not an array
+;  obj - to check / put into array
+;
+; returns array with obj
+toArray(obj) {
+	return (Type(obj) = "Array") ? obj : [obj]
+}
+
+; cleans text to have special characters set to match identical in regex
+;  text - text to clean for regex
+;
+; returns text with each character set to match identical in regex
+regexClean(text) {
+	retString := StrReplace(text, "\", "\\")
+	retString := StrReplace(retString, ".", "\.")
+	retString := StrReplace(retString, "*", "\*")
+	retString := StrReplace(retString, "?", "\?")
+	retString := StrReplace(retString, "+", "\+")
+	retString := StrReplace(retString, "[", "\[")
+	retString := StrReplace(retString, "{", "\{")
+	retString := StrReplace(retString, "|", "\|")
+	retString := StrReplace(retString, "(", "\(")
+	retString := StrReplace(retString, ")", "\)")
+	retString := StrReplace(retString, "^", "\^")
+	retString := StrReplace(retString, "$", "\$")
+	
+	return retString
+}
+
+; checks whether or not a given subString is within quotation marks / custom in the mainString
+;  mainString - string to check for the substring in
+;  subString - string to check whether or not surrounded by quotation marks
+;  startChar - a list of starting chars to match with endChar (if no endChar, then match withh startChar)
+;  endChar - a list of endChar that is matched 1-to-1 with startChar
+;
+; returns boolean based on if subString is within quotes
+inQuotes(mainString, subString, startChar := "", endChar := "") {
+	startChar := (startChar = "") ? ['"', "'"] : toArray(startChar)
+	endChar   := (endChar = "")   ? ['"', "'"] : toArray(endChar)
+
+	if (startChar.Length != endChar.Length) {
+		ErrorMsg("inQuotes: startChar & endChar have different lengths")
+	}
+
+	stringsToCheck := StrSplit(mainString, subString,, 2)
+	if (stringsToCheck.Length != 2) {
+		return false
+	}
+
+	quoteCount := []
+	loop startChar.Length {
+		tempString := RegExReplace(stringsToCheck[1], regexClean(startChar[A_Index]),, startCount)
+		RegExReplace(tempString, regexClean(endChar[A_Index]),, endCount)
+
+		tempNum := startCount - endCount
+		if (startChar[A_Index] = endChar[A_Index]) {
+			tempNum := Mod(tempNum, 2)
+		}
+		
+		quoteCount.Push(tempNum)
+	}
+
+	total := 0
+	loop quoteCount.Length {
+		total += quoteCount[A_Index]
+	}
+
+	return (total > 0) ? true : false
 }
 
 ; gets the string's eol setup (either `r, `n, or `r`n)
@@ -146,6 +303,22 @@ fileOrString(toRead) {
 	}
 
     return retString
+}
+
+; adds backslash to end of directory string if it does not exist, and validates the directory
+;  directory - string to validate backslash
+; 
+; returns directory string with backslash at the end
+validateDir(directory) {
+	retString := (RegExMatch(directory, "U).*\\$")) ? directory : directory . "\"
+
+	if (DirExist(retString)) {
+		return retString
+	}
+	else {
+		ErrorMsg(retString . " Not Found")
+		return retString
+	}
 }
 
 ; adds a new member to an object called "keys" that contains a comma-deliminated string with all

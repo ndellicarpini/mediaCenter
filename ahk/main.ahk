@@ -1,4 +1,4 @@
-#SingleInstance Force
+﻿#SingleInstance Force
 #WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
@@ -32,8 +32,6 @@ globalConfig := readGlobalConfig()
 mainConfig["StartArgs"] := A_Args
 
 ; initialize basic status features
-; TODO - ensure pause screen shows the correct options based on mode?
-; (maybe pull exec from mode -> currExecutables)
 mainStatus["suspendScript"] := false
 mainStatus["pause"] := false
 
@@ -61,56 +59,23 @@ for key, value in globalConfig.subConfigs {
     
     ; for each subconfig (not monitor), convert to appropriate config & status objects
     for key2, value2, in value.items {
-        
-        ; check if subconfig is called ListX, if so read each value as a file
-        if (InStr(key, "List")
-        && InStr(key2, "_EXE", true) || InStr(key2, "_WNDW", true)) {
-            if (IsObject(value2)) {
-                tempMap := Map()
-                for item in value2 {
-                    tempItem := readConfig(item, "").items
-                    
-                    for execString, blank in tempItem {
-                        tempMap[execString] := blank
-                    }
-                }
-
-                configObj[key2] := tempMap
-            }
-            else {
-                configObj[key2] := readConfig(value2, "").items
-            }
-        }
-        else {
-            configObj[key2] := value2
-        }
-
-        if (InStr(key, "executables", false) 
-        && (InStr(key2, "_EXE", false) || InStr(key2, "_WNDW", false))) {
-            
-            statusObj[(StrSplit(key2, "_")[1])] := ""
-        }
+        configObj[key2] := value2
     }
 
     mainConfig[key] := configObj
+}
 
-    ; add any items from config are considered executables to status
-    if (InStr(key, "executables", false)) {
+; read executable folder & add to configs
+if (mainConfig["General"].Has("ExeConfigDir") && mainConfig["General"]["ExeConfigDir"] != "") {
+    loop files validateDir(mainConfig["General"]["ExeConfigDir"]) . "*", "FD" {
         
-        currKey := key
-        if (InStr(key, "list", false)) {
-            currKey := StrReplace(key, "list",, false)
-        }
-
-        if (mainStatus.Has("curr" . currKey)) {
-            for key2, value2 in statusObj {
-                mainStatus["curr" . currKey][key2] := value2
-            }
-        }
-        else {
-            mainStatus[("curr" . key)] := statusObj
-        }
     }
+
+    ; TESTING
+    oof := readConfig("config\executables\chrome.json",, "json")
+    oof.cleanAllItems()
+    MsgBox(toString(oof))
+    ExitApp()
 }
 
 ; pre running program thread intialize xinput
@@ -146,14 +111,14 @@ threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainSta
 ; ----- START ACTION -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-threads["actionThread"] := actionThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers))
+threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers))
 
 ; ----- ENABLE LISTENER -----
 enableMainMessageListener()
 
 ; ----- MAIN THREAD LOOP -----
 ; the main thread monitors the other threads, checks that looper is running
-; the main thread launches programs with appropriate settings, which are then maintained by action thread
+; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
 ; probably going to need to figure out updating loadscreen?
 loopSleep := localConfig["General"]["AvgLoopSleep"] * 3
 loop {

@@ -34,14 +34,15 @@ sendMessageToMain(message, waitTime := 5000) {
     NumPut("Ptr", stringSize, "Ptr", StrPtr(message), stringBuffer, A_PtrSize)
 
     if (SendMessage(MESSAGE_VAL, 0, stringBuffer,, "MediaCenterMain",,,, waitTime) != 0) {
-        MsgBox("
-        (
-            ERROR
-            Did not recieve confirmation from
-            MediaCenterMain within 5000ms
-        )")
-    
-        ExitApp()
+        ErrorMsg(
+            (
+                "
+                Did not recieve confirmation from
+                MediaCenterMain within 5000ms
+                "
+            ),
+            true
+        )
     }
 }
 

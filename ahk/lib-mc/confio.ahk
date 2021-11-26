@@ -1,12 +1,13 @@
-#Include string.ahk
 #Include std.ahk
 
 ; class containing configuration data from a file
 ;  subConfig - map of configs based on groupings from config file
 ;  items - map of individual settings from config file (left of deliminator = key | right = value)
+;  indent - prefix of '`t' or ' ' before each item in the config
 class Config {
 	subConfigs := Map()
 	items := Map()
+	indent := ""
 
 	; convert the items into the proper types
 	;
@@ -56,7 +57,7 @@ class Config {
 	;  override - if this & secondConfig share a key, use secondConfig's
 	;
 	; returns null
-	combineConfig(secondConfig, override) {
+	combineConfig(secondConfig, override := true) {
 		
 		; combines for each subConfig 
 		for key, value in secondConfig.subConfigs {
@@ -85,6 +86,7 @@ class Config {
 ;  deliminator - string containing separator between a setting's key and value
 ;  subConfigType - how config file is formatted with its categories of configs
 ;                - brackets -> standard config file using bracketed category names 
+;				 - json -> formatted like a json file {...}
 ;                - [TODO] xml -> formatted like an xml document with <x>...</x>
 ;                - [TODO] indents_x_y -> using indentation (x = number of indents per level | y = type (spaces/tabs))
 ;                - none -> config file contains no categories
@@ -92,303 +94,358 @@ class Config {
 ;
 ; returns Config object
 readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "") {
-	retConfig := Config.New()
-	configString := fileOrString(toRead)
-
-	; clean indents
-	indentsNum := 0
-	indentsType := ""
-	if (InStr(subConfigType, "indents")) {
-		temp := StrSplit(subConfigType, "_")
-
-		subConfigType := temp[1]
-		indentsNum := Float(temp[2])
-		if (InStr(temp[3], "space")) {
-			indentsType := " "
-		}
-		else if (InStr(temp[3], "tab")) {
-			indentsType := "`t"
-		}
-		else {
-			MsgBox("
-			(
-				ERROR
-				Invalid indent type for readConfig()
-			)")
-		}
-	}
-
-	; helper
-	readConfigLoop(confName) {
-		tempConfig := Config.New()
-
-		currentConf := ""
-		currentItem := []
-
-		leftItem := ""
+	; --- INTERNAL HELPERS ---
+	
+	; converts a list of items with no subconfigs into the config's item map of key, value (as strings) pairs
+	addItemsToConfig(configObj, itemString) {
+		leftItem  := ""
 		rightItem := ""
+		
+		inMultiLine := 0
+		cringyJSONIndentationFix := false
 
-		foundConfig := 1 ; 0 -> not found | 1 -> add to generic | 2 -> add to specific
-		loop parse configString, "`n", "`r" {
+		loop parse itemString, "`n", "`r" {
 			cleanLine := Trim(A_LoopField, " `t`r`n")
-			
+
+			; skip empty lines / comment lines
 			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;")) {
 				continue
 			}
 
-			; subConfigType
-			switch subConfigType {
-				case "brackets":
-					; find a group 
-					if (RegExMatch(cleanLine, "U)^\[.*\]$")) {
-						; replace 
-						currentConf := RegExReplace(RegExReplace(cleanLine, "U)^\[|\]$"), "U)\] *\[", "-")
-			
-						if (confName = "") {
-							tempConfig.subConfigs[currentConf] := Config.New()
-							foundConfig := 2
-						}
-						else if (confName = currentConf) {
-							foundConfig := 1
-						}
-						else {
-							currentConf := ""
-							foundConfig := 0
-						}
-
-						continue
-					}
-				
-				; TODO - xml
-				; TODO - indents
+			; if no deliminator -> just add all values to items as keys
+			if (deliminator = "none") {
+				configObj.items[cleanLine] := ""
 			}
-			
-			if (foundConfig > 0) {
-				; create redundent map if no denominator
-				if (deliminator != "") {
-					currentItem := StrSplit(A_LoopField, deliminator,, 2)
 
-					leftItem := RTrim(currentItem[1], " `t`r`n")
+			else if (subConfigType = "brackets") {
+				; if line contains valid deliminator to set leftItem
+				if (!inQuotes(cleanLine, deliminator) && InStr(cleanLine, deliminator)) {
+					; save previous left=right to configObj after finding next line withh valid deliminator
+					if (leftItem != "") {
+						configObj.items[leftItem] := Trim(rightItem, " `t`r`n")
+					}
+
+					currentItem := StrSplit(cleanLine, deliminator,, 2)
+
+					leftItem  := Trim(currentItem[1], " `t`r`n")
 					rightItem := Trim(currentItem[2], " `t`r`n")
 				}
-				else {
-					leftItem := cleanLine
-					rightItem := ""
+				; add lines to right item for multiline right item values
+				else if (leftItem != "") {
+					rightItem .= cleanLine . "`n"
 				}
-				
-				; add to generic items if no current subConfig
-				if (foundConfig = 2) {
-					tempConfig.subConfigs[currentConf].items[leftItem] := rightItem
+			}
+
+			else if (subConfigType = "json") {
+				; this is some stupid cringe code to fix a json's identation value, dont know if useful
+				if (!(inMultiLine > 0 || inQuotes(cleanLine, deliminator)) && !cringyJSONIndentationFix
+					&& InStr(cleanLine, deliminator) && configObj.indent = "") {
+
+					configObj.indent := StrSplit(A_LoopField, cleanLine)[1]
+					cringyJSONIndentationFix := true
 				}
-				else {
-					tempConfig.items[leftItem] := rightItem
+
+				; if line contains valid deliminator to set leftItem
+				if (!(inMultiLine > 0 || inQuotes(cleanLine, deliminator)) && InStr(cleanLine, deliminator)) {
+					; save previous left=right to configObj after finding next line withh valid deliminator
+					if (leftItem != "") {
+						configObj.items[leftItem] := Trim(rightItem, ' `t`r`n[],')
+					}
+
+					currentItem := StrSplit(cleanLine, deliminator,, 2)
+
+					leftItem  := Trim(currentItem[1], ' `t`r`n,"')
+					rightItem := currentItem[2]
 				}
+				; add lines to right item for multiline right item values
+				else if (leftItem != "") {
+					rightItem .= cleanLine . "`n"
+				}
+
+
+				; check if opening list
+				if (!inQuotes(rightItem, "[")) {
+					inMultiLine += 1
+				}
+
+				; check if closing list
+				if (inMultiLine > 0 && !inQuotes(rightItem, "]")) {
+					inMultiLine -= 1
+				}
+			}
+
+			else if (subConfigType = "xml") {
+				; TODO
+			}
+
+			else if (subConfigType = "indents") {
+				; TODO
+			}
+
+		}
+
+		; save final left=right items if last item was not saved
+		if (leftItem != "" && !configObj.items.Has(leftItem)) {
+			if (subConfigType = "json") {
+				rightItem := Trim(rightItem, ' `t`r`n[],')
+			}
+
+			configObj.items[leftItem] := rightItem
+		}
+
+		return configObj
+	}
+
+	; seperate each subconfig recursively & feed them to addItemsToConfig
+	subConfigHelper(subToRead) {
+		retConfig := Config.New()
+
+		subConfigLevel := 0
+		currentSubConfig := ""
+		currentString := ""
+		
+		; clean parameters & subToRead for json settings
+		if (subConfigType = "json") {
+			deliminator := ":"
+
+			subToRead := Trim(subToRead, " `t`r`n")
+
+			if (SubStr(subToRead, 1, 1) = "{" && SubStr(subToRead, -1, 1) = "}") {
+				subToRead := SubStr(subToRead, 2, StrLen(subToRead) - 2)
+			}
+		}
+
+		; string that is passed to addItemsToConfig
+		; each subconfig section of the string is dropped from itemString
+		itemString := subToRead
+	
+		loop parse subToRead, "`n", "`r" {
+			cleanLine := Trim(A_LoopField, " `t`r`n")
+	
+			; skip empty lines / comment lines
+			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;")) {
+				itemString := StrReplace(itemString, A_LoopField,, true,, 1) 
+
+				continue
+			}
+
+			; check if config's indent needs to be updated
+			if (subConfigType != "none" && subConfigLevel = 0 && (deliminator = "" || !inQuotes(cleanLine, deliminator))) {
+				newIndent := StrSplit(A_LoopField, cleanLine)[1]
+				if (newIndent != "" && (retConfig.indent = "" || StrLen(retConfig.indent) > StrLen(newIndent))) {
+					retConfig.indent := newIndent
+				}
+			}
+			
+			if (subConfigType = "brackets") {
+				; if line contains valid subconfig title
+				if (!(inQuotes(cleanLine, "[") || inQuotes(cleanLine, "]")) && RegExMatch(cleanLine, "U)^\[.*\]$")) {			
+					; set currentString as sub config & recursively send it to subConfigHelper
+					if (currentString != "") {
+						currentString := RTrim(currentString, " `n")
+
+						retConfig.subConfigs[currentSubConfig] := subConfigHelper(currentString)
+
+						currentString := ""
+					}
+
+					itemString := StrReplace(itemString, A_LoopField,, true,, 1) 
+					currentSubConfig := RegExReplace(RegExReplace(cleanLine, "U)^\[|\]$"), "U)\] *\[", "-")
+
+					continue
+				}
+
+				; add subconfig lines to currentString & remove them from itemString
+				if (currentSubConfig != "") {
+					itemString := StrReplace(itemString, A_LoopField,, true,, 1)
+					currentString .= cleanLine . "`n"
+				}
+			}
+
+			else if (subConfigType = "json") {
+				; if line contains valid subconfig title
+				if (!(inQuotes(cleanLine, deliminator) || inQuotes(cleanLine, "{")) && RegExMatch(cleanLine, "U)^.*" . deliminator . " *\{")) {
+					
+					; set currentSubConfig if subconfig title is direct subconfig to current config
+					if (subConfigLevel = 0) {
+						currentSubConfig := Trim(StrSplit(cleanLine, deliminator,, 2)[1], ' "')
+					}
+
+					subConfigLevel += 1
+				}
+
+				; add subconfig lines to currentString & remove them from itemString
+				if (currentSubConfig != "") {
+					itemString := StrReplace(itemString, A_LoopField,, true,, 1) 
+					currentString .= RTrim(A_LoopField, " `t`r`n") . "`n"
+
+					; if line contains valid end of subconfig
+					if (!inQuotes(cleanLine, "}") && RegExMatch(cleanLine, "U)^.*\}")) {
+						subConfigLevel -= 1
+
+						; if end of subconfig is direct under current config - set currentString as sub config & recursively send it to subConfigHelper
+						if (subConfigLevel = 0) {
+							currentString := RegExReplace(currentString, "U)^\s*" . '"' . regexClean(currentSubConfig) . '"' . " *" . deliminator . "\s*") 
+							currentString := RTrim(currentString, " `t`r`n,")
+
+							retConfig.subConfigs[currentSubConfig] := subConfigHelper(currentString)
+
+							currentString := ""
+							currentSubConfig := ""
+						}
+					}
+				}
+			}
+
+			else if (subConfigType = "xml") {
+				; TODO
+			}
+
+			else if (subConfigType = "indents") {
+				; TODO
 			}
 			
 		}
 
-		return tempConfig
+		; saves final subconfig if currentString has content
+		if (currentString && currentSubConfig && subConfigType != "json") {
+			currentString := RTrim(currentString, " `n")
+
+			retConfig.subConfigs[currentSubConfig] := subConfigHelper(currentString)
+		}
+
+		; format each as config's items
+		return addItemsToConfig(retConfig, itemString)
 	}
 
+	; --- EXECUTION BEGINS ---
+
+	configString := fileOrString(toRead)
+
+	; just add items to config if there are no subconfigs in file
+	if (subConfigType = "none") {
+		return addItemsToConfig(Config.New(), configString)
+	}
+
+	retObj := subConfigHelper(configString)
+
+	; if looking for multiple subconfigs
 	if (IsObject(subConfig)) {
-		for confIndex, confName in subConfig {
-			retConfig.subConfigs[confName] := readConfigLoop(confName)
+		loopObj := Config.New()
+
+		for item in subConfig {
+			for key, value in retObj.subConfigs {
+				if (key = item) {
+					loopObj.subConfig[key] := value
+				}
+			}
 		}
+
+		return loopObj
+	}
+	; if looking for 1 subconfig
+	else if (subConfig != "") {
+		return retObj.subConfigs[subConfig]
 	}
 	else {
-		retConfig := readConfigLoop(subConfig)
-	}
-
-	return retConfig
+		return retObj
+	} 
 }
 
 ; reads custom formatted multicfg files with readConfig() on each requested one
-;  fileName - multicfg file to read
+;  toRead - string/file to read
 ;  configList - list of configs to find in multicfg
 ;  configListType - how to handle multiple values in configList (either "and" or "or")
+;  subConfig - string or list of subConfigs to return from each config
 ;  perfectMatch - if value in configList needs to perfectly match id
-;  checkDefault - check if multicfg contains default values to be overwritten
-;  deliminator / subConfigType / subConfig - see readConfig()
 ; 
 ; returns Config object generated by readConfig()
-readMultiCfg(fileName, configList, configListType := "or", perfectMatch := true, checkDefault := true
-, deliminator := "=", subConfigType := "none", subConfig := "") {
-	
-	retConfig := Config.New()
-	muliConfigString := ""
+readMultiCfg(toRead, configList, configListType := "or", subConfig := "", perfectMatch := true, enableDefault := true) {
+	mConfigString := fileOrString(toRead)
+	configString := ""
 
-	; check that file exists
-	if (FileExist(fileName)) {
-		multiConfigString := fileToString(fileName)
-	}
-	else {
-		MsgBox("
-			(
-				ERROR
-				fileName not found when calling findMultiCfg()
-			)"
-		)
-
-		return
-	}
-
-	if (!IsObject(configList)) {
-		configList := [configList]
-	}
-
-	; to lower all values
-	temp := []
-	for item in configList {
-		temp.Push(StrLower(item))
-	}
-	configList := temp
-
-	; helper
-	addConfigToRet(toRead, foundIDS, override) {
-		; if only one major object should return (either because looking for 1 config or "and")
-		if (configListType = "and" || configList.Length = 1) {
-			retConfig.combineConfig(readConfig(toRead, deliminator, subConfigType, subConfig), override)
-		}
-		else {
-			
-			; for each item in foundIDS in this multiconfig 
-			for value in foundIDS {
-				if (retConfig.subConfigs.Has(value)) {
-					retConfig.subConfigs[value].combineConfig(readConfig(toRead, deliminator, subConfigType, subConfig), override)
-				}
-				else {
-					retConfig.subConfigs[value] := readConfig(toRead, deliminator, subConfigType, subConfig)
-				}
-			}
-		}
-	}
-
-	inMultiCfg := false
-	inIDS      := false
-	inConfig   := false
-	inDefault  := false
-
-	idList := []
-	sharedIDS := []
-	idIndent := ""
-	validID := false
-
-	cfgBlock := ""
-	cfgIndent := ""
-	loop parse multiConfigString, "`n", "`r" {
+	inConfig := true
+	configs := []
+	loop parse mConfigString, "`n", "`r" {
 		cleanLine := Trim(A_LoopField, " `t`r`n")
 
+		; skip empty lines / comment lines
 		if (cleanLine = "" || RegExMatch(cleanLine, "U)^;")) {
 			continue
 		}
-		
-		; found intial layer of single config
-		if (!inMultiCfg && RegExMatch(cleanLine, "U)^START *\{$")) {
-			inMultiCfg := true
-		}
-		; found default config
-		else if (!inMultiCfg && RegExMatch(cleanLine, "U)^DEFAULT *\{$")) {
-			inDefault := true
-		}
-		; found ID list in single config
-		else if (inMultiCfg && !inIDS && RegExMatch(cleanLine, "U)^IDS *\{$")) {
-			inIDS := true
-			idIndent := "U)^" . RegExReplace(A_LoopField, "U)IDS *\{$")
-		}
-		; found config block within single config
-		else if ((inMultiCfg || inDefault) && !inConfig && RegExMatch(cleanLine, "U)^CONFIG *\{$")) {
+
+		; check for opening bracket for config in mconfig
+		if (!inConfig && RegExMatch(A_LoopField, "U)^\{\s*$")) {
 			inConfig := true
-			cfgIndent := "U)^" . RegExReplace(A_LoopField, "U)CONFIG *\{$")
-		}
-
-		; if found single config & ids -> create a list of ids to check against configList
-		else if (inMultiCfg && inIDS) {
+			configString .= A_LoopField . "`n"
 			
-			; looping until end of ids
-			if (!RegExMatch(cleanLine, "U)^\} *END$")) {
-				idList.Push(RTrim(RegExReplace(A_LoopField, idIndent), " `t`r`n"))
-			}
-			else {
-				; check each value in configList vs pulled idList
-				tempCount := 0
-				for value in configList {
-					for value2 in idList {
-						temp := StrLower(value2)
-
-						if (perfectMatch && value = temp) {
-							tempCount += 1
-							sharedIDS.Push(value2)
-						}
-						else if (!perfectMatch && (InStr(value, temp) || InStr(value2, temp))) {
-							tempCount += 1
-							sharedIDS.Push(value2)
-						}
-					}
-				}
-
-				; check that idList for all items in configList
-				if (configListType = "and" && tempCount >= configList.Length) {
-					validID := true
-				}
-
-				; check that idList contains at least 1 in configList
-				else if (configListType = "or" && tempCount > 0) {
-					validID := true
-				}
-
-				idList := []
-				inIDS := false
-			}
+			continue
 		}
-
-		; if found a valid config
-		else if (inMultiCfg && inConfig && validID) {
-			
-			; looping until end of config
-			if (!RegExMatch(cleanLine, "U)^\} *END$")) {
-				cfgBlock .= RegExReplace(A_LoopField, cfgIndent) . "`n"
-			}
-			else {
-				addConfigToRet(cfgBlock, sharedIDS, true)
-
-				sharedIDS := []
-				cfgBlock := ""
-				inConfig := false
-				validID := false
-			}
-		}
-
-		; if found default & config within
-		else if (inDefault && inConfig) {
-
-			; looping until end of config
-			if (!RegExMatch(cleanLine, "U)^\} *END$")) {
-				cfgBlock .= RegExReplace(A_LoopField, cfgIndent)
-			}
-			else {
-				addConfigToRet(cfgBlock, [], false)
-
-				cfgBlock := ""
-				inConfig := false
-			}
-		}
-
-		; end of config config
-		else if (inMultiCfg && inConfig && RegExMatch(cleanLine, "U)^\} *END$")) {
+		; check for closing bracket for config
+		else if (inConfig && RegExMatch(A_LoopField, "U)^\}\s*$")) {
 			inConfig := false
-		}
-		
-		; end of single config
-		else if (inMultiCfg && !inIDS && !inConfig && RegExMatch(cleanLine, "U)^\} *END$")) {
-			inMultiCfg := false
+			configString .= A_LoopField
+
+			; add cleaned config to config list
+			tempConfig := readConfig(configString,, "json")
+			tempConfig.cleanAllItems()
+			configs.Push(tempConfig)
+			
+			configString := ""
+			continue
 		}
 
-		; end of default config
-		else if (inDefault && !inConfig && RegExMatch(cleanLine, "U)^\} *END$")) {
-			inDefault := false
+		; append to configString
+		if (inConfig) {
+			configString .= A_LoopField . "`n"
 		}
 	}
 
+	retConfig := Config.New()
+	retIndent := ""
+	for item in configs {
+		; clean ids
+		if (Type(item.items["id"]) = "Array") {
+			tempArr := []
+
+			for value in item.items["id"] {
+				tempArr.Push(Trim(value, ' `t`r`n"' . "'"))
+			}
+
+			item.items["id"] := tempArr
+			
+		}
+		else {
+			item.items["id"] := [Trim(item.items["id"], ' `t`r`n"' . "'")]
+		}
+
+		; check for default config
+		if (enableDefault && StrLower(item.items["id"]) = "default") {
+			retConfig.combineConfig(item.subConfigs["config"], false)
+		}
+
+		; check each config if contains configList
+		if (inArray(configList, item.items["id"], configListType, perfectMatch)) {
+			retIndent := item.indent . item.indent
+
+			; check for subconfigs in returning configs
+			if (subConfig = "") {
+				retConfig.combineConfig(item.subConfigs["config"])
+			}
+			else if (IsObject(subConfig)) {
+				for sub, value in subConfig {
+					if (item.subConfigs["config"].subConfigs.Has(sub)) {
+						retConfig.combineConfig(value)
+					}
+				}
+			}
+			else if (item.subConfigs["config"].subConfigs.Has(subConfig)) {
+				retConfig.combineConfig(item.subConfigs["config"].subConfigs[subConfig])
+			}
+		}
+	}
+
+	retConfig.indent := retIndent
 	return retConfig
 }
 
@@ -399,39 +456,21 @@ readMultiCfg(fileName, configList, configListType := "or", perfectMatch := true,
 readGlobalConfig() {
 	; first check if global.txt exists
 	if (FileExist("config\global.txt")) {
-		gConfig := readConfig("config\global.txt", , "brackets")
+		gConfig := readConfig("config\global.txt",, "brackets")
 
 		; check the required settings from the config file (you bet they're hardcoded)
 		if (!gConfig.subConfigs.Has("General") || !gConfig.subConfigs.Has("Display")
 		|| !gConfig.subConfigs.Has("LoadScreen") || !gConfig.subConfigs.Has("PauseScreen")
-		|| !gConfig.subConfigs.Has("Boot") || !gConfig.subConfigs.Has("Executables")) {
-			MsgBox("
+		|| !gConfig.subConfigs.Has("Boot")) {
+			ErrorMsg(
 				(
-					ERROR
+					"
 					Config global.txt is missing required setting categories
 					Please check that all of the required settings exist
-				)"
+					"
+				),
+				true
 			)
-
-			WinWaitClose()
-
-			ExitApp()
-		}
-		else if ((!gConfig.subConfigs["Executables"].items.Has("Home") || gConfig.subConfigs["Executables"].items["Home"] = "")
-		|| ((!gConfig.subConfigs["Executables"].items.Has("Home_EXE") || gConfig.subConfigs["Executables"].items["Home_EXE"] = "")
-		&& (!gConfig.subConfigs["Executables"].items.Has("Home_WNDW") || gConfig.subConfigs["Executables"].items["Home_WNDW"] = ""))) {
-			MsgBox("
-				(
-					ERROR
-					No Home/HomeDir Executables in config\global.txt
-					These settings are required to have values for the 
-					scripts to function.
-				)"
-			)
-
-			WinWaitClose()
-
-			ExitApp()
 		}
 
 		; if global.txt is valid, return the cleaned copy of it
@@ -441,18 +480,15 @@ readGlobalConfig() {
 	else {
 		; if there is no global.txt or global.default.txt, you have to find them
 		if (!FileExist("config\global.default.txt")) {
-			MsgBox("
+			ErrorMsg(
 				(
-					ERROR
+					"
 					There are literally no config files in config\
 					No global.txt & No global.default.txt
 					You really screwed the pooch on this one bud
-				)"
+					"
+				)
 			)
-
-			WinWaitClose()
-
-			ExitApp()
 		}
 
 		defaultGlobal := FileOpen("config\global.default.txt", "r")
@@ -462,14 +498,16 @@ readGlobalConfig() {
 		newGlobal := FileOpen("config\global.txt", "w")
 		newGlobal.Write(defaultContents)
 		newGlobal.Close()
-		
-		MsgBox("
+
+		MsgBox(
 			(
+				"
 				Welcome to the Media Center AHK Scripts
 				A new config file has been generated at config\global.txt
 				based on the default settings. Please review the config file
 				before trying to run the program again.
-			)"
+				"
+			)
 		)
 
 		WinWaitClose()

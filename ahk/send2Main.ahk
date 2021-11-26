@@ -4,13 +4,7 @@
 ; check that mediacenter is actually running
 DetectHiddenWindows(true)
 if (!WinExist("MediaCenterMain")) {
-    MsgBox("
-    (
-        ERROR
-        MediaCenterMain is not running
-    )")
-
-    return
+    ErrorMsg("MediaCenterMain is not running", true)
 }
 
 ; send all args passed to script and bookend strings
