@@ -7,7 +7,11 @@ global DYNAEND   := "; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----"
 
 ; ----- FUNCTIONS -----
 
+; creates & waits for close an error message popup containing message
+;  message - message to show in MsgBox
+;  exit - boolean if program should exit after error
 ;
+; returns null
 ErrorMsg(message, exit := false) {
 	MsgBox(
 		(
@@ -23,8 +27,6 @@ ErrorMsg(message, exit := false) {
 		ExitApp()
 	}
 }
-
-
 
 ; closes a window's process based on window
 ;  window - window whose process to close
@@ -63,7 +65,7 @@ WinHidden(window) {
 }
 
 ; sums all values in each list
-;  lists - kwargs lists
+;  lists - args lists
 ;
 ; returns sum of all values
 Sum(lists*) {
@@ -116,14 +118,13 @@ toString(value, prefix := "") {
 		return retString . "]"
 	}
 
-	; TODO - fix submaps/subconfigs not printing right
 	else if (Type(value) = "Map") {
 		for key, item in value {
 			if (Type(item) = "Map") {
 				retString .= prefix . key . " : {`n" . toString(item, (prefix . "  ")) . prefix . "}`n"
 			}
 			else {
-				retString .= prefix . key . " : " . toString(item) . "`n"
+				retString .= prefix . key . " : " . toString(item, prefix) . "`n"
 			}
 		}
 
@@ -131,14 +132,85 @@ toString(value, prefix := "") {
 	}
 	else if (Type(value) = "Config") {
 		retString .= "`n" . prefix . "INDENT[" . toString(StrLen(value.indent)) . "]`n"
-		retString .= prefix . toString(value.items, prefix . "  ") . "`n"
-		retString .= prefix . toString(value.subConfigs, prefix . "  ") . "`n"
+		retString .= RTrim(toString(value.items, prefix . "  "), " `t`r`n") . "`n`n"
+		retString .= prefix . RTrim(toString(value.subConfigs, prefix . "  "), " `t`r`n") . "`n"
 
-		return retString
+		return RTrim(retString, " `t`r`n") . "`n"
 	}
 	else {
-		return (prefix = "") ? Trim(retString . value, " `t`r`n") : retString . value
+		return (prefix = "") ? Trim(retString . value, " `t`r`n") : RTrim(retString . value, " `t`r`n")
 	}
+}
+
+; takes a string and attempts to convert it into either a num, bool, or array
+;  value - value to convert
+;  trim - if retVal is a string, trim unwanted chars (whitespace & ")
+;
+; returns either new value type, or string
+fromString(value, trim := false) {
+	retVal := value
+
+	; try to convert the item into a float, if successful save as number
+	try {
+		retVal := Float(value)
+		return retVal
+	}
+	catch {
+		; check if value is a string representing a bool, convert to bool
+		if (StrLower(value) = "true") {
+			return true
+		}
+		else if (StrLower(value) = "false") {
+			return false
+		}
+		
+		; check if value is an array (contains ","), and convert appropriately
+		else if (InStr(value, ",")) {
+			tempArr := StrSplit(value, ",")
+
+			retVal := []
+			for item in tempArr {
+				retVal.Push(fromString(item, trim))
+			}
+		}
+
+		return (trim && Type(retVal) = "String") ? Trim(retVal, ' `t`r`n"') : retVal
+	}
+}
+
+; runs a text as a function, seperating by spaces
+;  text - string to run as function
+;  params - additional params to push after string params
+;
+; return null
+runFunction(text, params := "") {
+	textArr := StrSplit(text, A_Space)
+	func := textArr.RemoveAt(1)
+	
+	funcArr := []
+
+	; set args for func from words in text
+	for item in textArr {
+		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%") {
+			funcArr.Push(%Trim(item, "%")%)
+		}
+		else {
+			funcArr.Push(item)
+		}
+	}
+
+	; append args to func from additional outside args
+	if (Type(params) = "String" && params != "") {
+		funcArr.Push(params)
+	}
+	else if (Type(params) = "Array") {
+		for item in params {
+			funcArr.Push(item)
+		}
+	}
+
+	; this is kinda annoying, TODO - maybe figure out how to deconstruct array
+	%func%(funcArr)
 }
 
 ; checks if the given value(s) is in the array
@@ -194,6 +266,27 @@ regexClean(text) {
 	retString := StrReplace(retString, ")", "\)")
 	retString := StrReplace(retString, "^", "\^")
 	retString := StrReplace(retString, "$", "\$")
+	
+	return retString
+}
+
+; cleans text to have normal special chars from regex chars
+;  text - text to clean for string
+;
+; returns text with each character set to match identical in normal string
+reverseRegexClean(text) {
+	retString := StrReplace(text, "\\", "\")
+	retString := StrReplace(retString, "\.", ".")
+	retString := StrReplace(retString, "\*", "*")
+	retString := StrReplace(retString, "\?", "?")
+	retString := StrReplace(retString, "\+", "+")
+	retString := StrReplace(retString, "\[", "[")
+	retString := StrReplace(retString, "\{", "{")
+	retString := StrReplace(retString, "\|", "|")
+	retString := StrReplace(retString, "\(", "(")
+	retString := StrReplace(retString, "\)", ")")
+	retString := StrReplace(retString, "\^", "^")
+	retString := StrReplace(retString, "\$", "$")
 	
 	return retString
 }

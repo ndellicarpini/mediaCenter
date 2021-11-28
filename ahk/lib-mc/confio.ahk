@@ -10,45 +10,24 @@ class Config {
 	indent := ""
 
 	; convert the items into the proper types
+	;  trim - whether or not to trim from each item
 	;
 	; returns null
-	cleanItems() {
+	cleanItems(trim := false) {
 		for key, value in this.items {
-
-			; try to convert the item into a float, if successful save as number
-			try {
-				this.items[key] := Float(value)
-			}
-			catch {
-				; check if value is a string representing a bool, convert to bool
-				if (StrLower(value) = "true") {
-					this.items[key] := true
-				}
-				else if (StrLower(value) = "false") {
-					this.items[key] := false
-				}
-				
-				; check if value is an array (contains ","), and convert appropriately
-				else if (InStr(value, ",")) {
-					tempArr := StrSplit(value, ",")
-
-					this.items[key] := []
-					for item in tempArr {
-						this.items[key].Push(Trim(item, "`t "))
-					}
-				}
-			}
+			this.items[key] := fromString(value, trim)
 		}
 	}
 
 	; perform cleanItems on subConfigs
+	;  trim - see cleanItems()
 	;
 	; returns null
-	cleanAllItems() {
-		this.cleanItems()
+	cleanAllItems(trim := false) {
+		this.cleanItems(trim)
 
 		for key, value in this.subConfigs {
-			this.subConfigs[key].cleanAllItems()
+			this.subConfigs[key].cleanAllItems(trim)
 		}
 	}
 

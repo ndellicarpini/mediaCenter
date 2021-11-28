@@ -1,16 +1,14 @@
 {
-    "mode": "browser",
-    "exe": "chrome.exe",
-    "wndw": "",
+    ; do i still need modes?
     "name": "Chrome",
 
-    "preLaunch": "",
+    "dir": "C:\chrome",
+    "exe": "chrome.exe",
+    "wndw": "",
+
     "launch": "browserLaunch",
-    "preExe": "",
-    "postExe": "browserInit",
-    "preWndw": "",
-    "postWndw": "",
     "postTooltip": "",
+
     "restoreWndw": "browserRestore",
     "minimizeWndw": "browserMin",
     "exit": "browserExit",

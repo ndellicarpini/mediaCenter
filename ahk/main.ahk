@@ -7,7 +7,6 @@
 #Include lib-custom\games.ahk
 #Include lib-custom\loadscreen.ahk
 #Include lib-custom\pausescreen.ahk
-#Include lib-custom\emulators\retroarch.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
@@ -16,6 +15,7 @@
 #Include lib-mc\std.ahk
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
+#Include lib-mc\executable.ahk
 
 setCurrentWinTitle(MAINNAME)
 
@@ -23,8 +23,11 @@ global dynamicInclude := getDynamicIncludes(A_ScriptFullPath)
 global mainMessage := []
 
 ; ----- READ GLOBAL CONFIG -----
-mainConfig := Map()
-mainStatus := Map()
+mainConfig      := Map()
+mainStatus      := Map()
+
+; TODO - CURRENT & OPEN EXECUTABLE SET
+mainExecutables := Map()
 
 globalConfig := readGlobalConfig()
 
@@ -32,12 +35,22 @@ globalConfig := readGlobalConfig()
 mainConfig["StartArgs"] := A_Args
 
 ; initialize basic status features
-mainStatus["suspendScript"] := false
-mainStatus["pause"] := false
 
-mainStatus["mode"]     := ""
+; whether or not pause screen is shown 
+mainStatus["pause"] := false
+; whether or not script is suspended (no actions running, changable in pause menu)
+mainStatus["suspendScript"] := false
+
+; current name of executable focused & running, used to get config -> setup hotkeys & background actions
+mainStatus["currEXE"]  := ""
+; map of current executables running & what times they were launched -> used to determine fallback on close
+; ROW | ID: name, EXE: exe, TIME: Unix launched, 
+mainStatus["openEXE"] := Map()
+; name of executable overriding the openEXE map -> kept separate for quick actions that should override
+; all status, but retain current exe stack on close (like checking manual in chrome)
 mainStatus["override"] := ""
 
+; load screen info
 mainStatus["load"] := Map()
 mainStatus["load"]["show"] := false
 mainStatus["load"]["text"] := "Now Loading..."
@@ -67,14 +80,15 @@ for key, value in globalConfig.subConfigs {
 
 ; read executable folder & add to configs
 if (mainConfig["General"].Has("ExeConfigDir") && mainConfig["General"]["ExeConfigDir"] != "") {
-    loop files validateDir(mainConfig["General"]["ExeConfigDir"]) . "*", "FD" {
-        
+    loop files validateDir(mainConfig["General"]["ExeConfigDir"]) . "*", "FR" {
+        tempConfig := readConfig(A_LoopFileFullPath,, "json")
+        tempConfig.cleanAllItems(true)
+
+        mainExecutables[tempConfig.items["name"]] := tempConfig
     }
 
-    ; TESTING
-    oof := readConfig("config\executables\chrome.json",, "json")
-    oof.cleanAllItems()
-    MsgBox(toString(oof))
+    MsgBox(toString(mainStatus))
+    MsgBox(toString(mainExecutables))
     ExitApp()
 }
 
@@ -84,14 +98,16 @@ mainControllers := xInitialize(xLib, mainConfig["General"]["MaxXInputControllers
 
 ; adds the list of keys to the map as a string so that the map can be enumerated
 ; despite being a ComObject in the threads
-mainConfig      := addKeyListString(mainConfig)
-mainStatus      := addKeyListString(mainStatus)
-mainControllers := addKeyListString(mainControllers)
+mainConfig       := addKeyListString(mainConfig)
+mainStatus       := addKeyListString(mainStatus)
+mainControllers  := addKeyListString(mainControllers)
+mainExecutables  := addKeyListString(mainExecutables)
 
 ; configure objects to be used in a thread-safe manner
 localConfig      := ObjShare(ObjShare(mainConfig))
 localStatus      := ObjShare(ObjShare(mainStatus))
 localControllers := ObjShare(ObjShare(mainControllers))
+localExecutables := ObjShare(ObjShare(mainExecutables))
 
 threads := Map()
 
@@ -101,7 +117,7 @@ threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(m
 
 ; ----- BOOT -----
 if (localConfig["Boot"]["EnableBoot"]) {
-    %localConfig["Boot"]["StartBoot"]%(localConfig)
+    runFunction(localConfig["Boot"]["StartBoot"])
 }
 
 ; ----- START PROGRAM ----- 
@@ -126,6 +142,23 @@ loop {
 
     if (mainMessage != []) {
         ; do something based on main message (like launching app)
+        ; style of message should probably be "Run Chrome" or "Run Game Playstation C:\Rom\Crash"
+        ; if first word = Run
+        ;  -> second word of message would be the name of the program to launch, then all other words
+        ;     would be sent to the launch command. 
+        ; else 
+        ;  -> send whole string to runFunction
+
+        if (StrLower(mainMessage[1]) = "run") {
+            mainMessage.RemoveAt(1)
+            ; TODO - better way to add to localStatus
+            localStatus["currEXE"] := createExecutable(mainMessage, localExecutables)
+
+        }
+        else {
+            runFunction(mainMessage)
+        }
+
         mainMessage := []
     }
 
