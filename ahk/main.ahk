@@ -25,8 +25,6 @@ global mainMessage := []
 ; ----- READ GLOBAL CONFIG -----
 mainConfig      := Map()
 mainStatus      := Map()
-
-; TODO - CURRENT & OPEN EXECUTABLE SET
 mainExecutables := Map()
 
 globalConfig := readGlobalConfig()
@@ -84,11 +82,16 @@ if (mainConfig["General"].Has("ExeConfigDir") && mainConfig["General"]["ExeConfi
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
         tempConfig.cleanAllItems(true)
 
-        mainExecutables[tempConfig.items["name"]] := tempConfig
+        if (tempConfig.items.Has("name") || tempConfig.items["name"] != "") {
+            mainExecutables[tempConfig.items["name"]] := tempConfig
+        }
+        else {
+            ErrorMsg(A_LoopFileFullPath . " does not have required 'name' parameter")
+        }
     }
 
-    MsgBox(toString(mainStatus))
-    MsgBox(toString(mainExecutables))
+
+    ; DUMFUCCKCKCKCKCKCK
     ExitApp()
 }
 
@@ -104,10 +107,11 @@ mainControllers  := addKeyListString(mainControllers)
 mainExecutables  := addKeyListString(mainExecutables)
 
 ; configure objects to be used in a thread-safe manner
-localConfig      := ObjShare(ObjShare(mainConfig))
-localStatus      := ObjShare(ObjShare(mainStatus))
-localControllers := ObjShare(ObjShare(mainControllers))
-localExecutables := ObjShare(ObjShare(mainExecutables))
+; TODO - is global necessary / good???
+global localConfig      := ObjShare(ObjShare(mainConfig))
+global localStatus      := ObjShare(ObjShare(mainStatus))
+global localControllers := ObjShare(ObjShare(mainControllers))
+global localExecutables := ObjShare(ObjShare(mainExecutables))
 
 threads := Map()
 
@@ -142,7 +146,7 @@ loop {
 
     if (mainMessage != []) {
         ; do something based on main message (like launching app)
-        ; style of message should probably be "Run Chrome" or "Run Game Playstation C:\Rom\Crash"
+        ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
         ; if first word = Run
         ;  -> second word of message would be the name of the program to launch, then all other words
         ;     would be sent to the launch command. 
@@ -151,9 +155,17 @@ loop {
 
         if (StrLower(mainMessage[1]) = "run") {
             mainMessage.RemoveAt(1)
-            ; TODO - better way to add to localStatus
-            localStatus["currEXE"] := createExecutable(mainMessage, localExecutables)
+            name := mainMessage.RemoveAt(2)
 
+            localStatus["currEXE"] := name
+            localStatus["openEXE"][name] := createExecutable(name, mainMessage, localExecutables)
+        }
+        else if (StrLower(mainMessage[1]) = "exit") {
+            mainMessage.RemoveAt(1)
+            name := mainMessage.RemoveAt(2)
+
+            localStatus["openEXE"].Delete(name)
+            ; updateExecutables() - need to find second most recent exe & launch it (need to figure out what to do about last exe)
         }
         else {
             runFunction(mainMessage)
@@ -163,6 +175,9 @@ loop {
     }
 
     ; need to check that threads are running - currently no way to do this without there being a debug print
+
+    ; write localStatus to file as backup cache?
+    ; maybe only do it like every 10ish secs?
 
     ; check looper
     if (localConfig["General"]["ForceMaintainMain"] && !localStatus["suspendScript"] && !WinHidden(MAINLOOP)) {

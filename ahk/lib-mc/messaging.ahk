@@ -38,12 +38,28 @@ sendMessageToMain(message, waitTime := 5000) {
             (
                 "
                 Did not recieve confirmation from
-                MediaCenterMain within 5000ms
+                MediaCenterMain within " . toString(waitTime) . "ms
                 "
             ),
             true
         )
     }
+}
+
+; sends full message to main, including header & footer
+;  list - each individual word to send to main
+;
+; returns null
+sendListToMain(list) {
+    list := toArray(list)
+    
+    sendMessageToMain(MESSAGE_START)
+
+    for item in list {
+        sendMessageToMain(item)
+    }
+
+    sendMessageToMain(MESSAGE_END)
 }
 
 ; recieves a message bookended by MESSAGE_START and MESSAGE_END and runs whatever functions

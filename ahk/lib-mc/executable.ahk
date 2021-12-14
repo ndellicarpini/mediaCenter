@@ -7,6 +7,9 @@ class Executable {
     dir     := ""
     exe     := ""
     wndw    := ""
+    time    := 0
+
+    background := false
 
     enablePause   := true
     enableTooltip := true
@@ -34,6 +37,8 @@ class Executable {
         this.exe  := (exeConfig.items.Has("exe"))  ? exeConfig.items["exe"]  : this.exe
         this.wndw := (exeConfig.items.Has("wndw")) ? exeConfig.items["wndw"] : this.wndw
 
+        this.time := A_TickCount
+
         ; set custom functions
         this.customLaunch      := (exeConfig.items.Has("launch"))      ? exeConfig.items["launch"]      : this.customLaunch
         this.customPostTooltip := (exeConfig.items.Has("postTooltip")) ? exeConfig.items["postTooltip"] : this.customPostTooltip
@@ -53,17 +58,17 @@ class Executable {
             ? exeConfig.items["enableTooltip"] : this.enableTooltip
 
         this.hotkeys := (exeConfig.subConfigs.Has("hotkeys")) 
-            ? cleanHotkeys(exeConfig.subConfigs["hotkeys"]) : this.hotkeys
+            ? this.cleanHotkeys(exeConfig.subConfigs["hotkeys"]) : this.hotkeys
 
         ; set pause & tooltip contents if appropriate
         if (this.enablePause) {
             this.pauseOptions := (exeConfig.subConfigs.Has("pauseOptions")) 
-                ? cleanPauseOptions(exeConfig.subConfigs["pauseOptions"]) : this.pauseOptions
+                ? this.cleanPauseOptions(exeConfig.subConfigs["pauseOptions"]) : this.pauseOptions
         }
 
         if (this.enableTooltip) {
             this.tooltipInner := (exeConfig.items.Has("tooltip")) 
-                ? cleanTooltip(toArray(exeConfig.items["tooltip"])) : this.tooltipText
+                ? this.cleanTooltip(toArray(exeConfig.items["tooltip"])) : this.tooltipText
         }
     }
 
@@ -71,7 +76,7 @@ class Executable {
     ;  hotkeyConfig - config object w/ hotkey info from json
     ;
     ; returns this.hotkeys
-    static cleanHotkeys(hotkeyConfig) {
+    cleanHotkeys(hotkeyConfig) {
         ; TODO
     }
 
@@ -79,7 +84,7 @@ class Executable {
     ;  pauseConfig - config object w/ pause info from json
     ;
     ; returns this.pauseOptions
-    static cleanPauseOptions(pauseConfig) {
+    cleanPauseOptions(pauseConfig) {
         ; TODO
     }
 
@@ -87,7 +92,7 @@ class Executable {
     ;  tooltipArr - tooltip info from json
     ;
     ; returns this.tooltipInner
-    static cleanTooltup(tooltipArr) {
+    cleanTooltup(tooltipArr) {
         ; TODO
     }
 
@@ -123,6 +128,8 @@ class Executable {
 
     exit() {
         ; TODO
+        
+        exitExecutable(name)
     }
 
     ; called in hotkeyThread
@@ -132,20 +139,27 @@ class Executable {
 
 }
 
-; create abstractions off of executable based on type (specifically game & background)
 
-; RUNNING UR MOUTH INNIT
-createExecutable(message, executables) {
-    if (message[1] = "Game") {
-        ; TODO
+createExecutable(name, params, executables) {
+    for key in StrSplit(executables['keys'], ',') {
+        if (key = name) {
+            retObj := Executable.New(executables[key])
+            retObj.launch(params)
+        
+            return retObj
+        }
     }
-    else if (message[1] = "Background") {
-        ; TODO
-    }
-    else {
-        retObj := Executable.New(message.RemoveAt(1))
-        retObj.launch(message)
 
-        return retObj
+    ErrorMsg("Executable " . name . " was not found in config\executables")
+    return ""
+}
+
+exitExecutable(name, params := "") {
+    ; TODO - maybe send to main so localexecutables can be updated? maybe not?
+    msgList := ["Exit", name]
+    for item in params {
+        msgList.Push(item)
     }
+
+    sendListToMain(msgList)
 }
