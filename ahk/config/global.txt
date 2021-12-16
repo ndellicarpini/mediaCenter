@@ -28,8 +28,8 @@ XInputDLL = C:\Windows\System32\xinput1_3.dll
 ; sets the directory for custom libraries to be included in main
 CustomLibDir = lib-custom\
 
-; sets the directory for executable config jsons
-ExeConfigDir = config\executables\
+; sets the directory for program config jsons
+ProgramConfigDir = config\executables\
 
 
 [Display]

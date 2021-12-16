@@ -1,7 +1,7 @@
 ; create an executable generic object that gets added to openEXE
 ; this executable object will contain a lot of the generic features taken from executable json files
 ; each function & more in json files has default version as well
-class Executable {
+class Program {
     ; attributes
     name    := ""
     dir     := ""
@@ -128,8 +128,7 @@ class Executable {
 
     exit() {
         ; TODO
-        
-        exitExecutable(name)
+    
     }
 
     ; called in hotkeyThread
@@ -140,26 +139,16 @@ class Executable {
 }
 
 
-createExecutable(name, params, executables) {
-    for key in StrSplit(executables['keys'], ',') {
+createProgram(name, params, programs) {
+    for key in StrSplit(programs['keys'], ',') {
         if (key = name) {
-            retObj := Executable.New(executables[key])
+            retObj := Program.New(programs[key])
             retObj.launch(params)
         
             return retObj
         }
     }
 
-    ErrorMsg("Executable " . name . " was not found in config\executables")
+    ErrorMsg("Program " . name . " was not found")
     return ""
-}
-
-exitExecutable(name, params := "") {
-    ; TODO - maybe send to main so localexecutables can be updated? maybe not?
-    msgList := ["Exit", name]
-    for item in params {
-        msgList.Push(item)
-    }
-
-    sendListToMain(msgList)
 }
