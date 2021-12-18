@@ -83,8 +83,8 @@ if (mainConfig["General"].Has("CustomLibDir") && mainConfig["General"]["CustomLi
     requiredFolders.Push(mainConfig["General"]["CustomLibDir"])
 }
 
-if (mainConfig["General"].Has("ProgramConfigDir") && mainConfig["General"]["ProgramConfigDir"] != "") {
-    requiredFolders.Push(mainConfig["General"]["ProgramConfigDir"])
+if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
+    requiredFolders.Push(mainConfig["Programs"]["ConfigDir"])
 }
 
 for value in requiredFolders {
@@ -94,12 +94,19 @@ for value in requiredFolders {
 }
 
 ; read program folder & read each program config file
-if (mainConfig["General"].Has("ProgramConfigDir") && mainConfig["General"]["ProgramConfigDir"] != "") {
-    loop files validateDir(mainConfig["General"]["ProgramConfigDir"]) . "*", "FR" {
+if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
+    loop files validateDir(mainConfig["Programs"]["ConfigDir"]) . "*", "FR" {
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
         tempConfig.cleanAllItems(true)
 
         if (tempConfig.items.Has("name") || tempConfig.items["name"] != "") {
+
+            if (mainConfig["Programs"].Has("SettingListDir") && mainConfig["Programs"]["SettingListDir"] != "") {
+                for key, value in tempConfig.items {
+                    tempConfig.items[key] := cleanSetting(value, mainConfig["Programs"]["SettingListDir"])
+                }
+            }
+            
             mainPrograms[tempConfig.items["name"]] := tempConfig
         }
         else {
@@ -126,7 +133,7 @@ localStatus      := ObjShare(ObjShare(mainStatus))
 localControllers := ObjShare(ObjShare(mainControllers))
 localPrograms    := ObjShare(ObjShare(mainPrograms))
 
-
+threads := Map()
 
 ; ----- PARSE START ARGS -----
 for key in StrSplit(localConfig["StartArgs"]["keys"], ",") {
@@ -143,7 +150,7 @@ for key in StrSplit(localConfig["StartArgs"]["keys"], ",") {
     }
 }
 
-; ; ----- START CONTROLLER THEAD -----
+; ----- START CONTROLLER THEAD -----
 ; ; this thread just updates the status of each controller in a loop
 ; threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 

@@ -92,11 +92,11 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 			}
 
 			; if no deliminator -> just add all values to items as keys
-			if (deliminator = "none") {
+			if (deliminator = "") {
 				configObj.items[cleanLine] := ""
 			}
 
-			else if (subConfigType = "brackets") {
+			else if (subConfigType = "brackets" || subConfigType = "none") {
 				; if line contains valid deliminator to set leftItem
 				if (!inQuotes(cleanLine, deliminator) && InStr(cleanLine, deliminator)) {
 					; save previous left=right to configObj after finding next line withh valid deliminator

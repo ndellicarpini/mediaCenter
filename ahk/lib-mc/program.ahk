@@ -72,6 +72,106 @@ class Program {
         }
     }
 
+    launch(args*) {
+        ; TODO
+        ; take args from mainMessage
+        ; set currEXE -> then tooltip -> then postTooltip
+        if (this.customLaunch != "") {
+            runFunction(this.customLaunch, args)
+        }
+        else {
+            Run "%validateDir(this.dir)%%this.exe%" (args != "" || (args && args.Length > 0)) ? joinArray(args) : ""
+        }
+
+        if (this.enableTooltip) {
+            this.tooltip()
+            this.postTooltip()
+        }
+    }
+
+    tooltip() {
+        ; TODO
+    }
+
+    postTooltip() {
+        if (this.customPostTooltip != "") {
+            runFunction(this.customPostTooltip)
+        }
+        
+        this.restore()
+    }
+    
+    pause() {
+        ; TODO
+    }
+
+    resume() {
+        ; TODO
+    }
+
+    restore() {
+        if (this.customRestore != "") {
+            runFunction(this.customRestore)
+            return
+        }
+
+        ; TODO - think about removing borders & making fullscreen
+        ; for now just gonna restore & activate
+        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+
+        WinActivate(window)
+        Sleep(100)
+        WinMaximize(window)
+    }
+
+    minimize() {
+        if (this.customMinimize != "") {
+            runFunction(this.customMinimize)
+            return
+        }
+
+        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+
+        WinMinimize(window)
+    }
+
+    exit() {
+        if (this.customExit != "") {
+            runFunction(this.customExit)
+            return
+        }
+
+        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+        count := 0
+        maxCount := 50
+
+        WinClose(window)
+        Sleep(250)
+
+        exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
+        while (exeExists && count < maxCount) {
+            count += 1
+            exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
+
+            Sleep(100)
+        }
+
+        ProcessWinClose(window)
+        Sleep(500)
+
+        exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
+        while (exeExists) {
+            ProcessWaitClose(window)
+
+            Sleep(500)
+            exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
+        }
+    }
+
+    exists() {
+        return (checkEXE(this.exe) || checkWNDW(this.wndw))
+    }
+
     ; clean up hotkeys to make appropriate to check in hotkeyScript (like clean keys, get funcs)
     ;  hotkeyConfig - config object w/ hotkey info from json
     ;
@@ -96,49 +196,14 @@ class Program {
         ; TODO
     }
 
-    launch(args*) {
-        ; TODO
-        ; take args from mainMessage
-        ; set currEXE -> then tooltip -> then postTooltip
-    }
-
-    tooltip() {
-        ; TODO
-    }
-
-    postTooltip() {
-        ; TODO
-    }
-    
-    pause() {
-        ; TODO
-    }
-
-    resume() {
-        ; TODO
-    }
-
-    restore() {
-        ; TODO
-    }
-
-    minimize() {
-        ; TODO
-    }
-
-    exit() {
-        ; TODO
-    
-    }
-
-    ; called in hotkeyThread
-    checkHotkeys() {
-        ; TODO
-    }
-
 }
 
-
+; creates an program to use
+;  name - name of the program to open (same name as in json file)
+;  params - params to pass to Program.New()
+;  programs - list of programs parsed at start of main
+;
+; returns either the program, or empty string
 createProgram(name, params, programs) {
     for key in StrSplit(programs['keys'], ',') {
         if (key = name) {
@@ -151,4 +216,79 @@ createProgram(name, params, programs) {
 
     ErrorMsg("Program " . name . " was not found")
     return ""
+}
+
+; cleans up program setting if it is a file, converting it into a newline deliminated list
+;   setting - setting
+;   dir - directory of settings lists
+;
+; returns setting or list of values parsed from setting's file
+cleanSetting(setting, dir) {
+    if (Type(setting) != "String" || setting = "" || dir = "") {
+        return setting
+    }
+
+    settingFile := validateDir(dir) . setting
+
+    if (FileExist(settingFile)) {
+        return readConfig(settingFile, "").items
+    }
+
+    return setting
+}
+
+
+; takes a variable amount of exe maps (key=exe) and returns the process exe if its running
+;  exe - either an exe or a map with each key being an exe
+;
+; return either "" if the process is not running, or the name of the process
+checkEXE(exe) {
+    if (exe = "") {
+        return false
+    }
+
+    if (IsObject(exe)) {
+        for process in ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process") {
+            if (exe.Has(process.Name)) {
+                return true
+            }
+        }
+    }
+    else {
+        return ProcessExist(exe) ? true : false
+    }
+
+    return false
+}
+
+; takes a variable of window maps (key=window) and returns true if any of the functions return
+;  wndw - either an wndw name or a map with each key being an wndw
+;
+; return either "" if the process is not running, or the name of the process
+checkWNDW(wndw) {
+    if (wndw = "") {
+        return false
+    }
+
+    if (IsObject(wndw)) {
+		if (wndw.Has("keys")) {
+			for key in StrSplit(wndw["keys"], ",") {
+				if (WinShown(key)) {
+					return true
+				}
+			}
+		}
+		else {
+			for key, empty in wndw {
+				if (WinShown(key)) {
+					return true
+				}
+			}
+		}
+	}
+    else {
+        return WinShown(wndw) ? true : false
+    }
+
+	return false
 }

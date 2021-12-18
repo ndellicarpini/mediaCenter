@@ -178,39 +178,26 @@ fromString(value, trim := false) {
 	}
 }
 
-; runs a text as a function, seperating by spaces
-;  text - string to run as function
-;  params - additional params to push after string params
+; either returns arr if its a string, or returns a deliminator separated string of arr elements
+;  arr - array to join elements of
+;  deliminitor - separating string between each element
 ;
-; return null
-runFunction(text, params := "") {
-	textArr := StrSplit(text, A_Space)
-	func := textArr.RemoveAt(1)
+; returns a string containing joined array
+joinArray(arr, deliminator := " ") {
+	if (!IsObject(arr)) {
+		return arr
+	}
 	
-	funcArr := []
-
-	; set args for func from words in text
-	for item in textArr {
-		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%") {
-			funcArr.Push(%Trim(item, "%")%)
-		}
-		else {
-			funcArr.Push(item)
-		}
+	if (arr.Length = 1) {
+		return arr[1]
+	}
+	
+	retString := ""
+	for value in arr {
+		retString .= value . deliminator
 	}
 
-	; append args to func from additional outside args
-	if (Type(params) = "String" && params != "") {
-		funcArr.Push(params)
-	}
-	else if (Type(params) = "Array") {
-		for item in params {
-			funcArr.Push(item)
-		}
-	}
-
-	; this is kinda annoying, TODO - maybe figure out how to deconstruct array
-	%func%(funcArr)
+	return RTrim(retString, deliminator)
 }
 
 ; checks if the given value(s) is in the array
@@ -451,6 +438,41 @@ addKeyListString(obj) {
 	return newObj
 }
 
+; runs a text as a function, seperating by spaces
+;  text - string to run as function
+;  params - additional params to push after string params
+;
+; return null
+runFunction(text, params := "") {
+	textArr := StrSplit(text, A_Space)
+	func := textArr.RemoveAt(1)
+	
+	funcArr := []
+
+	; set args for func from words in text
+	for item in textArr {
+		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%") {
+			funcArr.Push(%Trim(item, "%")%)
+		}
+		else {
+			funcArr.Push(item)
+		}
+	}
+
+	; append args to func from additional outside args
+	if (Type(params) = "String" && params != "") {
+		funcArr.Push(params)
+	}
+	else if (Type(params) = "Array") {
+		for item in params {
+			funcArr.Push(item)
+		}
+	}
+
+	; this is kinda annoying, TODO - maybe figure out how to deconstruct array
+	%func%(funcArr)
+}
+
 ; sets the current script's window title to the string in name
 ;  name - new window name for current script
 ;
@@ -461,48 +483,6 @@ setCurrentWinTitle(name) {
 	DetectHiddenWindows(true)
 	WinSetTitle(name, "ahk_pid" . DllCall("GetCurrentProcessId"))
 	DetectHiddenWindows(resetDHW)
-}
-
-; takes a variable amount of exe maps (key=exe) and returns the process exe if its running
-;  lists* - any amount of exe lists
-;
-; return either "" if the process is not running, or the name of the process
-checkEXEList(lists*) {
-    for process in ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process") {
-        for exeList in lists {
-            if (exeList.Has(process.Name)) {
-                return process.Name
-            }
-        }
-    }
-
-    return ""
-}
-
-; takes a variable of window maps (key=window) and returns true if any of the functions return
-;  lists* - any amount of window lists
-;
-; return either "" if the process is not running, or the name of the process
-checkWNDWList(lists*) {
-	for functionList in lists {
-		
-		if (functionList.Has("keys")) {
-			for key in StrSplit(functionList["keys"], ",") {
-				if (WinShown(key)) {
-					return key
-				}
-			}
-		}
-		else {
-			for key, empty in functionList {
-				if (WinShown(key)) {
-					return key
-				}
-			}
-		}
-	}
-
-	return ""
 }
 
 ; returns the string containing the dynamic includes if it exists
