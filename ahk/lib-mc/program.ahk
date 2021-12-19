@@ -1,3 +1,6 @@
+#Include std.ahk
+#Include confio.ahk
+
 ; create an executable generic object that gets added to openEXE
 ; this executable object will contain a lot of the generic features taken from executable json files
 ; each function & more in json files has default version as well
@@ -119,9 +122,13 @@ class Program {
         ; for now just gonna restore & activate
         window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
 
-        WinActivate(window)
-        Sleep(100)
-        WinMaximize(window)
+        if (!WinActive(window) || WinGetMinMax(window) = -1) {
+            WinActivate(window)
+            Sleep(100)
+            WinMaximize(window)
+
+            this.time := A_TickCount
+        }
     }
 
     minimize() {
@@ -192,30 +199,52 @@ class Program {
     ;  tooltipArr - tooltip info from json
     ;
     ; returns this.tooltipInner
-    cleanTooltup(tooltipArr) {
+    cleanTooltip(tooltipArr) {
         ; TODO
     }
 
 }
 
 ; creates an program to use
-;  name - name of the program to open (same name as in json file)
-;  params - params to pass to Program.New()
+;  params - params to pass to Program.New(), first element of params must be program name
+;  status - thread safe status object
 ;  programs - list of programs parsed at start of main
+;  launchProgram - if program.launch() should be called
+;  setCurrent - if currProgram should be updated
+;  customTime - manual time value to set (useful for backup)
 ;
 ; returns either the program, or empty string
-createProgram(name, params, programs) {
-    for key in StrSplit(programs['keys'], ',') {
-        if (key = name) {
-            retObj := Program.New(programs[key])
-            retObj.launch(params)
+createProgram(params, status, programs, launchProgram := true, setCurrent := true, customTime := 0) {
+    newProgram := toArray(StrSplit(params, A_Space))
+    if (newProgram.Length = 0) {
+        return status
+    }
+
+    newName := newProgram.RemoveAt(1)
+
+    for key in StrSplit(programs["keys"], ",") {
+        if (key = newName) {
+            status["openPrograms"] := addKeyListString(status["openPrograms"], newName)
+            status["openPrograms"][newName] := Program.New(programs[key])
+
+            if (setCurrent) {
+                status["currProgram"] := newName
+            }
+
+            if (launchProgram) {
+                status["openPrograms"][newName].launch(newProgram)
+            }
+
+            if (customTime > 0) {
+                status["openPrograms"][newName].time := customTime
+            }
         
-            return retObj
+            return status
         }
     }
 
-    ErrorMsg("Program " . name . " was not found")
-    return ""
+    ErrorMsg("Program " . newName . " was not found")
+    return status
 }
 
 ; cleans up program setting if it is a file, converting it into a newline deliminated list
@@ -291,4 +320,20 @@ checkWNDW(wndw) {
     }
 
 	return false
+}
+
+; checks that any of the programs exist in program list
+;  programs - list of program configs
+;
+; returns either the name of the program or ""
+checkAllPrograms(programs) {
+    for key in StrSplit(programs["keys"], ",") {
+        if ((programs[key].items.Has("exe") && checkEXE(programs[key].items["exe"]))
+            || (programs[key].items.Has("wndw") && checkWNDW(programs[key].items["wndw"]))) {
+            
+            return key
+        }
+    }
+
+    return ""
 }

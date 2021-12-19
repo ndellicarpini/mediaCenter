@@ -16,6 +16,7 @@
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
 #Include lib-mc\program.ahk
+#Include lib-mc\backup.ahk
 
 setCurrentWinTitle(MAINNAME)
 
@@ -93,7 +94,7 @@ for value in requiredFolders {
     }
 }
 
-; read program folder & read each program config file
+; ----- PARSE PROGRAM CONFIGS -----
 if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
     loop files validateDir(mainConfig["Programs"]["ConfigDir"]) . "*", "FR" {
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
@@ -138,12 +139,7 @@ threads := Map()
 ; ----- PARSE START ARGS -----
 for key in StrSplit(localConfig["StartArgs"]["keys"], ",") {
     if (localConfig["StartArgs"][key] = "-backup") {
-        backup := ObjLoad("backup\status.bin")
-        backup := addKeyListString(backup)
-
-        for backupKey in StrSplit(backup["keys"], ",") {
-            localStatus[backupKey] := backup[backupKey]
-        }
+        localStatus := statusRestore(localStatus, localPrograms)
     }
     else if (localConfig["StartArgs"][key] = "-quiet") {
         localConfig["Boot"]["EnableBoot"] := false
@@ -151,22 +147,22 @@ for key in StrSplit(localConfig["StartArgs"]["keys"], ",") {
 }
 
 ; ----- START CONTROLLER THEAD -----
-; ; this thread just updates the status of each controller in a loop
-; threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
+; this thread just updates the status of each controller in a loop
+threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
-; ; ----- BOOT -----
-; if (localConfig["Boot"]["EnableBoot"]) {
-;     runFunction(localConfig["Boot"]["StartBoot"])
-; }
+; ----- BOOT -----
+if (localConfig["Boot"]["EnableBoot"]) {
+    runFunction(localConfig["Boot"]["BootFunc"])
+}
 
-; ; ----- START PROGRAM ----- 
-; ; this thread updates the status mode based on checking running programs
-; threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus))
+; ----- START PROGRAM ----- 
+; this thread updates the status mode based on checking running programs
+threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainPrograms))
 
-; ; ----- START ACTION -----
-; ; this thread reads controller & status to determine what actions needing to be taken
-; ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-; threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers))
+; ----- START ACTION -----
+; this thread reads controller & status to determine what actions needing to be taken
+; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
+threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers))
 
 ; ----- ENABLE LISTENER -----
 enableMainMessageListener()
@@ -177,7 +173,7 @@ enableMainMessageListener()
 ; probably going to need to figure out updating loadscreen?
 loopSleep := localConfig["General"]["AvgLoopSleep"] * 3
 
-backupTrigger := Round(10000 / loopSleep)
+backupTrigger := (loopSleep > 0) ? Round(10000 / loopSleep) : 10000
 backupCount := 0
 loop {
     ;perform actions based on mode & main message
@@ -193,10 +189,7 @@ loop {
 
         if (StrLower(mainMessage[1]) = "run") {
             mainMessage.RemoveAt(1)
-            name := mainMessage.RemoveAt(2)
-
-            localStatus["currProgram"] := name
-            localStatus["openPrograms"][name] := createProgram(name, mainMessage, localPrograms)
+            localStatus := createProgram(mainMessage, localStatus, localPrograms)
         }
         else {
             runFunction(mainMessage)
@@ -205,22 +198,25 @@ loop {
         mainMessage := []
     }
 
-    ; NEED TO HANDLE EXITING & UPDATING STATUS IN PROGRAMTHREAD
-
-    ; need to check that threads are running - currently no way to do this without there being a debug print
+    ; need to check that threads are running
+    ; i can't figure out how to re-send objshares, so for now error out
+    for key, value in threads {
+        try {
+            value.FuncPtr("")
+        }
+        catch {
+            ErrorMsg((
+                "Thread " . key . " has crashed?"
+                "I hope this isn't something i need to fix"
+            ), true)
+        }
+    }
 
     ; write localStatus to file as backup cache?
     ; maybe only do it like every 10ish secs?
+    backupCount += 1
     if (backupCount >= backupTrigger) {
-        backupObj := Map()
-        for key in StrSplit(localStatus["keys"], ",") {
-            backupObj[key] := localStatus[key]
-        }
-
-        backup := FileOpen("backup\status.bin", "w -rwd")
-        backup.RawWrite(ObjDump(backupObj))
-        backup.Close()
-
+        statusBackup(localStatus)
         backupCount := 0
     }
 
@@ -228,8 +224,6 @@ loop {
     if (localConfig["General"]["ForceMaintainMain"] && !localStatus["suspendScript"] && !WinHidden(MAINLOOP)) {
         Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
     }
-
-    backupCount += 1
 
     ; need sleep in order to 
     Sleep(loopSleep)

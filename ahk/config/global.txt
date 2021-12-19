@@ -11,7 +11,7 @@ ForceMaintainMain = false
 ForceActivateWindow = false
 
 ; sets the ms for more complicated loops to sleep for to reduce cpu usage
-AvgLoopSleep = 100
+AvgLoopSleep = 50
 
 ; enables multitasking through a double press of the xbox home button
 AllowMultiTasking = false
@@ -43,7 +43,7 @@ Height = 0
 EnableBoot = true
 
 ; an AHK script that runs after the global config is digested, but before any main actions take place [TODO - better explanation]
-BootFunc = boot %localConfig%
+BootFunc = boot
 
 
 [LoadScreen]
@@ -95,4 +95,4 @@ ConfigDir = config\executables\
 SettingListDir = config\lists\
 
 ; if no programs in program list are running -> will launch default (based on name)
-Default = Kodi
+Default = 

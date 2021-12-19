@@ -404,14 +404,24 @@ validateDir(directory) {
 ; adds a new member to an object called "keys" that contains a comma-deliminated string with all
 ; of the keys in the object (specifically for ComObject as it cannot enumerate through its keys)
 ;  obj - the map object to be given the member "keys"
+;  addKeys - array of keys to append to keys string
 ;
 ; returns the obj with the new member
-addKeyListString(obj) {
+addKeyListString(obj, addKeys := "") {
 	tempString := ""
 	newObj := Map()
 
+	; if obj is comobj, just update "keys"
+	if (Type(obj) = "ComObject" && obj.Has("keys")) {
+		for key in StrSplit(obj["keys"], ",") {
+			if (obj.Has(key)) {
+				tempString .= key . ","
+			}
+		}
+	}
+
 	; if the obj is a map, just add the "keys" to the map
-	if (Type(obj) = "Map") {
+	else if (Type(obj) = "Map") {
 		newObj := obj
 
 		for key, value in newObj {
@@ -432,6 +442,12 @@ addKeyListString(obj) {
 			tempString .= toString(A_Index) . ","
 			newObj[toString(A_Index)] := obj[A_Index]
 		} 
+	}
+
+	if (addKeys != "") {
+		for key in toArray(addKeys) {
+			tempString .= key . ","
+		}
 	}
 
 	newObj["keys"] := RTrim(tempString, ",")
@@ -470,7 +486,12 @@ runFunction(text, params := "") {
 	}
 
 	; this is kinda annoying, TODO - maybe figure out how to deconstruct array
-	%func%(funcArr)
+	if (funcArr.Length > 0) {
+		return %func%(funcArr)
+	}
+	else {
+		return %func%()
+	}
 }
 
 ; sets the current script's window title to the string in name

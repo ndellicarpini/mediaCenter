@@ -5,8 +5,6 @@
 ;
 ; returns the ThreadObj that does x based on mainStatus
 hotkeyThread(configShare, statusShare, controllerShare) {
-    ; TODO - new "current exe" using last launched exe (based on time) rather than priority
-
     return ThreadObj(dynamicInclude
     (
         "
@@ -69,101 +67,121 @@ hotkeyThread(configShare, statusShare, controllerShare) {
 ;  statusShare - mainStatus as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that checks running programs
-programThread(configShare, statusShare) {
+programThread(configShare, statusShare, programShare) {
     return ThreadObj(dynamicInclude
     (   
         "
         #Include lib-mc\std.ahk
-        #Include lib-mc\status.ahk
+        #Include lib-mc\program.ahk
 
-        configShare := ObjShare(" configShare ")
-        statusShare := ObjShare(" statusShare ")
+        configShare  := ObjShare(" configShare ")
+        statusShare  := ObjShare(" statusShare ")
+        programShare := ObjShare(" programShare ")
 
         loopSleep := configShare['General']['AvgLoopSleep']
 
-        execMaps := Map()
-        for key in StrSplit(configShare['keys'], ',') {
-            if (InStr(key, 'executable', false) && Type(configShare[key] = 'Map')) {
-                tempMap := Map()
-
-                for key2 in StrSplit(configShare[key]['keys'], ',') {
-                    if (InStr(key2, '_exe', false) || InStr(key2, '_wndw', false)) {
-                        tempMap[key2] := configShare[key][key2]
-                    }
-                }
-
-                execMaps[key] := tempMap
-            }
-        }
-    
         loop {
-            if (!statusShare['suspendScript']) {
-
-                ; check which programs are running based on values taken from global.txt
-                for key, value in execMaps {
-                    isList := false
-                    currKey := key
-                    
-                    if (InStr(key, 'list', false)) {
-                        isList := true
-                        currKey := StrReplace(key, 'list',, false)
-                    }
-    
-                    if (isList) {
-                        for key2, value2 in value {
-                            if (InStr(key2, '_EXE', true)) {
-                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkEXEList(value2)
-                            }
-                            else if (InStr(key2, '_WNDW', true)) {
-                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := checkWNDWList(value2)
-                            }
-                        }
-                    }
-                    else {
-                        for key2, value2 in value {
-                            if (InStr(key2, '_EXE', true)) {
-                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := ProcessExist(value2) ? value2 : ''
-                            }
-                            else if (InStr(key2, '_WNDW', true)) {
-                                statusShare['curr' . currKey][(StrSplit(key2, '_')[1])] := WinShown(value2) ? value2 : ''
-                            }
-                        }
-                    }                
-                }
-    
-                ; switch the mode based on running programs
-                if (statusShare['override'] != '') {
-                    ; check if program specified as override is still running, if not clear override
-                    if (statusShare['currExecutables'][(statusShare['override'])] != '') {
-                        WinCheckActivate(statusShare['currExecutables'][(statusShare['override'])], configShare, statusShare['override'])
-                    }
-                    else {
-                        statusShare['override'] := ''
-                    }
-                }
-                else {
-                    if (statusShare['load']['show']) {
-                        %configShare['LoadScreen']['Update']%(statusShare['load']['text'], configShare['General']['ForceActivateWindow'])
-                    }
-                    else if (statusShare['pause']) {
-                        ; check if pause screen exist 
-                        if (configShare['General']['ForceActivateWindow'] && %configShare['PauseScreen']['Exist']%()) {
-                            %configShare['PauseScreen']['Activate']%()
-                        }
-                        else {
-                            statusShare['pause'] := false
-                        }
-                    }
-                    else {
-                        updateMode(configShare, statusShare)
-                    }
-                }
-
-            }
+            forceActivate   := configShare['General']['ForceActivateWindow']
+            currProgram     := statusShare['currProgram']
+            overrideProgram := statusShare['overrideProgram']
 
             ; close if main is no running
             if (!WinHidden(MAINNAME)) {
                 ExitApp()
+            }
+
+            ; infinite loop during suspention
+            if (statusShare['suspendScript']) {
+                Sleep(loopSleep)
+                continue
+            }
+
+            ; focus override program
+            if (overrideProgram != '') {
+
+                ; need to create override program if doesn't exist
+                if (!statusShare['openPrograms'].Has(overrideProgram)) {
+                    statusShare := createProgram(overrideProgram, statusShare, programShare,, false)
+                }
+
+                else {
+                    if (statusShare['openPrograms'][overrideProgram].exists()) {
+                        if (forceActivate) {
+                            statusShare['openPrograms'][overrideProgram].restore()
+                        }
+                    }
+                    else {
+                        statusShare['overrideProgram'] := ''
+                        statusShare['openPrograms'].Delete(overrideProgram)
+                        statusShare['openPrograms'] := addKeyListString(statusShare['openPrograms'])
+                    }
+                }
+            }
+
+            ; activate load screen if its supposed to be shown
+            else if (statusShare['load']['show']) {
+                ; TODO - load screen activate
+            }
+
+
+            ; current program is set
+            else if (currProgram != '') {
+
+                ; need to create current program if doesn't exist
+                if (!statusShare['openPrograms'].Has(currProgram)) {
+                    statusShare := createProgram(overrideProgram, statusShare, programShare, false, false)
+                } 
+
+                else {
+                    ; focus currProgram if it exists
+                    if (statusShare['openPrograms'][currProgram].exists()) {
+                        if (forceActivate) {
+                            statusShare['openPrograms'][currProgram].restore()
+                        }
+                    }
+                    else {
+                        statusShare['openPrograms'].Delete(currProgram)
+
+                        prevTime := 0
+                        prevProgram := ''
+                        for key in StrSplit(statusShare['openPrograms']['keys'], ',') {
+                            if (key != currProgram && statusShare['openPrograms'][key].time > prevTime) {
+                                prevProgram := key
+                                prevTime := statusShare['openPrograms'][key].time
+                            }
+                        }
+
+                        ; restore previous program if open
+                        if (prevProgram != '') {
+                            statusShare['currProgram'] := prevProgram
+                            statusShare['openPrograms'] := addKeyListString(statusShare['openPrograms'])
+                        }
+
+                        ; updates currProgram if a program exists, else create the default program if no prev program exists
+                        else {
+                            openProgram := checkAllPrograms(programShare)
+                            if (openProgram != '') {
+                                statusShare := createProgram(openProgram, statusShare, programShare, false)
+                            }
+
+                            else if (configShare['Programs'].Has('Default') && configShare['Programs']['Default'] != '') {
+                                statusShare := createProgram(configShare['Programs']['Default'], statusShare, programShare)
+                            }
+                        }
+                    }
+                }
+            }
+
+            ; no current program
+            else {
+                openProgram := checkAllPrograms(programShare)
+                if (openProgram != '') {
+                    statusShare := createProgram(openProgram, statusShare, programShare, false)
+                }
+
+                else if (configShare['Programs'].Has('Default') && configShare['Programs']['Default'] != '') {
+                    statusShare := createProgram(configShare['Programs']['Default'], statusShare, programShare)
+                }
             }
 
             Sleep(loopSleep)
