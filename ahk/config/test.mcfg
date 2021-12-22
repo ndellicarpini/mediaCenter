@@ -1,0 +1,132 @@
+{
+    "id": ["Arcade", "ARC"],
+
+    "config": {
+        "romDir": "D:\Roms\Arcade",
+        "romExts": [".zip"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)", 
+        "Xbox (Fighting)", "Xbox (Neo Geo)"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Arcade",
+        "core": "mame4p_libretro.dll",
+    }
+}
+
+{
+    "id": ["NES"],
+
+    "config": {
+        "romDir": "D:\Roms\NES",
+        "romExts": [".nes", ".fds"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)", "USB SNES"],
+        "controlImgDir": ""C:\Launchbox\Images\Game Controls\Nintendo Entertainment System"",
+        "core": "mesen_libretro.dll",
+    }
+}
+
+{
+    "id": ["Genesis", "GEN"],
+
+    "config": {
+        "romDir": "D:\Roms\Genesis",
+        "romExts": [".bin", ".md", ".gen", ".iso", ".cue", ".32x"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)", "USB Genesis"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Sega Genesis",
+        "core": "picodrive_libretro.dll",
+    }
+}
+
+{
+    "id": ["SNES"],
+
+    "config": {
+        "romDir": "D:\Roms\SNES",
+        "romExts": [".sfc", ".smc"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)", "USB SNES"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Super Nintendo Entertainment System",
+        "core": "bsnes_libretro.dll",
+    }
+}
+
+{
+    "id": ["Saturn", "SAT"],
+
+    "config": {
+        "romDir": "D:\Roms\Saturn",
+        "romExts": [".chd", ".cue", ".m3u"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Sega Saturn",
+        "core": "kronos_libretro.dll",
+    }
+}
+
+{
+    "id": ["Playstation", "PSX"],
+
+    "config": {
+        "romDir": "D:\Roms\Playstation",
+        "romExts": [".chd", ".cue", ".pbp", ".m3u"],
+        "controlTypes": ["Xbox Controllers"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Sony Playstation",
+        "core": "mednafen_psx_hw_libretro.dll",
+    }
+}
+
+{
+    "id": ["Nintendo 64" , "N64"],
+
+    "config": {
+        "romDir": "D:\Roms\N64",
+        "romExts": [".z64", ".n64"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)", "USB N64", "GCN Adapter"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Nintendo 64",
+        "core": "mupen64plus_next_libretro.dll",
+    }
+}
+
+{
+    "id": ["Dreamcast", "DC"],
+    
+    "config": {
+        "romDir": "D:\Roms\Dreamcast",
+        "romExts": [".chd", ".gdi", ".cdi", ".m3u"],
+        "controlTypes": ["Xbox Controllers"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Sega Dreamcast",
+        "core": "flycast_libretro.dll",
+    }
+}
+
+{
+    "id": ["GameBoy", "GB", "GBC"],
+
+    "config": {
+        "romDir": "D:\Roms\GB",
+        "romExts": [".gb", ".gbc"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)", "USB SNES"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Nintendo Game Boy",
+        "core": "gambatte_libretro.dll",
+    }
+}
+
+{
+    "id": ["GameBoy Advance", "GBA"],
+
+    "config": {
+        "romDir": "D:\Roms\GBA",
+        "romExts": [".gba"],
+        "controlTypes": ["Xbox Controllers", "Xbox (Alternate)", "USB SNES"],
+        "controlImgDir": "C:\Launchbox\Images\Game Controls\Nintendo Game Boy Advance",
+        "core": "mgba_libretro.dll",
+    }
+}
+
+{
+    "id": ["Arcade", "ARC", "NES", "Genesis", "GEN", "SNES", "Saturn", "SAT", 
+        "Playstation", "PSX", "Nintendo 64", "N64", "Dreamcast", "DC", "GameBoy", 
+        "GB", "GBC", "GameBoy Advance", "GBA"],
+
+    "config": {
+        "nameIndex": 0,
+        "ahk": "Retroarch",
+        "dir": "C:\Emulators\Default\Retroarch\",
+    }
+}

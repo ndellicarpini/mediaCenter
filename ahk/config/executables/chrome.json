@@ -1,0 +1,27 @@
+{
+    "name": "Chrome",
+
+    "dir": "C:\chrome",
+    "exe": "chrome.exe",
+    "wndw": "",
+
+    "launch": "browserLaunch",
+    "postTooltip": "",
+
+    "restoreWndw": "browserRestore",
+    "minimizeWndw": "browserMin",
+    "exit": "",
+
+    "tooltip": [
+        "Press %assets\xbox\home.png% for Menu",
+        "Press %assets\xbox\select.png% + %assets\xbox\start.png% to Exit"
+    ],
+    "hotkeys": {
+        "SELECT": "browserOSK",
+        "START": "browserNewTab"
+    },
+    "pauseOptions": {
+        "Controls": "browserControls",
+        "Enable PiP": "browserPiP"
+    }
+}

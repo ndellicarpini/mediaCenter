@@ -10,7 +10,7 @@ sleepTime := readConfig("config\global.txt",, "brackets", "General").items["AvgL
 
 loop {
     if (!WinHidden(MAINNAME)) {
-        Run A_ScriptDir . "\" . "startMain.cmd -q", A_ScriptDir, "Hide"
+        Run A_ScriptDir . "\" . "startMain.cmd -quiet", A_ScriptDir, "Hide"
     }
 
     Sleep(sleepTime)
