@@ -12,7 +12,7 @@ statusBackup(status) {
     backup["load"] := Map()
     backup["load"]["show"] := status["load"]["show"]
     backup["load"]["text"] := status["load"]["text"]
-
+    
     if (status["openPrograms"].Has("keys") && status["openPrograms"]["keys"] != "") {
         backup["openPrograms"] := Map()
         for key in StrSplit(status["openPrograms"]["keys"], ",") {

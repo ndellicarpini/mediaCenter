@@ -33,7 +33,12 @@ ErrorMsg(message, exit := false) {
 ;
 ; return ProcessClose
 ProcessWinClose(window) {
-	return ProcessClose(WinGetPID(WinHidden(window)))
+	exists := WinHidden(window)
+	if (exists) {
+		return ProcessClose(WinGetPID(exists))
+	}
+
+	return ""
 }
 
 ; returns the winexist of the window only if the window is not hidden
@@ -72,13 +77,24 @@ Sum(lists*) {
 	sumHelper(list) {
 		helperVal := 0
 
-		for value in list {
-
-			if (IsObject(value)) {
-				helperVal += sumHelper(value)
+		if (Type(list) = "Array") {
+			for value in list {
+				if (IsObject(value)) {
+					helperVal += sumHelper(value)
+				}
+				else {
+					helperVal += value
+				}
 			}
-			else {
-				helperVal += value
+		}
+		else if (Type(list) = "Map") {
+			for key, value in list {
+				if (IsObject(value)) {
+					helperVal += sumHelper(value)
+				}
+				else {
+					helperVal += value
+				}
 			}
 		}
 
@@ -87,9 +103,7 @@ Sum(lists*) {
 
 	retVal := 0
 	for list in lists {
-		if (Type(list) = "Array") {
-			retVal += sumHelper(list)
-		}
+		retVal += sumHelper(list)
 	}
 
 	return retVal
@@ -430,7 +444,7 @@ addKeyListString(obj, addKeys := "") {
 			}
 
 			; apply to all sub-objs in the object as well
-			if (Type(value) = "Map" || Type(value) = "Array") {
+			if (Type(value) = "Map" || Type(value) = "Array" || Type(value) = "ComObject") {
 				newObj[key] := addKeyListString(value)
 			}
 		}

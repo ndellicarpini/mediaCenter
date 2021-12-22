@@ -10,7 +10,7 @@
 
     "restoreWndw": "browserRestore",
     "minimizeWndw": "browserMin",
-    "exit": "browserExit",
+    "exit": "",
 
     "tooltip": [
         "Press %assets\xbox\home.png% for Menu",

@@ -10,6 +10,9 @@ hotkeyThread(configShare, statusShare, controllerShare) {
         "
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
+        #Include lib-mc\hotkeys.ahk
+
+        setCurrentWinTitle('hotkeyThread')
 
         ; --- GLOBAL VARIABLES ---
         ; variables are global to be accessed in timers
@@ -17,25 +20,69 @@ hotkeyThread(configShare, statusShare, controllerShare) {
         global statusShare     := ObjShare(" statusShare ")
         global controllerShare := ObjShare(" controllerShare ")
 
-        global homeButtonStatus := []
+        global currHotkeys := defaultHotkeys(configShare, controllerShare[0])
+        global currController := -1
+        global currButton := ''
 
-        global loopSleep := configShare['General']['AvgLoopSleep'] / 2
+        loopSleep := configShare['General']['AvgLoopSleep'] / 2
 
         ; --- MAIN LOOP ---
         loop {
-            if (!statusShare['suspendScript']) {
-                
-                ; check home button (TODO - CHANGE TO HOME INSTEAD OF A)
-                homeButtonStatus := xCheckAllControllers(controllerShare,, true, 'A')
-                
-                if (homeButtonStatus[1]) {
-                    SetTimer 'HomeButtonTimer', (-1.2 * configShare['General']['AvgLoopSleep'])
-                    while (controllerShare[homeButtonStatus[2]].A) {
-                        Sleep(loopSleep / 4)
+            currProgram := statusShare['currProgram']
+
+            if (statusShare['suspendScript'] || statusShare['load']['show']) {
+                while (statusShare['suspendScript'] || statusShare['load']['show']) {
+                    ; close if main is no running
+                    if (!WinHidden(MAINNAME)) {
+                        ExitApp()
                     }
-                    SetTimer 'HomeButtonTimer', 0
+
+                    Sleep(loopSleep)
                 }
-                
+            }
+
+            else if (statusShare['pause']) {
+
+
+                while(statusShare['pause']) {
+
+
+                    ; close if main is no running
+                    if (!WinHidden(MAINNAME)) {
+                        ExitApp()
+                    }
+
+                    Sleep(loopSleep)
+                }
+            }
+
+            else if (currProgram != '') {
+                currHotkeys := addHotkeys(currHotkeys, statusShare['openPrograms'][statusShare['currProgram']].hotkeys, controllerShare[0])
+
+                while (currProgram = statusShare['currProgram']) {
+                    for item in currHotkeys['uniqueKeys'] {
+                        status := xCheckAllControllers(controllerShare, item,, true)
+                        if (status[1]) {
+                            currController := status[2]
+                            currButton := item
+
+                            SetTimer 'ButtonTimer', -100
+                            while (xCheckController(controllerShare[currController], currButton)) {
+                                Sleep(loopSleep / 4)
+                            }
+                            SetTimer 'ButtonTimer', 0
+                        }
+
+                        currButton := ''
+                    }
+
+                    ; close if main is no running
+                    if (!WinHidden(MAINNAME)) {
+                        ExitApp()
+                    }
+
+                    Sleep(loopSleep)
+                }
             }
 
             ; close if main is no running
@@ -47,16 +94,28 @@ hotkeyThread(configShare, statusShare, controllerShare) {
         }
 
         ; --- TIMERS ---
-        HomeButtonTimer() {
-            if (xCheckController(controllerShare[homeButtonStatus[2]],, 'RT')) {
-                MsgBox('RT too')
+        ButtonTimer() {
+            global
+
+            toRun := checkHotkeys(currButton, currHotkeys['hotkeys'], controllerShare[currController])
+
+            if (toRun = 'Pause') {
+                MsgBox('pause meeee')
             }
-            else if (xCheckController(controllerShare[homeButtonStatus[2]],, 'LT')) {
-                MsgBox('LT deez nuts')
+            else if (toRun = 'Exit') {
+                statusShare['openPrograms'][currProgram].exit()
+
+                ; TODO - write nuclear option
             }
             else {
-                activatePauseScreen()
+                runFunction(toRun)
             }
+
+            while (xCheckController(controllerShare[currController], currButton)) {
+                Sleep(loopSleep / 4)
+            }
+
+            return
         }
         "
     ))
@@ -73,6 +132,8 @@ programThread(configShare, statusShare, programShare) {
         "
         #Include lib-mc\std.ahk
         #Include lib-mc\program.ahk
+
+        setCurrentWinTitle('programThread')
 
         configShare  := ObjShare(" configShare ")
         statusShare  := ObjShare(" statusShare ")
@@ -140,7 +201,9 @@ programThread(configShare, statusShare, programShare) {
                         }
                     }
                     else {
+                        statusShare['currProgram'] := ''
                         statusShare['openPrograms'].Delete(currProgram)
+                        statusShare['openPrograms'] := addKeyListString(statusShare['openPrograms'])
 
                         prevTime := 0
                         prevProgram := ''
@@ -154,7 +217,6 @@ programThread(configShare, statusShare, programShare) {
                         ; restore previous program if open
                         if (prevProgram != '') {
                             statusShare['currProgram'] := prevProgram
-                            statusShare['openPrograms'] := addKeyListString(statusShare['openPrograms'])
                         }
 
                         ; updates currProgram if a program exists, else create the default program if no prev program exists
@@ -199,7 +261,9 @@ controllerThread(configShare, controllerShare) {
     (
         "
         #Include lib-mc\std.ahk
-        #Include lib-mc\xinput.ahk        
+        #Include lib-mc\xinput.ahk   
+        
+        setCurrentWinTitle('controllerThread')
         
         configShare     := ObjShare(" configShare ")
         controllerShare := ObjShare(" controllerShare ")

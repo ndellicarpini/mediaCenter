@@ -19,6 +19,12 @@ AllowMultiTasking = false
 ; allows multitasking to be done during a game (NOTE: this could crash many older games due to them hating alt-tab)
 AllowMultiTaskingGame = false
 
+; enables pause menu that activates from the script in PauseFunc
+EnablePause = true
+
+; enables whether or not a loadscreen will be shown between executables
+EnableLoadScreen = false
+
 ; max number of xinput controllers to poll
 MaxXInputControllers = 4
 
@@ -27,6 +33,7 @@ XInputDLL = C:\Windows\System32\xinput1_3.dll
 
 ; sets the directory for custom libraries to be included in main
 CustomLibDir = lib-custom\
+
 
 
 [Display]
@@ -43,49 +50,8 @@ Height = 0
 EnableBoot = true
 
 ; an AHK script that runs after the global config is digested, but before any main actions take place [TODO - better explanation]
-BootFunc = boot
+BootFunction = boot
 
-
-[LoadScreen]
-; enables whether or not a loadscreen will be shown between executables
-Enable = false
-
-; an AHK script that creates the gui for the loadscreen
-Build = buildLoadScreen
-
-; an AHK script that checks if the loadscreen is shown
-Show = showLoadScreen
-
-; an AHK script that updates the loadscreen with whatever args user passes
-; NOTE - update should build and/or show loadscreen if its not
-Update = updateLoadScreen
-
-; an AHK script that destroys the loadscreen (usually shutdown)
-Destroy = destroyLoadScreen
-
-
-[PauseScreen]
-; enables pause menu that activates from the script in PauseFunc
-EnablePause = false
-
-; an AHK script that is handled when pause is created
-Build = buildPauseScreen
-
-; an AHK script that gets the status of the pausescreen
-Exist = existPauseScreen
-
-; an AHK script that is handled when pause is opened (will check to see if appropriate to create)
-Show = showPauseScreen
-
-; an AHK script that is handled when pause is activated
-; NOTE - activate should build and/or show pause screen if its not
-Activate = activatePauseScreen
-
-; an AHK script that is handled when pause is closed
-Hide = hidePauseScreen
-
-; an AHK script that is handled when pause is destroyed (usually shutdown)
-Destroy = destroyPauseScreen
 
 [Programs]
 ; sets the directory for program config jsons
@@ -96,3 +62,9 @@ SettingListDir = config\lists\
 
 ; if no programs in program list are running -> will launch default (based on name)
 Default = 
+
+
+[Hotkeys]
+; default hotkeys with left->function right->button combo
+Pause = A
+Exit = START&SELECT

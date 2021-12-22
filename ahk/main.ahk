@@ -108,7 +108,7 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
                 }
             }
             
-            mainPrograms[tempConfig.items["name"]] := tempConfig
+            mainPrograms[tempConfig.items["name"]] := tempConfig.toMap()
         }
         else {
             ErrorMsg(A_LoopFileFullPath . " does not have required 'name' parameter")
@@ -152,7 +152,7 @@ threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(m
 
 ; ----- BOOT -----
 if (localConfig["Boot"]["EnableBoot"]) {
-    runFunction(localConfig["Boot"]["BootFunc"])
+    runFunction(localConfig["Boot"]["BootFunction"])
 }
 
 ; ----- START PROGRAM ----- 
@@ -216,7 +216,8 @@ loop {
     ; maybe only do it like every 10ish secs?
     backupCount += 1
     if (backupCount >= backupTrigger) {
-        statusBackup(localStatus)
+        try statusBackup(localStatus)
+        
         backupCount := 0
     }
 

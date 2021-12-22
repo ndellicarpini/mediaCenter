@@ -159,16 +159,17 @@ xInitialize(lib, maxControllers) {
 ; checks one controller that all/some buttons specified are pressed
 ;  controller - controller to check buttons of
 ;  mode - either "and" or "or" logical operator between buttons
-;  buttons* - all buttons to check with mode's operator
+;  buttons - all buttons to check with mode's operator
 ;
 ;  returns boolean based on button status
-xCheckController(controller, mode := "and", buttons*) {
+xCheckController(controller, buttons, mode := "and") {
     if (!controller.connected) {
         return false
     }
 
-    buttonStatus  := (mode = "or") ? false : true
+    buttonStatus := (mode = "or") ? false : true
 
+    buttons := toArray(buttons)
     for button in buttons {
         currButt := StrUpper(button)
         
@@ -187,14 +188,14 @@ xCheckController(controller, mode := "and", buttons*) {
 ;  controllerMap - map of controllers
 ;  mode - either "and" or "or" logical operator between buttons
 ;  includeIndex - change return to array and add controller index
-;  buttons* - all buttons to check with mode's operator
+;  buttons - all buttons to check with mode's operator
 ;
 ; returns boolean if 1 controller has buttons based on mode, or array including index if includeIndex
-xCheckAllControllers(controllerMap, mode := "and", includeIndex := false, buttons*) {
+xCheckAllControllers(controllerMap, buttons, mode := "and", includeIndex := false) {
     ; check each controller 
     for key in StrSplit(controllerMap["keys"], ",") {              
 
-        if (xCheckController(controllerMap[Integer(key)], mode, buttons*)) {
+        if (xCheckController(controllerMap[Integer(key)], buttons, mode)) {
             if (includeIndex) {
                 return [true, Integer(key)]
             }

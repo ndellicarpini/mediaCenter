@@ -35,43 +35,42 @@ class Program {
 
     __New(exeConfig) {
         ; set basic attributes
-        this.name := (exeConfig.items.Has("name")) ? exeConfig.items["name"] : this.name
-        this.dir  := (exeConfig.items.Has("dir"))  ? exeConfig.items["dir"]  : this.dir
-        this.exe  := (exeConfig.items.Has("exe"))  ? exeConfig.items["exe"]  : this.exe
-        this.wndw := (exeConfig.items.Has("wndw")) ? exeConfig.items["wndw"] : this.wndw
+        this.name := (exeConfig.Has("name")) ? exeConfig["name"] : this.name
+        this.dir  := (exeConfig.Has("dir"))  ? exeConfig["dir"]  : this.dir
+        this.exe  := (exeConfig.Has("exe"))  ? exeConfig["exe"]  : this.exe
+        this.wndw := (exeConfig.Has("wndw")) ? exeConfig["wndw"] : this.wndw
 
         this.time := A_TickCount
 
         ; set custom functions
-        this.customLaunch      := (exeConfig.items.Has("launch"))      ? exeConfig.items["launch"]      : this.customLaunch
-        this.customPostTooltip := (exeConfig.items.Has("postTooltip")) ? exeConfig.items["postTooltip"] : this.customPostTooltip
+        this.customLaunch      := (exeConfig.Has("launch"))       ? exeConfig["launch"]       : this.customLaunch
+        this.customPostTooltip := (exeConfig.Has("postTooltip"))  ? exeConfig["postTooltip"]  : this.customPostTooltip
+  
+        this.customPause       := (exeConfig.Has("pause"))        ? exeConfig["pause"]        : this.customPause
+        this.customResume      := (exeConfig.Has("resume"))       ? exeConfig["resume"]       : this.customResume
+  
+        this.customExit        := (exeConfig.Has("exit"))         ? exeConfig["exit"]         : this.customExit
+        this.customRestore     := (exeConfig.Has("restore"))      ? exeConfig["restore"]      : this.customRestore
+        this.customMinimize    := (exeConfig.Has("minimize"))     ? exeConfig["minimize"]     : this.customMinimize
 
-        this.customPause       := (exeConfig.items.Has("pause"))       ? exeConfig.items["pause"]       : this.customPause
-        this.customResume      := (exeConfig.items.Has("resume"))      ? exeConfig.items["resume"]      : this.customResume
-
-        this.customExit        := (exeConfig.items.Has("exit"))        ? exeConfig.items["exit"]        : this.customExit
-        this.customRestore     := (exeConfig.items.Has("restore"))     ? exeConfig.items["restore"]     : this.customRestore
-        this.customMinimize    := (exeConfig.items.Has("minimize"))    ? exeConfig.items["minimize"]    : this.customMinimize
+        this.hotkeys := (exeConfig.Has("hotkeys")) ? exeConfig["hotkeys"] : this.hotkeys
 
         ; set pause/tooltip/hotkey attributes
-        this.enablePause := (exeConfig.items.Has("enablePause")) 
-            ? exeConfig.items["enablePause"] : this.enablePause
+        this.enablePause := (exeConfig.Has("enablePause")) 
+            ? exeConfig["enablePause"] : this.enablePause
         
-        this.enableTooltip := (exeConfig.items.Has("enableTooltip")) 
-            ? exeConfig.items["enableTooltip"] : this.enableTooltip
-
-        this.hotkeys := (exeConfig.subConfigs.Has("hotkeys")) 
-            ? this.cleanHotkeys(exeConfig.subConfigs["hotkeys"]) : this.hotkeys
+        this.enableTooltip := (exeConfig.Has("enableTooltip")) 
+            ? exeConfig["enableTooltip"] : this.enableTooltip
 
         ; set pause & tooltip contents if appropriate
         if (this.enablePause) {
-            this.pauseOptions := (exeConfig.subConfigs.Has("pauseOptions")) 
-                ? this.cleanPauseOptions(exeConfig.subConfigs["pauseOptions"]) : this.pauseOptions
+            this.pauseOptions := (exeConfig.Has("pauseOptions")) 
+                ? this.cleanPauseOptions(exeConfig["pauseOptions"]) : this.pauseOptions
         }
 
         if (this.enableTooltip) {
-            this.tooltipInner := (exeConfig.items.Has("tooltip")) 
-                ? this.cleanTooltip(toArray(exeConfig.items["tooltip"])) : this.tooltipText
+            this.tooltipInner := (exeConfig.Has("tooltip")) 
+                ? this.cleanTooltip(toArray(exeConfig["tooltip"])) : this.tooltipText
         }
     }
 
@@ -150,25 +149,20 @@ class Program {
 
         window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
         count := 0
-        maxCount := 50
+        maxCount := 40
 
         WinClose(window)
-        Sleep(250)
 
         exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
         while (exeExists && count < maxCount) {
             count += 1
             exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
 
-            Sleep(100)
+            Sleep(250)
         }
 
-        ProcessWinClose(window)
-        Sleep(500)
-
-        exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
         while (exeExists) {
-            ProcessWaitClose(window)
+            ProcessWinClose(window)
 
             Sleep(500)
             exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
@@ -176,15 +170,21 @@ class Program {
     }
 
     exists() {
-        return (checkEXE(this.exe) || checkWNDW(this.wndw))
-    }
+        ; TODO - think about this
+        ; exeStatus := checkEXE(this.exe, (IsObject(this.exe)) ? true : false)
+        ; wndwStatus := checkEXE(this.wndw, (IsObject(this.wndw)) ? true : false)
 
-    ; clean up hotkeys to make appropriate to check in hotkeyScript (like clean keys, get funcs)
-    ;  hotkeyConfig - config object w/ hotkey info from json
-    ;
-    ; returns this.hotkeys
-    cleanHotkeys(hotkeyConfig) {
-        ; TODO
+        ; if (Type(exeStatus) = "String") {
+        ;     this.exe := exeStatus
+        ; }
+        
+        ; if (Type(wndwStatus) = "String") {
+        ;     this.wndw := wndwStatus
+        ; }
+
+        ; return (exeStatus || wndwStatus)
+
+        return (checkEXE(this.exe) || checkWNDW(this.wndw))
     }
 
     ; clean up pause options to be appended to pause screen (like variable options)
@@ -214,7 +214,7 @@ class Program {
 ;  customTime - manual time value to set (useful for backup)
 ;
 ; returns either the program, or empty string
-createProgram(params, status, programs, launchProgram := true, setCurrent := true, customTime := 0) {
+createProgram(params, status, programs, launchProgram := true, setCurrent := true, customTime := 0) {   
     newProgram := toArray(StrSplit(params, A_Space))
     if (newProgram.Length = 0) {
         return status
@@ -269,9 +269,10 @@ cleanSetting(setting, dir) {
 
 ; takes a variable amount of exe maps (key=exe) and returns the process exe if its running
 ;  exe - either an exe or a map with each key being an exe
+;  retName - return name rather than boolean
 ;
 ; return either "" if the process is not running, or the name of the process
-checkEXE(exe) {
+checkEXE(exe, retName := false) {
     if (exe = "") {
         return false
     }
@@ -279,7 +280,12 @@ checkEXE(exe) {
     if (IsObject(exe)) {
         for process in ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process") {
             if (exe.Has(process.Name)) {
-                return true
+                if (retName) {
+                    return process.Name
+                }
+                else {
+                    return true
+                }
             }
         }
     }
@@ -292,9 +298,10 @@ checkEXE(exe) {
 
 ; takes a variable of window maps (key=window) and returns true if any of the functions return
 ;  wndw - either an wndw name or a map with each key being an wndw
+;  retName - return name rather than boolean
 ;
 ; return either "" if the process is not running, or the name of the process
-checkWNDW(wndw) {
+checkWNDW(wndw, retName := false) {
     if (wndw = "") {
         return false
     }
@@ -303,14 +310,24 @@ checkWNDW(wndw) {
 		if (wndw.Has("keys")) {
 			for key in StrSplit(wndw["keys"], ",") {
 				if (WinShown(key)) {
-					return true
+                    if (retName) {
+                        return key
+                    }
+                    else {
+                        return true
+                    }
 				}
 			}
 		}
 		else {
 			for key, empty in wndw {
 				if (WinShown(key)) {
-					return true
+					if (retName) {
+                        return key
+                    }
+                    else {
+                        return true
+                    }
 				}
 			}
 		}
@@ -328,8 +345,8 @@ checkWNDW(wndw) {
 ; returns either the name of the program or ""
 checkAllPrograms(programs) {
     for key in StrSplit(programs["keys"], ",") {
-        if ((programs[key].items.Has("exe") && checkEXE(programs[key].items["exe"]))
-            || (programs[key].items.Has("wndw") && checkWNDW(programs[key].items["wndw"]))) {
+        if ((programs[key].Has("exe") && checkEXE(programs[key]["exe"]))
+            || (programs[key].Has("wndw") && checkWNDW(programs[key]["wndw"]))) {
             
             return key
         }

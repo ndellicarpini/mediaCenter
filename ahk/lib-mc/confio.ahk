@@ -58,6 +58,20 @@ class Config {
 			}
 		}
 	}
+
+	; create map from config
+	toMap() {
+		retMap := Map()
+		for key, value in this.items {
+			retMap[key] := value
+		}
+
+		for key, value in this.subConfigs {
+			retMap[key] := value.toMap()
+		}
+
+		return retMap
+	}
 }
 
 ; reads from a file/string and generates a Config object
@@ -439,7 +453,6 @@ readGlobalConfig() {
 
 		; check the required settings from the config file (you bet they're hardcoded)
 		if (!gConfig.subConfigs.Has("General") || !gConfig.subConfigs.Has("Display")
-		|| !gConfig.subConfigs.Has("LoadScreen") || !gConfig.subConfigs.Has("PauseScreen")
 		|| !gConfig.subConfigs.Has("Boot")) {
 			ErrorMsg(
 				(
