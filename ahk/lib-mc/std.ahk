@@ -41,6 +41,14 @@ ProcessWinClose(window) {
 	return ""
 }
 
+; kills a process with extreme prejudice
+;  PID - pid of process to murder
+;
+; returns null
+ProcessKill(PID) {
+	Run 'taskkill /t /f /pid ' . PID,, 'Hide'
+}
+
 ; returns the winexist of the window only if the window is not hidden
 ;  window - window to check based on WinTitle
 ;

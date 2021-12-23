@@ -20,69 +20,70 @@ hotkeyThread(configShare, statusShare, controllerShare) {
         global statusShare     := ObjShare(" statusShare ")
         global controllerShare := ObjShare(" controllerShare ")
 
+        global currProgram := statusShare['currProgram']
+        global currPause := statusShare['pause']
+
         global currHotkeys := defaultHotkeys(configShare, controllerShare[0])
         global currController := -1
         global currButton := ''
 
-        loopSleep := configShare['General']['AvgLoopSleep'] / 2
+        loopSleep := Round(configShare['General']['AvgLoopSleep'] / 2)
+
+        ; checks the controller status for hotkeys in currHotkeys
+        checkButtons() {
+            global
+
+            ; time user needs to hold button to trigger hotkey function
+            buttonTime := 80
+
+            if (!currHotkeys.Has('uniqueKeys') || !currHotkeys.Has('hotkeys')) {
+                return
+            }
+
+            for item in currHotkeys['uniqueKeys'] {
+                status := xCheckAllControllers(controllerShare, item,, true)
+                if (status[1]) {
+                    currController := status[2]
+                    currButton := item
+
+                    SetTimer 'ButtonTimer', (-1 * buttonTime)
+                    while (xCheckController(controllerShare[currController], currButton)) {
+                        Sleep(5)
+                    }
+                    SetTimer 'ButtonTimer', 0
+                }
+            }
+        }
 
         ; --- MAIN LOOP ---
         loop {
-            currProgram := statusShare['currProgram']
+            ; if paused use pause hotkeys
+            if (currPause != statusShare['pause']) {
+                currPause := statusShare['pause']
 
-            if (statusShare['suspendScript'] || statusShare['load']['show']) {
-                while (statusShare['suspendScript'] || statusShare['load']['show']) {
-                    ; close if main is no running
-                    if (!WinHidden(MAINNAME)) {
-                        ExitApp()
-                    }
-
-                    Sleep(loopSleep)
+                if (currPause) {
+                    ; TODO - create buttons
+                }
+                else {
+                    currHotkeys := defaultHotkeys(configShare, controllerShare[0]) 
                 }
             }
 
-            else if (statusShare['pause']) {
+            ; if in program use program hotkeys
+            else if (currProgram != statusShare['currProgram']) {
+                currProgram := statusShare['currProgram']
 
-
-                while(statusShare['pause']) {
-
-
-                    ; close if main is no running
-                    if (!WinHidden(MAINNAME)) {
-                        ExitApp()
-                    }
-
-                    Sleep(loopSleep)
+                if (currProgram != '') {
+                    currHotkeys := addHotkeys(currHotkeys, statusShare['openPrograms'][currProgram].hotkeys, controllerShare[0])
+                }
+                else {
+                    currHotkeys := defaultHotkeys(configShare, controllerShare[0])
                 }
             }
 
-            else if (currProgram != '') {
-                currHotkeys := addHotkeys(currHotkeys, statusShare['openPrograms'][statusShare['currProgram']].hotkeys, controllerShare[0])
-
-                while (currProgram = statusShare['currProgram']) {
-                    for item in currHotkeys['uniqueKeys'] {
-                        status := xCheckAllControllers(controllerShare, item,, true)
-                        if (status[1]) {
-                            currController := status[2]
-                            currButton := item
-
-                            SetTimer 'ButtonTimer', -100
-                            while (xCheckController(controllerShare[currController], currButton)) {
-                                Sleep(loopSleep / 4)
-                            }
-                            SetTimer 'ButtonTimer', 0
-                        }
-
-                        currButton := ''
-                    }
-
-                    ; close if main is no running
-                    if (!WinHidden(MAINNAME)) {
-                        ExitApp()
-                    }
-
-                    Sleep(loopSleep)
-                }
+            ; only check buttons if script not suspended
+            if (!statusShare['suspendScript']) {
+                checkButtons()
             }
 
             ; close if main is no running
@@ -97,26 +98,67 @@ hotkeyThread(configShare, statusShare, controllerShare) {
         ButtonTimer() {
             global
 
-            toRun := checkHotkeys(currButton, currHotkeys['hotkeys'], controllerShare[currController])
+            ; hotkeyInfo[1] = hotkeys pressed | hotkeyInfo[2] = corresponding function
+            hotkeyInfo := checkHotkeys(currButton, currHotkeys['hotkeys'], controllerShare[currController])
 
-            if (toRun = 'Pause') {
-                MsgBox('pause meeee')
+            ; if invalid hotkey info -> ignore hotkey
+            if (hotkeyInfo = -1) {
+                return
             }
-            else if (toRun = 'Exit') {
-                statusShare['openPrograms'][currProgram].exit()
 
-                ; TODO - write nuclear option
+            ; check hardcoded defaults because theres really no better way to do this
+            if (hotkeyInfo[2] = 'Pause') {
+                if (statusShare['pause']) {
+                    ; TODO - close pause screen
+
+                    MsgBox('im free')
+                }
+                else {
+                    ; TODO - open pause screen
+
+                    MsgBox('im paused')
+                }
+
+                statusShare['pause'] := !statusShare['pause']
             }
+            else if (hotkeyInfo[2] = 'Exit') {
+                if (currProgram != '') {
+                    statusShare['openPrograms'][currProgram].exit()
+                }
+
+                ; if user holds button for a long time, kill everything
+                SetTimer 'NuclearTimer', -3000
+                while (currProgram = statusShare['currProgram'] && xCheckController(controllerShare[currController], hotkeyInfo[1])) {
+                    Sleep(5)
+                }
+                SetTimer 'NuclearTimer', 0
+            }
+
+            ; otherwise just run function
             else {
-                runFunction(toRun)
+                runFunction(hotkeyInfo[2])
             }
 
-            while (xCheckController(controllerShare[currController], currButton)) {
-                Sleep(loopSleep / 4)
+            ; wait for user to release buttons
+            while (xCheckController(controllerShare[currController], hotkeyInfo[1])) {
+                Sleep(5)
             }
 
             return
         }
+
+        NuclearTimer() {
+            global
+
+            ProcessKill(statusShare['openPrograms'][currProgram].getPID())
+
+            ; TODO - gui notification that drastic measures have been taken
+
+            ProcessKill(WinGetPID(WinHidden(MAINNAME)))
+
+            return
+        }
+
         "
     ))
 }
@@ -268,7 +310,7 @@ controllerThread(configShare, controllerShare) {
         configShare     := ObjShare(" configShare ")
         controllerShare := ObjShare(" controllerShare ")
 
-        loopSleep := configShare['General']['AvgLoopSleep'] / 3
+        loopSleep := Round(configShare['General']['AvgLoopSleep'] / 3)
 
         loop {
             for key in StrSplit(controllerShare['keys'], ',') {

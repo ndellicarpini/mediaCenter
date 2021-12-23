@@ -142,6 +142,8 @@ class Program {
     }
 
     exit() {
+        ; TODO - think about if this.wndw -> don't wait for exe to close
+
         if (this.customExit != "") {
             runFunction(this.customExit)
             return
@@ -149,7 +151,7 @@ class Program {
 
         window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
         count := 0
-        maxCount := 40
+        maxCount := 32
 
         WinClose(window)
 
@@ -161,15 +163,14 @@ class Program {
             Sleep(250)
         }
 
-        while (exeExists) {
+        if (exeExists) {
             ProcessWinClose(window)
-
-            Sleep(500)
-            exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
         }
     }
 
     exists() {
+        ; TODO - think about maybe only checking wndw if this.wndw exists
+
         ; TODO - think about this
         ; exeStatus := checkEXE(this.exe, (IsObject(this.exe)) ? true : false)
         ; wndwStatus := checkEXE(this.wndw, (IsObject(this.wndw)) ? true : false)
@@ -185,6 +186,27 @@ class Program {
         ; return (exeStatus || wndwStatus)
 
         return (checkEXE(this.exe) || checkWNDW(this.wndw))
+    }
+
+    getPID() {
+        PID := ProcessExist(this.exe)
+
+        if (PID > 0 && this.exe != "") {
+            return PID
+        }
+
+        if (WinHidden(this.wndw) && this.wndw != "") {
+            resetDHW := A_DetectHiddenWindows
+
+            DetectHiddenWindows(false)
+            PID := WinGetPID(this.wndw)
+            DetectHiddenWindows(resetDHW)
+
+            return PID
+        }
+
+        ErrorMsg(this.name . ".getPID() failed")
+        return -1
     }
 
     ; clean up pause options to be appended to pause screen (like variable options)

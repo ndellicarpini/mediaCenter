@@ -7,6 +7,7 @@ defaultHotkeys(config, controller) {
     newHotkeys := Map()
 
     for key in StrSplit(config["Hotkeys"]["keys"], ",") {
+        ; only add pause hotkey if pausing is enabled
         if (key = "Pause" && config["General"].Has("EnablePause") && config["General"]["EnablePause"] = true) {    
             newHotkeys[config["Hotkeys"][key]] := key
         }
@@ -26,27 +27,6 @@ defaultHotkeys(config, controller) {
 ;
 ; returns updated hotkeyMap
 addHotkeys(oldHotkeys, newHotkeys, controller) {
-    ; get the counts of each button in map
-    getButtonCount(hotkeys) {
-        countMap := Map()
-        for key, value in hotkeys {
-            currKey := StrSplit(key, "&")
-            
-            for item in currKey {
-                if (item != "") {
-                    if (countMap.Has(item)) {
-                        countMap[item] += 1
-                    }
-                    else {
-                        countMap[item] := 1
-                    }
-                }
-            }
-        }
-
-        return countMap
-    }
-
     ; get the highest count button in list
     getMaxButton(list) {        
         maxVal := 0
@@ -61,64 +41,11 @@ addHotkeys(oldHotkeys, newHotkeys, controller) {
         return maxKey
     }
 
-    ; create a map of buttons & functions for easier parsing
-    createButtonFuncMap(hotkeys, currMap, currItem) {
-        for key, value in hotkeys {
-            if (value.Has("function")) {
-                currMap[currItem . key] := value["function"]
-            }
-
-            if (value.Has("subHotkeys")) {
-                currMap := createButtonFuncMap(value["subHotkeys"], currMap, currItem . key . "&")
-            }
-        }
-
-        return currMap
-    }
-    
-    ; ; recursively creates the return hotkey map
-    ; createHotkeyMap(currHotkeys) {
-    ;     ; MsgBox(toString(currHotkeys))
-
-    ;     retHotkeys := Map()
-    ;     while (currHotkeys.Count > 0) {
-    ;         local currButton := getMaxButton(getButtonCount(currHotkeys))
-    
-    ;         currList := Map()
-    ;         ; MsgBox(currButton)
-    ;         retHotkeys[currButton] := Map()
-    ;         for key, value in currHotkeys {
-    ;             if (InStr(key, currButton)) {
-    ;                 if (key = currButton) {
-    ;                     retHotkeys[currButton]["function"] := value
-    ;                 }
-    ;                 else {
-    ;                     currList[(InStr(key, currButton . "&") 
-    ;                         ? StrReplace(key, currButton . "&") : StrReplace(key, "&" . currButton))] := value
-    ;                 }
-
-    ;                 currHotkeys.Delete(key)
-    ;             }
-    ;         }
-
-    ;         ; MsgBox(toString(currButton) . " " . toString(currList))
-    ;         ; MsgBox(toString(currList))
-    ;         if (currList.Count > 0) {
-                
-    ;             retHotkeys[currButton]["subHotkeys"] := createHotkeyMap(currList)
-    ;             ; MsgBox(toString(retHotkeys))
-    ;         }
-    ;     }
-
-    ;     ; MsgBox(toString(retHotkeys))
-
-    ;     return retHotkeys
-    ; }
-
     ; --- FUNCTION ---
     cleanHotkeys := Map()
     buttonCount := Map()
 
+    ; clean new hotkeys from program to put into proper format
     for key in StrSplit(newHotkeys["keys"], ",") {
         if (InStr(key, "&")) {
             addItem := ""
@@ -144,6 +71,7 @@ addHotkeys(oldHotkeys, newHotkeys, controller) {
         else if (InStr(key, "|")) {
             currHotkey := StrSplit(key, "|")
 
+            ; treat or button combos as 2 separate button definitions
             for item in currHotkey {
                 currItem := Trim(item, " `t`r`n")
 
@@ -175,6 +103,7 @@ addHotkeys(oldHotkeys, newHotkeys, controller) {
         }
     }
 
+    ; parse current hotkeys to get button counts
     if (oldHotkeys.Has("hotkeys")) {
         for key, value in oldHotkeys["hotkeys"] {
             if (InStr(key, "&")) {
@@ -211,6 +140,9 @@ addHotkeys(oldHotkeys, newHotkeys, controller) {
     retHotkeys := Map()
     retHotkeys["hotkeys"] := cleanHotkeys
 
+    ; sort unique buttons by number of references to each button in the total
+    ; hotkeys, lets me reduce the number of button checks in a loop by only
+    ; checking the unique buttons in order of most referenced
     uniqueButtons := []
     loop buttonCount.Count {
         maxButton := getMaxButton(buttonCount)
@@ -229,7 +161,7 @@ addHotkeys(oldHotkeys, newHotkeys, controller) {
 ;  currHotkeys - currHotkeys as set by program
 ;  controller - controller status
 ; 
-; returns function from currHotkeys based on controller
+; returns array of button combo pressed & function from currHotkeys based on controller
 checkHotkeys(currButton, currHotkeys, controller) {
     checkArr := []
     for key, value in currHotkeys {
@@ -238,13 +170,18 @@ checkHotkeys(currButton, currHotkeys, controller) {
         }
     }
 
-    if (checkArr.Length = 1) {
-        return currHotkeys[checkArr[1]]
+    ; if only 1 hotkeys references button & button is pressed -> return hotkey
+    if (checkArr.Length = 1 && checkArr[1] = currButton) {
+        return [toArray(StrSplit(checkArr[1], "&")), currHotkeys[checkArr[1]]]
     }
 
     maxValidAmp := 0
     maxValidItem := ""
     for item in checkArr {
+        if (item = "") {
+            continue
+        }
+
         hotkeyList := StrSplit(item, "&")
 
         if (xCheckController(controller, hotkeyList)) {
@@ -254,8 +191,8 @@ checkHotkeys(currButton, currHotkeys, controller) {
     }
 
     if (maxValidAmp = 0) {
-        return currHotkeys[checkArr[1]]
+        return -1
     }
 
-    return currHotkeys[maxValidItem]
+    return [toArray(StrSplit(maxValidItem, "&")), currHotkeys[maxValidItem]]
 }

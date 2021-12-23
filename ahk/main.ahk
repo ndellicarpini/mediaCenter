@@ -1,4 +1,4 @@
-﻿#SingleInstance Force
+#SingleInstance Force
 #WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
