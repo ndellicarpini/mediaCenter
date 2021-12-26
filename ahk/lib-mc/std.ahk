@@ -476,6 +476,35 @@ addKeyListString(obj, addKeys := "") {
 	return newObj
 }
 
+; this helps reduce a memory leak for objects that are shared between threads
+; no i will not elaborate
+;  obj - object to clean
+;
+; returns cleaned object
+cleanComMap(obj) {
+	retMap := Map()
+	retMap["keys"] := obj["keys"]
+	
+	for key in StrSplit(obj["keys"], ",") {
+		try key := Integer(key)
+
+		currObj := obj[key]
+
+		if (Type(currObj) = "Map" && currObj.Has("keys")) {
+			currObj := cleanComMap(currObj)
+		}
+
+		if (IsObject(currObj)) {
+			retMap[key] := ObjFromPtrAddRef(ObjPtrAddRef(currObj))
+		}
+		else {
+			retMap[key] := currObj
+		}
+	}
+
+	return retMap
+}
+
 ; runs a text as a function, seperating by spaces
 ;  text - string to run as function
 ;  params - additional params to push after string params

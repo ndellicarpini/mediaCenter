@@ -1,3 +1,6 @@
+﻿; TODO - there is currently a 4MB/hr memory leak due to bad garbage collection for ComObjects
+;      - this could be worse/better depending on usage during runtime, requires more testing
+
 #SingleInstance Force
 #WarnContinuableException Off
 
@@ -175,6 +178,7 @@ loopSleep := localConfig["General"]["AvgLoopSleep"] * 3
 
 backupTrigger := (loopSleep > 0) ? Round(10000 / loopSleep) : 10000
 backupCount := 0
+
 loop {
     ;perform actions based on mode & main message
 
@@ -186,10 +190,9 @@ loop {
         ;     would be sent to the launch command. 
         ; else 
         ;  -> send whole string to runFunction
-
         if (StrLower(mainMessage[1]) = "run") {
             mainMessage.RemoveAt(1)
-            localStatus := createProgram(mainMessage, localStatus, localPrograms)
+            createProgram(mainMessage, localStatus, localPrograms)
         }
         else {
             runFunction(mainMessage)

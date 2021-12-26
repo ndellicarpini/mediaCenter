@@ -1,11 +1,11 @@
 {
     "name": "Chrome",
 
-    "dir": "C:\chrome",
+    "dir": "C:\Program Files (x86)\Google\Chrome\Application\",
     "exe": "chrome.exe",
     "wndw": "Google Chrome",
 
-    "launch": "browserLaunch",
+    "launch": "",
     "postTooltip": "",
 
     "restoreWndw": "browserRestore",

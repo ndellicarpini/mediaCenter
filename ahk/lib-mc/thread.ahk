@@ -16,9 +16,9 @@ hotkeyThread(configShare, statusShare, controllerShare) {
 
         ; --- GLOBAL VARIABLES ---
         ; variables are global to be accessed in timers
-        global configShare     := ObjShare(" configShare ")
         global statusShare     := ObjShare(" statusShare ")
-        global controllerShare := ObjShare(" controllerShare ")
+        global configShare     := cleanComMap(ObjShare(" configShare "))
+        global controllerShare := cleanComMap(ObjShare(" controllerShare "))
 
         global currProgram := statusShare['currProgram']
         global currPause := statusShare['pause']
@@ -177,9 +177,9 @@ programThread(configShare, statusShare, programShare) {
 
         setCurrentWinTitle('programThread')
 
-        configShare  := ObjShare(" configShare ")
-        statusShare  := ObjShare(" statusShare ")
-        programShare := ObjShare(" programShare ")
+        statusShare     := ObjShare(" statusShare ")
+        configShare     := cleanComMap(ObjShare(" configShare "))
+        programShare    := cleanComMap(ObjShare(" programShare "))
 
         loopSleep := configShare['General']['AvgLoopSleep']
 
@@ -204,7 +204,7 @@ programThread(configShare, statusShare, programShare) {
 
                 ; need to create override program if doesn't exist
                 if (!statusShare['openPrograms'].Has(overrideProgram)) {
-                    statusShare := createProgram(overrideProgram, statusShare, programShare,, false)
+                    createProgram(overrideProgram, statusShare, programShare,, false)
                 }
 
                 else {
@@ -232,7 +232,7 @@ programThread(configShare, statusShare, programShare) {
 
                 ; need to create current program if doesn't exist
                 if (!statusShare['openPrograms'].Has(currProgram)) {
-                    statusShare := createProgram(overrideProgram, statusShare, programShare, false, false)
+                    createProgram(overrideProgram, statusShare, programShare, false, false)
                 } 
 
                 else {
@@ -265,11 +265,11 @@ programThread(configShare, statusShare, programShare) {
                         else {
                             openProgram := checkAllPrograms(programShare)
                             if (openProgram != '') {
-                                statusShare := createProgram(openProgram, statusShare, programShare, false)
+                                createProgram(openProgram, statusShare, programShare, false)
                             }
 
                             else if (configShare['Programs'].Has('Default') && configShare['Programs']['Default'] != '') {
-                                statusShare := createProgram(configShare['Programs']['Default'], statusShare, programShare)
+                                createProgram(configShare['Programs']['Default'], statusShare, programShare)
                             }
                         }
                     }
@@ -280,11 +280,11 @@ programThread(configShare, statusShare, programShare) {
             else {
                 openProgram := checkAllPrograms(programShare)
                 if (openProgram != '') {
-                    statusShare := createProgram(openProgram, statusShare, programShare, false)
+                    createProgram(openProgram, statusShare, programShare, false)
                 }
 
                 else if (configShare['Programs'].Has('Default') && configShare['Programs']['Default'] != '') {
-                    statusShare := createProgram(configShare['Programs']['Default'], statusShare, programShare)
+                    createProgram(configShare['Programs']['Default'], statusShare, programShare)
                 }
             }
 
@@ -307,8 +307,8 @@ controllerThread(configShare, controllerShare) {
         
         setCurrentWinTitle('controllerThread')
         
-        configShare     := ObjShare(" configShare ")
-        controllerShare := ObjShare(" controllerShare ")
+        configShare     := cleanComMap(ObjShare(" configShare "))
+        controllerShare := cleanComMap(ObjShare(" controllerShare "))
 
         loopSleep := Round(configShare['General']['AvgLoopSleep'] / 3)
 

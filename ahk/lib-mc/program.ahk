@@ -74,18 +74,24 @@ class Program {
         }
     }
 
-    launch(args*) {
+    launch(args) {
         ; TODO
         ; take args from mainMessage
         ; set currEXE -> then tooltip -> then postTooltip
         if (this.customLaunch != "") {
             runFunction(this.customLaunch, args)
         }
+        else if (this.exe != "") {
+            Run validateDir(this.dir) . this.exe . ((args != "" || (args && args.Length > 0)) ? joinArray(args) : ""), validateDir(this.dir), ((this.background) ? "Hide" : "Max")
+        }
         else {
-            Run "%validateDir(this.dir)%%this.exe%" (args != "" || (args && args.Length > 0)) ? joinArray(args) : ""
+            ErrorMsg(this.name . "does not have an exe defined, it cannot be launched with default settings")
+            return
         }
 
         if (this.enableTooltip) {
+            Sleep(2000)
+
             this.tooltip()
             this.postTooltip()
         }
@@ -112,6 +118,9 @@ class Program {
     }
 
     restore() {
+        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+        WinWait window
+
         if (this.customRestore != "") {
             runFunction(this.customRestore)
             return
@@ -119,8 +128,6 @@ class Program {
 
         ; TODO - think about removing borders & making fullscreen
         ; for now just gonna restore & activate
-        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
-
         if (!WinActive(window) || WinGetMinMax(window) = -1) {
             WinActivate(window)
             Sleep(100)
@@ -237,10 +244,7 @@ class Program {
 ;
 ; returns either the program, or empty string
 createProgram(params, status, programs, launchProgram := true, setCurrent := true, customTime := 0) {   
-    newProgram := toArray(StrSplit(params, A_Space))
-    if (newProgram.Length = 0) {
-        return status
-    }
+    newProgram := IsObject(params) ? params : toArray(StrSplit(params, A_Space))
 
     newName := newProgram.RemoveAt(1)
 
@@ -261,12 +265,12 @@ createProgram(params, status, programs, launchProgram := true, setCurrent := tru
                 status["openPrograms"][newName].time := customTime
             }
         
-            return status
+            return
         }
     }
 
     ErrorMsg("Program " . newName . " was not found")
-    return status
+    return
 }
 
 ; cleans up program setting if it is a file, converting it into a newline deliminated list
