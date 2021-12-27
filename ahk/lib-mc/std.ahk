@@ -18,13 +18,29 @@ ErrorMsg(message, exit := false) {
 			((exit) ? "FATAL " : "") "ERROR:
 			" message "
 			"
-		)
+		),
+		"Error"
 	)
 
 	WinWaitClose()
 
 	if (exit) {
 		ExitApp()
+	}
+}
+
+; window closes an error message
+;  wndwID - ahk_id of error window
+;
+; returns null
+CloseErrorMsg(wndwID) {
+	window := "ahk_id " wndwID
+
+	ControlSend "{Enter}",, window
+	Sleep(250)
+
+	if (WinShown(window)) {
+		WinClose(window)
 	}
 }
 
@@ -187,8 +203,8 @@ fromString(value, trim := false) {
 		}
 		
 		; check if value is an array (contains ","), and convert appropriately
-		else if (InStr(value, ",")) {
-			tempArr := StrSplit(value, ",")
+		else if (InStr(value, ",") && (SubStr(value, 1, 1) = "[" && SubStr(value, -1, 1) = "]")) {
+			tempArr := StrSplit(Trim(value, " `r`n`t[]"), ",")
 
 			retVal := []
 			for item in tempArr {

@@ -19,6 +19,8 @@
 #Include lib-mc\program.ahk
 #Include lib-mc\data.ahk
 
+SetKeyDelay 80, 60
+
 setCurrentWinTitle(MAINNAME)
 
 global dynamicInclude := getDynamicIncludes(A_ScriptFullPath)
@@ -54,6 +56,11 @@ mainStatus["overrideProgram"] := ""
 mainStatus["load"] := Map()
 mainStatus["load"]["show"] := false
 mainStatus["load"]["text"] := "Now Loading..."
+
+; error info
+mainStatus["error"] := Map()
+mainStatus["error"]["show"] := false
+mainStatus["error"]["wndw"] := 0
 
 ; setup status and config as maps rather than config objects for multithreading
 for key, value in globalConfig.subConfigs {

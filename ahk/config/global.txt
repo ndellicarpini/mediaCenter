@@ -53,14 +53,17 @@ BootFunction = boot
 
 
 [Programs]
+; if no programs in program list are running -> will launch default (based on name)
+Default = 
+
 ; sets the directory for program config jsons
 ConfigDir = config\executables\
 
 ; directory if any exe/wndw lists are used for finding program
 SettingListDir = config\lists\
 
-; if no programs in program list are running -> will launch default (based on name)
-Default = 
+; list of strings that if included in a WinTitle -> sets mode to error
+ErrorList = [Error, Message]
 
 
 [Hotkeys]
