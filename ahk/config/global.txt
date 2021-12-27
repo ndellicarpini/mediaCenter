@@ -35,7 +35,6 @@ XInputDLL = C:\Windows\System32\xinput1_3.dll
 CustomLibDir = lib-custom\
 
 
-
 [Display]
 ; monitor number to get sizing info / display loading screen (any non-valid num = primary) 
 MonitorNum = 0
@@ -66,5 +65,6 @@ Default =
 
 [Hotkeys]
 ; default hotkeys with left->function right->button combo
+; only valid hotkeys -> Pause, Exit
 Pause = A
 Exit = START&SELECT

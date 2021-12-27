@@ -1,4 +1,4 @@
-﻿; TODO - there is currently a 4MB/hr memory leak due to bad garbage collection for ComObjects
+; TODO - there is currently a 4MB/hr memory leak due to bad garbage collection for ComObjects
 ;      - this could be worse/better depending on usage during runtime, requires more testing
 
 #SingleInstance Force
@@ -8,8 +8,6 @@
 #Include lib-custom\boot.ahk
 #Include lib-custom\browser.ahk
 #Include lib-custom\games.ahk
-#Include lib-custom\loadscreen.ahk
-#Include lib-custom\pausescreen.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
@@ -19,7 +17,7 @@
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
 #Include lib-mc\program.ahk
-#Include lib-mc\backup.ahk
+#Include lib-mc\data.ahk
 
 setCurrentWinTitle(MAINNAME)
 

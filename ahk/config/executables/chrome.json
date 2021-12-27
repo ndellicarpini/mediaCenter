@@ -1,7 +1,10 @@
 {
     "name": "Chrome",
 
-    "dir": "C:\Program Files (x86)\Google\Chrome\Application\",
+    "allowQuickAccess": true,
+    "isBackground": false,
+
+    "dir": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\",
     "exe": "chrome.exe",
     "wndw": "Google Chrome",
 
@@ -13,8 +16,8 @@
     "exit": "",
 
     "tooltip": [
-        "Press %assets\xbox\home.png% for Menu",
-        "Press %assets\xbox\select.png% + %assets\xbox\start.png% to Exit"
+        "Press %assets\\xbox\\home.png% for Menu",
+        "Press %assets\\xbox\\select.png% + %assets\\xbox\\start.png% to Exit"
     ],
     "hotkeys": {
         "SELECT": "browserOSK",

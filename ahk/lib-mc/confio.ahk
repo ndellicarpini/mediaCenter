@@ -101,7 +101,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 			cleanLine := Trim(A_LoopField, " `t`r`n")
 
 			; skip empty lines / comment lines
-			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;")) {
+			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;" || RegExMatch(cleanLine, "U)^//"))) {
 				continue
 			}
 
@@ -142,12 +142,12 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 				if (!(inMultiLine > 0 || inQuotes(cleanLine, deliminator)) && InStr(cleanLine, deliminator)) {
 					; save previous left=right to configObj after finding next line withh valid deliminator
 					if (leftItem != "") {
-						configObj.items[leftItem] := Trim(rightItem, ' `t`r`n[],')
+						configObj.items[leftItem] := StrReplace(Trim(rightItem, ' `t`r`n[],'), "\\", "\")
 					}
 
 					currentItem := StrSplit(cleanLine, deliminator,, 2)
 
-					leftItem  := Trim(currentItem[1], ' `t`r`n,"')
+					leftItem  := StrReplace(Trim(currentItem[1], ' `t`r`n,"'), "\\", "\")
 					rightItem := currentItem[2]
 				}
 				; add lines to right item for multiline right item values
@@ -180,7 +180,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 		; save final left=right items if last item was not saved
 		if (leftItem != "" && !configObj.items.Has(leftItem)) {
 			if (subConfigType = "json") {
-				rightItem := Trim(rightItem, ' `t`r`n[],')
+				rightItem := StrReplace(Trim(rightItem, ' `t`r`n[],'), "\\", "\")
 			}
 
 			configObj.items[leftItem] := rightItem
@@ -216,7 +216,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 			cleanLine := Trim(A_LoopField, " `t`r`n")
 	
 			; skip empty lines / comment lines
-			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;")) {
+			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;") || RegExMatch(cleanLine, "U)^//")) {
 				itemString := StrReplace(itemString, A_LoopField,, true,, 1) 
 
 				continue
@@ -261,7 +261,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 					
 					; set currentSubConfig if subconfig title is direct subconfig to current config
 					if (subConfigLevel = 0) {
-						currentSubConfig := Trim(StrSplit(cleanLine, deliminator,, 2)[1], ' "')
+						currentSubConfig := StrReplace(Trim(StrSplit(cleanLine, deliminator,, 2)[1], ' "'), "\\", "\")
 					}
 
 					subConfigLevel += 1
@@ -363,7 +363,7 @@ readMultiCfg(toRead, configList, configListType := "or", subConfig := "", perfec
 		cleanLine := Trim(A_LoopField, " `t`r`n")
 
 		; skip empty lines / comment lines
-		if (cleanLine = "" || RegExMatch(cleanLine, "U)^;")) {
+		if (cleanLine = "" || RegExMatch(cleanLine, "U)^;") || RegExMatch(cleanLine, "U)^//")) {
 			continue
 		}
 

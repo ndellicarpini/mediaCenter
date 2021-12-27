@@ -20,7 +20,7 @@ statusBackup(status) {
         }
     }
 
-    backupFile := FileOpen("backup\status.bin", "w -rwd")
+    backupFile := FileOpen("data\status.bin", "w -rwd")
     backupFile.RawWrite(ObjDump(backup))
     backupFile.Close()
 }
@@ -31,7 +31,7 @@ statusBackup(status) {
 ; 
 ; returns status updated with values from backup
 statusRestore(status, programs) {
-    backup := ObjLoad("backup\status.bin")
+    backup := ObjLoad("data\status.bin")
     
     for key, value in backup {
         if (key = "openPrograms") {
