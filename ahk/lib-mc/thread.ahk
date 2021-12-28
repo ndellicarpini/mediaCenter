@@ -17,6 +17,9 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
         SetKeyDelay 80, 60
 
         ; --- GLOBAL VARIABLES ---
+        ; time user needs to hold button to trigger hotkey function
+        global buttonTime := 70
+
         ; variables are global to be accessed in timers
         global localStatus      := cleanComMap(ObjShare(" localStatus "))
         global localConfig      := cleanComMap(ObjShare(" localConfig "))
@@ -35,14 +38,11 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
         global currController := -1
         global currButton := ''
 
-        loopSleep := Round(localConfig['General']['AvgLoopSleep'] / 3)
+        loopSleep := Round(localConfig['General']['AvgLoopSleep'] / 4)
 
         ; checks the controller status for hotkeys in currHotkeys
         checkButtons() {
             global
-
-            ; time user needs to hold button to trigger hotkey function
-            buttonTime := 80
 
             if (!currHotkeys.Has('uniqueKeys') || !currHotkeys.Has('hotkeys')) {
                 return
@@ -294,7 +294,7 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
                 else {
                     if (localRunning[overrideProgram].exists()) {
                         if (forceActivate) {
-                            localRunning[overrideProgram].restore()
+                            try localRunning[overrideProgram].restore()
                         }
                     }
                     else {
@@ -322,7 +322,7 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
                     ; focus currProgram if it exists
                     if (localRunning[currProgram].exists()) {
                         if (forceActivate) {
-                            localRunning[currProgram].restore()
+                            try localRunning[currProgram].restore()
                         }
                     }
                     else {
@@ -393,7 +393,7 @@ controllerThread(localConfig, localControllers) {
         global localConfig      := cleanComMap(ObjShare(" localConfig "))
         global localControllers := cleanComMap(ObjShare(" localControllers "))
 
-        loopSleep := Round(localConfig['General']['AvgLoopSleep'] / 4)
+        loopSleep := Round(localConfig['General']['AvgLoopSleep'] / 5)
 
         loop {
             for key in StrSplit(localControllers['keys'], ',') {

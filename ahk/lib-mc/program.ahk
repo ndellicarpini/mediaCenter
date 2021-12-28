@@ -119,6 +119,10 @@ class Program {
 
     restore() {
         window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+        if (!WinHidden(window)) {
+            return
+        }
+
         WinWait window
 
         if (this.customRestore != "") {

@@ -239,7 +239,7 @@ loop {
     }
 
     ; check looper
-    if (localConfig["General"]["ForceMaintainMain"] && !localStatus["suspendScript"] && !WinHidden(MAINLOOP)) {
+    if (localConfig["General"]["ForceMaintainMain"] && !NumGet(localStatus["suspendScript"], 0, "UChar") && !WinHidden(MAINLOOP)) {
         Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
     }
 
