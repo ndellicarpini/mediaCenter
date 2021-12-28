@@ -475,7 +475,7 @@ addKeyListString(obj, addKeys := "") {
 	}
 
 	; if the obj is not a map, convert the obj to a map and add the "keys" key
-	else {
+	else if (Type(obj) = "Array") {
 		loop obj.Length {
 			tempString .= toString(A_Index) . ","
 			newObj[toString(A_Index)] := obj[A_Index]
@@ -488,8 +488,14 @@ addKeyListString(obj, addKeys := "") {
 		}
 	}
 
-	newObj["keys"] := RTrim(tempString, ",")
-	return newObj
+	if (Type(obj) = "ComObject") {
+		obj["keys"] := RTrim(tempString, ",")
+		return
+	}
+	else {
+		newObj["keys"] := RTrim(tempString, ",")
+		return newObj
+	}
 }
 
 ; this helps reduce a memory leak for objects that are shared between threads
@@ -505,10 +511,6 @@ cleanComMap(obj) {
 		try key := Integer(key)
 
 		currObj := obj[key]
-
-		if (Type(currObj) = "Map" && currObj.Has("keys")) {
-			currObj := cleanComMap(currObj)
-		}
 
 		if (IsObject(currObj)) {
 			retMap[key] := ObjFromPtrAddRef(ObjPtrAddRef(currObj))

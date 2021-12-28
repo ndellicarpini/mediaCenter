@@ -2,21 +2,22 @@
 ;  status - status obj to backup
 ;
 ; returns null
-statusBackup(status) {
+statusBackup(status, running) {
     backup := Map()
 
     backup["pause"] := status["pause"]
     backup["suspendScript"] := status["suspendScript"]
     backup["currProgram"]  := status["currProgram"]
     backup["overrideProgram"] := status["overrideProgram"]
-    backup["load"] := Map()
-    backup["load"]["show"] := status["load"]["show"]
-    backup["load"]["text"] := status["load"]["text"]
+    backup["loadShow"] := status["loadShow"]
+    backup["loadText"] := status["loadText"]
+    backup["errorShow"] := status["errorShow"]
+    backup["errorWndw"] := status["errorWndw"]
     
-    if (status["openPrograms"].Has("keys") && status["openPrograms"]["keys"] != "") {
+    if (running.Has("keys") && running["keys"] != "") {
         backup["openPrograms"] := Map()
-        for key in StrSplit(status["openPrograms"]["keys"], ",") {
-            backup["openPrograms"][key] := status["openPrograms"][key].time
+        for key in StrSplit(running["keys"], ",") {
+            backup["openPrograms"][key] := running[key].time
         }
     }
 
@@ -30,13 +31,13 @@ statusBackup(status) {
 ;  programs - program configs parsed in main
 ; 
 ; returns status updated with values from backup
-statusRestore(status, programs) {
+statusRestore(status, running, programs) {
     backup := ObjLoad("data\status.bin")
     
     for key, value in backup {
         if (key = "openPrograms") {
             for name, time in backup["openPrograms"] {
-                status := createProgram(name, status, programs, false, false, time)
+                createProgram(name, status, running, programs, false, false, time)
             }
         }
         else {

@@ -33,12 +33,12 @@ sendMessageToMain(message, waitTime := 5000) {
 
     NumPut("Ptr", stringSize, "Ptr", StrPtr(message), stringBuffer, A_PtrSize)
 
-    if (SendMessage(MESSAGE_VAL, 0, stringBuffer,, "MediaCenterMain",,,, waitTime) != 0) {
+    if (SendMessage(MESSAGE_VAL, 0, stringBuffer,, MAINNAME,,,, waitTime) != 0) {
         ErrorMsg(
             (
                 "
-                Did not recieve confirmation from
-                MediaCenterMain within " . toString(waitTime) . "ms
+                Did not recieve confirmation from 
+                " MAINNAME " within " . toString(waitTime) . "ms
                 "
             ),
             true

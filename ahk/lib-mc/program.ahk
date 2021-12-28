@@ -243,26 +243,26 @@ class Program {
 ;  customTime - manual time value to set (useful for backup)
 ;
 ; returns either the program, or empty string
-createProgram(params, status, programs, launchProgram := true, setCurrent := true, customTime := 0) {   
+createProgram(params, status, running, programs, launchProgram := true, setCurrent := true, customTime := 0) {   
     newProgram := IsObject(params) ? params : toArray(StrSplit(params, A_Space))
 
     newName := newProgram.RemoveAt(1)
 
     for key in StrSplit(programs["keys"], ",") {
         if (key = newName) {
-            status["openPrograms"] := addKeyListString(status["openPrograms"], newName)
-            status["openPrograms"][newName] := Program.New(programs[key])
+            addKeyListString(running, newName)
+            running[newName] := Program.New(programs[key])
 
             if (setCurrent) {
-                status["currProgram"] := newName
+                StrPut(newName, status["currProgram"])
             }
 
             if (launchProgram) {
-                status["openPrograms"][newName].launch(newProgram)
+                running[newName].launch(newProgram)
             }
 
             if (customTime > 0) {
-                status["openPrograms"][newName].time := customTime
+                running[newName].time := customTime
             }
         
             return

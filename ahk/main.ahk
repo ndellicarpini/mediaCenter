@@ -39,28 +39,35 @@ mainConfig["StartArgs"] := A_Args
 ; initialize basic status features
 
 ; whether or not pause screen is shown 
-mainStatus["pause"] := false
-; whether or not script is suspended (no actions running, changable in pause menu)
-mainStatus["suspendScript"] := false
+mainStatus["pause"] := BufferAlloc(1)
+NumPut("UChar", false, mainStatus["pause"])
 
-; map of current programs running & what times they were launched -> used to determine fallback on close
-mainStatus["openPrograms"] := Map()
+; whether or not script is suspended (no actions running, changable in pause menu)
+mainStatus["suspendScript"] := BufferAlloc(1)
+NumPut("UChar", false, mainStatus["suspendScript"])
 
 ; current name of programs focused & running, used to get config -> setup hotkeys & background actions
-mainStatus["currProgram"]  := ""
+mainStatus["currProgram"]  := BufferAlloc(2 * 256)
+StrPut("", mainStatus["currProgram"])
+
 ; name of program overriding the openProgram map -> kept separate for quick actions that should override
 ; all status, but retain current program stack on close (like checking manual in chrome)
-mainStatus["overrideProgram"] := ""
+mainStatus["overrideProgram"] := BufferAlloc(2 * 256)
+StrPut("", mainStatus["overrideProgram"])
 
 ; load screen info
-mainStatus["load"] := Map()
-mainStatus["load"]["show"] := false
-mainStatus["load"]["text"] := "Now Loading..."
+mainStatus["loadShow"] := BufferAlloc(1)
+NumPut("UChar", false, mainStatus["loadShow"])
+
+mainStatus["loadText"] := BufferAlloc(2 * 256)
+StrPut("Now Loading...", mainStatus["loadText"])
 
 ; error info
-mainStatus["error"] := Map()
-mainStatus["error"]["show"] := false
-mainStatus["error"]["wndw"] := 0
+mainStatus["errorShow"] := BufferAlloc(1)
+NumPut("UChar", false, mainStatus["errorShow"])
+
+mainStatus["errorWndw"] := BufferAlloc(4)
+NumPut("UInt", 0, mainStatus["errorWndw"])
 
 ; setup status and config as maps rather than config objects for multithreading
 for key, value in globalConfig.subConfigs {
@@ -86,7 +93,7 @@ for key, value in globalConfig.subConfigs {
 }
 
 ; create required folders
-requiredFolders := ["backup"]
+requiredFolders := ["data"]
 
 if (mainConfig["General"].Has("CustomLibDir") && mainConfig["General"]["CustomLibDir"] != "") {
     requiredFolders.Push(mainConfig["General"]["CustomLibDir"])
@@ -134,6 +141,7 @@ mainConfig       := addKeyListString(mainConfig)
 mainStatus       := addKeyListString(mainStatus)
 mainControllers  := addKeyListString(mainControllers)
 mainPrograms     := addKeyListString(mainPrograms)
+mainRunning      := addKeyListString(Map())
 
 ; configure objects to be used in a thread-safe manner
 ; TODO - is global necessary / good???
@@ -141,13 +149,14 @@ localConfig      := ObjShare(ObjShare(mainConfig))
 localStatus      := ObjShare(ObjShare(mainStatus))
 localControllers := ObjShare(ObjShare(mainControllers))
 localPrograms    := ObjShare(ObjShare(mainPrograms))
+localRunning     := ObjShare(ObjShare(mainRunning))
 
 threads := Map()
 
 ; ----- PARSE START ARGS -----
 for key in StrSplit(localConfig["StartArgs"]["keys"], ",") {
     if (localConfig["StartArgs"][key] = "-backup") {
-        localStatus := statusRestore(localStatus, localPrograms)
+        localStatus := statusRestore(localStatus, localRunning, localPrograms)
     }
     else if (localConfig["StartArgs"][key] = "-quiet") {
         localConfig["Boot"]["EnableBoot"] := false
@@ -165,12 +174,12 @@ if (localConfig["Boot"]["EnableBoot"]) {
 
 ; ----- START PROGRAM ----- 
 ; this thread updates the status mode based on checking running programs
-threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainPrograms))
+threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainPrograms), ObjShare(mainRunning))
 
 ; ----- START ACTION -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers))
+threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers), ObjShare(mainRunning))
 
 ; ----- ENABLE LISTENER -----
 enableMainMessageListener()
@@ -197,7 +206,7 @@ loop {
         ;  -> send whole string to runFunction
         if (StrLower(mainMessage[1]) = "run") {
             mainMessage.RemoveAt(1)
-            createProgram(mainMessage, localStatus, localPrograms)
+            createProgram(mainMessage, localStatus, localRunning, localPrograms)
         }
         else {
             runFunction(mainMessage)
@@ -224,7 +233,7 @@ loop {
     ; maybe only do it like every 10ish secs?
     backupCount += 1
     if (backupCount >= backupTrigger) {
-        try statusBackup(localStatus)
+        try statusBackup(localStatus, localRunning)
         
         backupCount := 0
     }
