@@ -234,7 +234,7 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
 
         global localRunning  := ObjShare(" localRunning ")
 
-        loopSleep   := localConfig['General']['AvgLoopSleep']
+        loopSleep   := localConfig['General']['AvgLoopSleep'] * 2
         checkErrors := localConfig['Programs'].Has('ErrorList') && localConfig['Programs']['ErrorList'] != ''
 
         loop {
