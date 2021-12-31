@@ -12,7 +12,7 @@
 
 #Include lib-mc\confio.ahk
 #Include lib-mc\thread.ahk
-#Include lib-mc\display.ahk
+#Include lib-mc\gui.ahk
 #Include lib-mc\std.ahk
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
@@ -75,8 +75,8 @@ for key, value in globalConfig.subConfigs {
     statusObj := Map()
     
     ; if getting monitor config -> convert to monitorH and monitorW
-    if (key = "Display") {
-        temp := getDisplaySize(globalConfig.subConfigs["Display"])
+    if (key = "GUI") {
+        temp := getDisplaySize(globalConfig.subConfigs["GUI"].items["MonitorNum"])
         configObj["MonitorW"] := temp[1]
         configObj["MonitorH"] := temp[2]
 

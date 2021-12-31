@@ -452,7 +452,7 @@ readGlobalConfig() {
 		gConfig := readConfig("config\global.txt",, "brackets")
 
 		; check the required settings from the config file (you bet they're hardcoded)
-		if (!gConfig.subConfigs.Has("General") || !gConfig.subConfigs.Has("Display")
+		if (!gConfig.subConfigs.Has("General") || !gConfig.subConfigs.Has("GUI")
 		|| !gConfig.subConfigs.Has("Boot")) {
 			ErrorMsg(
 				(
@@ -479,7 +479,8 @@ readGlobalConfig() {
 					No global.txt & No global.default.txt
 					You really screwed the pooch on this one bud
 					"
-				)
+				), 
+				true
 			)
 		}
 

@@ -1,0 +1,59 @@
+CODE
+- Fix ~4MB/hr memory leak
+- Fix runFunction being dogshit
+- BOOT
+  - create check for internet
+- CONTROLLERS
+  - Abstract out controller as a module
+  - Read all buttons as digital inputs (aka remove analog reading from analog buttons)
+- CONFIG
+  - Add XML & INDENT parsing to readConfig()
+  - create writeConfig()
+    - maybe this should be a perfect replacement for a config file
+    - allows me to create a GUI for editing config files & maybe save per console/game configs
+- GAMES
+  - create Program abstractions for Game->Emulator/Console
+  - figure out good ways to load & save specific game configs
+  - think about just removing borders & sizing window instead of using fullscreen
+  - detect & enable/disable drivers for different controllers
+  - create background programs
+
+GUI
+- settings for SizeMultiplier, FontSize
+- settings for BGColor, TextColor, SelectColor, SecondaryColor? 
+- create Keyboard
+- create Message
+- create LoadScreen
+- create PauseScreen
+  - Home Button (default program)
+  - Volume Button (pop-out volume mixer)
+  - Controllers Button (pop-out show battery & vibrate button)
+  - MultiTasking Button (show programs to switch to/from)
+    - create gui for how to handle previous program (Hide/Minimize)
+  - Program Specific Settings
+    - Show Controls button
+    - Save/Load state dialogs (w/ multiple slot support & taking screenshots)
+    - Manuals for games
+    - PIP for chrome
+  - Settings Category
+    - Enable KB&Mouse Mode
+    - Suspend All Scripts
+    - change global settings dialog (updates global.txt)
+    - change windows settings (launch Settings)
+    - Shutdown/Restart buttons
+- create GameSettings dialog
+  - change game version
+  - change controls
+    - save controls as presets / default
+    - create gui for creating custom controls
+  - change game settings
+    - use same dialog as change settings
+
+LAUNCHBOX
+- create plugin to send game metadata to main?
+- create plugin to allow emualtors to have games with invalid file paths
+- create plugin to launch GameSettings rather than using separate emulator
+- maybe write directly into launchbox data the time played? (it probably wont work default)
+- redesign theme for game details page
+- update theme to work with any resolution?
+- clean theme files
