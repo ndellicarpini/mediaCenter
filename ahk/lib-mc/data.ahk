@@ -12,7 +12,7 @@ statusBackup(status, running) {
     backup["loadShow"] := status["loadShow"]
     backup["loadText"] := status["loadText"]
     backup["errorShow"] := status["errorShow"]
-    backup["errorWndw"] := status["errorWndw"]
+    backup["errorHWND"] := status["errorHWND"]
     
     if (running.Has("keys") && running["keys"] != "") {
         backup["openPrograms"] := Map()

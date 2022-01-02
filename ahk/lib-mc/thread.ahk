@@ -155,7 +155,7 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
             }
             else if (hotkeyInfo[2] = 'Exit') {
                 if (NumGet(localStatus['errorShow'], 0, 'UChar')) {
-                    CloseErrorMsg(NumGet(localStatus['errorWndw'], 0, 'UInt'))
+                    CloseErrorMsg(NumGet(localStatus['errorHWND'], 0, 'UInt'))
                 }
 
                 else if (currProgram != '') {
@@ -189,7 +189,7 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
             killed := false
             if (!killed && NumGet(localStatus['errorShow'], 0, 'UChar')) {
                 try {
-                    errorPID := WinGetPID('ahk_id ' NumGet(localStatus['errorWndw'], 0, 'UInt'))
+                    errorPID := WinGetPID('ahk_id ' NumGet(localStatus['errorHWND'], 0, 'UInt'))
                     ProcessKill(errorPID)
 
                     killed := true
@@ -262,7 +262,7 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
                     wndwHWND := WinShown(localConfig['Programs']['ErrorList'][key])
                     if (wndwHWND > 0) {
                         NumPut('UChar', true, localStatus['errorShow'])
-                        NumPut('UInt', wndwHWND, localStatus['errorWndw'])
+                        NumPut('UInt', wndwHWND, localStatus['errorHWND'])
                     }
                 }
                 SetTitleMatchMode resetTMM
@@ -270,16 +270,16 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
 
             ; focus error window
             if (NumGet(localStatus['errorShow'], 0, 'UChar')) {
-                errorWndw := NumGet(localStatus['errorWndw'], 0, 'UInt')
+                errorHWND := NumGet(localStatus['errorHWND'], 0, 'UInt')
 
-                if (WinShown('ahk_id ' errorWndw)) {
-                    if (forceActivate && !WinActive('ahk_id ' errorWndw)) {
-                        WinActivate('ahk_id ' errorWndw)
+                if (WinShown('ahk_id ' errorHWND)) {
+                    if (forceActivate && !WinActive('ahk_id ' errorHWND)) {
+                        WinActivate('ahk_id ' errorHWND)
                     }
                 }
                 else {
                     NumPut('UChar', false, localStatus['errorShow'])
-                    NumPut('UInt', 0, localStatus['errorWndw'])
+                    NumPut('UInt', 0, localStatus['errorHWND'])
                 }
             }
 

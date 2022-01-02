@@ -66,8 +66,8 @@ StrPut("Now Loading...", mainStatus["loadText"])
 mainStatus["errorShow"] := BufferAlloc(1)
 NumPut("UChar", false, mainStatus["errorShow"])
 
-mainStatus["errorWndw"] := BufferAlloc(4)
-NumPut("UInt", 0, mainStatus["errorWndw"])
+mainStatus["errorHWND"] := BufferAlloc(4)
+NumPut("UInt", 0, mainStatus["errorHWND"])
 
 ; setup status and config as maps rather than config objects for multithreading
 for key, value in globalConfig.subConfigs {

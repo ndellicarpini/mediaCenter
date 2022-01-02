@@ -35,6 +35,7 @@ GUI
     - Save/Load state dialogs (w/ multiple slot support & taking screenshots)
     - Manuals for games
     - PIP for chrome
+    - All programs will have exit option
   - Settings Category
     - Enable KB&Mouse Mode
     - Suspend All Scripts
