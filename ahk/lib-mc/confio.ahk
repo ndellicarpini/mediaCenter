@@ -442,14 +442,14 @@ readMultiCfg(toRead, configList, configListType := "or", subConfig := "", perfec
 	return retConfig
 }
 
-; creates the config\global.txt if it doesn't exist (copying global.default.txt), and tells the user to
+; creates the config\global.cfg if it doesn't exist (copying global.default.txt), and tells the user to
 ; fill out the config file. Otherwise returns the cleaned config object
 ;
-; returns an error message or the cleaned config object from global.txt
+; returns an error message or the cleaned config object from global.cfg
 readGlobalConfig() {
-	; first check if global.txt exists
-	if (FileExist("config\global.txt")) {
-		gConfig := readConfig("config\global.txt",, "brackets")
+	; first check if global.cfg exists
+	if (FileExist("config\global.cfg")) {
+		gConfig := readConfig("config\global.cfg",, "brackets")
 
 		; check the required settings from the config file (you bet they're hardcoded)
 		if (!gConfig.subConfigs.Has("General") || !gConfig.subConfigs.Has("GUI")
@@ -457,7 +457,7 @@ readGlobalConfig() {
 			ErrorMsg(
 				(
 					"
-					Config global.txt is missing required setting categories
+					Config global.cfg is missing required setting categories
 					Please check that all of the required settings exist
 					"
 				),
@@ -465,18 +465,18 @@ readGlobalConfig() {
 			)
 		}
 
-		; if global.txt is valid, return the cleaned copy of it
+		; if global.cfg is valid, return the cleaned copy of it
 		gConfig.cleanAllItems()
 		return gConfig
 	}
 	else {
-		; if there is no global.txt or global.default.txt, you have to find them
+		; if there is no global.cfg or global.default.txt, you have to find them
 		if (!FileExist("config\global.default.txt")) {
 			ErrorMsg(
 				(
 					"
 					There are literally no config files in config\
-					No global.txt & No global.default.txt
+					No global.cfg & No global.default.txt
 					You really screwed the pooch on this one bud
 					"
 				), 
@@ -488,7 +488,7 @@ readGlobalConfig() {
 		defaultContents := defaultGlobal.Read()
 		defaultGlobal.Close()
 
-		newGlobal := FileOpen("config\global.txt", "w")
+		newGlobal := FileOpen("config\global.cfg", "w")
 		newGlobal.Write(defaultContents)
 		newGlobal.Close()
 
@@ -496,7 +496,7 @@ readGlobalConfig() {
 			(
 				"
 				Welcome to the Media Center AHK Scripts
-				A new config file has been generated at config\global.txt
+				A new config file has been generated at config\global.cfg
 				based on the default settings. Please review the config file
 				before trying to run the program again.
 				"

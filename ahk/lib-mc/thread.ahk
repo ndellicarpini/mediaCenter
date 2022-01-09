@@ -1,10 +1,10 @@
 ; creates the thread that does actions based on current mainStatus & mainControllers
-;  localConfig - mainConfig as gotten as a ComObject through ObjShare
-;  localStatus - mainStatus as gotten as a ComObject through ObjShare 
-;  localControllers - mainControllers as gotten as a ComObject through ObjShare
+;  globalConfig - mainConfig as gotten as a ComObject through ObjShare
+;  globalStatus - mainStatus as gotten as a ComObject through ObjShare 
+;  globalControllers - mainControllers as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that does x based on mainStatus
-hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
+hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
     return ThreadObj(dynamicInclude
     (
         "
@@ -21,24 +21,24 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
         global buttonTime := 70
 
         ; variables are global to be accessed in timers
-        global localStatus      := cleanComMap(ObjShare(" localStatus "))
-        global localConfig      := cleanComMap(ObjShare(" localConfig "))
-        global localControllers := cleanComMap(ObjShare(" localControllers "))
+        global globalStatus      := cleanComMap(ObjShare(" globalStatus "))
+        global globalConfig      := cleanComMap(ObjShare(" globalConfig "))
+        global globalControllers := cleanComMap(ObjShare(" globalControllers "))
 
-        global localRunning     := ObjShare(" localRunning ")
+        global globalRunning     := ObjShare(" globalRunning ")
 
-        global currProgram  := StrGet(localStatus['currProgram'])
-        global currOverride := StrGet(localStatus['overrideProgram'])
+        global currProgram  := StrGet(globalStatus['currProgram'])
+        global currOverride := StrGet(globalStatus['overrideProgram'])
 
-        global currPause    := NumGet(localStatus['pause'], 0, 'UChar')
-        global currLoad     := NumGet(localStatus['loadShow'], 0, 'UChar')
-        global currError    := NumGet(localStatus['errorShow'], 0, 'UChar')
+        global currPause    := NumGet(globalStatus['pause'], 0, 'UChar')
+        global currLoad     := NumGet(globalStatus['loadShow'], 0, 'UChar')
+        global currError    := NumGet(globalStatus['errorShow'], 0, 'UChar')
 
-        global currHotkeys := defaultHotkeys(localConfig, localControllers[0])
+        global currHotkeys := defaultHotkeys(globalConfig, globalControllers[0])
         global currController := -1
         global currButton := ''
 
-        loopSleep := Round(localConfig['General']['AvgLoopSleep'] / 4)
+        loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 4)
 
         ; checks the controller status for hotkeys in currHotkeys
         checkButtons() {
@@ -49,13 +49,13 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
             }
 
             for item in currHotkeys['uniqueKeys'] {
-                status := xCheckAllControllers(localControllers, item,, true)
+                status := xCheckAllControllers(globalControllers, item,, true)
                 if (status[1]) {
                     currController := status[2]
                     currButton := item
 
                     SetTimer 'ButtonTimer', (-1 * buttonTime)
-                    while (xCheckController(localControllers[currController], currButton)) {
+                    while (xCheckController(globalControllers[currController], currButton)) {
                         Sleep(5)
                     }
                     SetTimer 'ButtonTimer', 0
@@ -65,18 +65,18 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
 
         ; --- MAIN LOOP ---
         loop {
-            updateStatus := !(currLoad = NumGet(localStatus['loadShow'], 0, 'UChar') && currError = NumGet(localStatus['errorShow'], 0, 'UChar') && currPause = NumGet(localStatus['pause'], 0, 'UChar') 
-                            && currProgram = StrGet(localStatus['currProgram']) && currOverride = StrGet(localStatus['overrideProgram']))
+            updateStatus := !(currLoad = NumGet(globalStatus['loadShow'], 0, 'UChar') && currError = NumGet(globalStatus['errorShow'], 0, 'UChar') && currPause = NumGet(globalStatus['pause'], 0, 'UChar') 
+                            && currProgram = StrGet(globalStatus['currProgram']) && currOverride = StrGet(globalStatus['overrideProgram']))
 
             if (updateStatus) {
-                currProgram  := StrGet(localStatus['currProgram'])
-                currOverride := StrGet(localStatus['overrideProgram'])
+                currProgram  := StrGet(globalStatus['currProgram'])
+                currOverride := StrGet(globalStatus['overrideProgram'])
 
-                currPause    := NumGet(localStatus['pause'], 0, 'UChar')
-                currLoad     := NumGet(localStatus['loadShow'], 0, 'UChar')
-                currError    := NumGet(localStatus['errorShow'], 0, 'UChar')
+                currPause    := NumGet(globalStatus['pause'], 0, 'UChar')
+                currLoad     := NumGet(globalStatus['loadShow'], 0, 'UChar')
+                currError    := NumGet(globalStatus['errorShow'], 0, 'UChar')
                 
-                currHotkeys := defaultHotkeys(localConfig, localControllers[0]) 
+                currHotkeys := defaultHotkeys(globalConfig, globalControllers[0]) 
 
                 ; if error only enable closing error
                 if (currError) {  
@@ -85,7 +85,7 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
 
                     errorHotkeys := addKeyListString(errorHotkeys)
 
-                    currHotkeys := addHotkeys(currHotkeys, errorHotkeys, localControllers[0])
+                    currHotkeys := addHotkeys(currHotkeys, errorHotkeys, globalControllers[0])
                 }
     
                 ; if loading only enable exit
@@ -104,17 +104,17 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
     
                 ; if in override use program hotkeys
                 else if (currOverride != '') {    
-                    currHotkeys := addHotkeys(currHotkeys, localRunning[currOverride].hotkeys, localControllers[0])
+                    currHotkeys := addHotkeys(currHotkeys, globalRunning[currOverride].hotkeys, globalControllers[0])
                 }
     
                 ; if in program use program hotkeys
                 else if (currProgram != '') {
-                    currHotkeys := addHotkeys(currHotkeys, localRunning[currProgram].hotkeys, localControllers[0])
+                    currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys, globalControllers[0])
                 }             
             }
 
             ; only check buttons if script not suspended
-            if (!NumGet(localStatus['suspendScript'], 0, 'UChar')) {
+            if (!NumGet(globalStatus['suspendScript'], 0, 'UChar')) {
                 checkButtons()
             }
 
@@ -131,7 +131,7 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
             global
 
             ; hotkeyInfo[1] = hotkeys pressed | hotkeyInfo[2] = corresponding function
-            hotkeyInfo := checkHotkeys(currButton, currHotkeys['hotkeys'], localControllers[currController])
+            hotkeyInfo := checkHotkeys(currButton, currHotkeys['hotkeys'], globalControllers[currController])
 
             ; if invalid hotkey info -> ignore hotkey
             if (hotkeyInfo = -1) {
@@ -140,7 +140,7 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
 
             ; check hardcoded defaults because theres really no better way to do this
             if (hotkeyInfo[2] = 'Pause') {
-                if (NumGet(localStatus['pause'], 0, 'UChar')) {
+                if (NumGet(globalStatus['pause'], 0, 'UChar')) {
                     ; TODO - close pause screen
 
                     MsgBox('im free')
@@ -151,20 +151,20 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
                     MsgBox('im paused')
                 }
 
-                NumPut('UChar', !NumGet(localStatus['pause'], 0, 'UChar'), localStatus['pause'])
+                NumPut('UChar', !NumGet(globalStatus['pause'], 0, 'UChar'), globalStatus['pause'])
             }
             else if (hotkeyInfo[2] = 'Exit') {
-                if (NumGet(localStatus['errorShow'], 0, 'UChar')) {
-                    CloseErrorMsg(NumGet(localStatus['errorHWND'], 0, 'UInt'))
+                if (NumGet(globalStatus['errorShow'], 0, 'UChar')) {
+                    CloseErrorMsg(NumGet(globalStatus['errorHWND'], 0, 'UInt'))
                 }
 
                 else if (currProgram != '') {
-                    localRunning[currProgram].exit()
+                    globalRunning[currProgram].exit()
                 }
 
                 ; if user holds button for a long time, kill everything
                 SetTimer 'NuclearTimer', -3000
-                while (currProgram = StrGet(localStatus['currProgram']) && xCheckController(localControllers[currController], hotkeyInfo[1])) {
+                while (currProgram = StrGet(globalStatus['currProgram']) && xCheckController(globalControllers[currController], hotkeyInfo[1])) {
                     Sleep(5)
                 }
                 SetTimer 'NuclearTimer', 0
@@ -176,7 +176,7 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
             }
 
             ; wait for user to release buttons
-            while (xCheckController(localControllers[currController], hotkeyInfo[1])) {
+            while (xCheckController(globalControllers[currController], hotkeyInfo[1])) {
                 Sleep(5)
             }
 
@@ -187,9 +187,9 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
             global
 
             killed := false
-            if (!killed && NumGet(localStatus['errorShow'], 0, 'UChar')) {
+            if (!killed && NumGet(globalStatus['errorShow'], 0, 'UChar')) {
                 try {
-                    errorPID := WinGetPID('ahk_id ' NumGet(localStatus['errorHWND'], 0, 'UInt'))
+                    errorPID := WinGetPID('ahk_id ' NumGet(globalStatus['errorHWND'], 0, 'UInt'))
                     ProcessKill(errorPID)
 
                     killed := true
@@ -197,7 +197,7 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
             }
 
             if (!killed && currProgram != '') {
-                ProcessKill(localRunning[currProgram].getPID())
+                ProcessKill(globalRunning[currProgram].getPID())
                 killed := true
             }
 
@@ -215,11 +215,11 @@ hotkeyThread(localConfig, localStatus, localControllers, localRunning) {
 }
 
 ; creates the thread to monitor which programs are running & updates mode appropriately
-;  localConfig - mainConfig as gotten as a ComObject through ObjShare
-;  localStatus - mainStatus as gotten as a ComObject through ObjShare
+;  globalConfig - mainConfig as gotten as a ComObject through ObjShare
+;  globalStatus - mainStatus as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that checks running programs
-programThread(localConfig, localStatus, localPrograms, localRunning) {
+programThread(globalConfig, globalStatus, globalPrograms, globalRunning) {
     return ThreadObj(dynamicInclude
     (   
         "
@@ -228,19 +228,19 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
 
         setCurrentWinTitle('programThread')
 
-        global localStatus   := cleanComMap(ObjShare(" localStatus "))
-        global localConfig   := cleanComMap(ObjShare(" localConfig "))
-        global localPrograms := cleanComMap(ObjShare(" localPrograms "))
+        global globalStatus   := cleanComMap(ObjShare(" globalStatus "))
+        global globalConfig   := cleanComMap(ObjShare(" globalConfig "))
+        global globalPrograms := cleanComMap(ObjShare(" globalPrograms "))
 
-        global localRunning  := ObjShare(" localRunning ")
+        global globalRunning  := ObjShare(" globalRunning ")
 
-        loopSleep   := localConfig['General']['AvgLoopSleep'] * 2
-        checkErrors := localConfig['Programs'].Has('ErrorList') && localConfig['Programs']['ErrorList'] != ''
+        loopSleep   := globalConfig['General']['AvgLoopSleep'] * 2
+        checkErrors := globalConfig['Programs'].Has('ErrorList') && globalConfig['Programs']['ErrorList'] != ''
 
         loop {
-            forceActivate   := localConfig['General']['ForceActivateWindow']
-            currProgram     := StrGet(localStatus['currProgram'])
-            overrideProgram := StrGet(localStatus['overrideProgram'])
+            forceActivate   := globalConfig['General']['ForceActivateWindow']
+            currProgram     := StrGet(globalStatus['currProgram'])
+            overrideProgram := StrGet(globalStatus['overrideProgram'])
 
             ; close if main is no running
             if (!WinHidden(MAINNAME)) {
@@ -248,7 +248,7 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
             }
 
             ; infinite loop during suspention
-            if (NumGet(localStatus['suspendScript'], 0, 'UChar')) {
+            if (NumGet(globalStatus['suspendScript'], 0, 'UChar')) {
                 Sleep(loopSleep)
                 continue
             }
@@ -257,20 +257,20 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
                 resetTMM := A_TitleMatchMode
 
                 SetTitleMatchMode 2
-                for key in StrSplit(localConfig['Programs']['ErrorList']['keys'], ',') {
+                for key in StrSplit(globalConfig['Programs']['ErrorList']['keys'], ',') {
 
-                    wndwHWND := WinShown(localConfig['Programs']['ErrorList'][key])
+                    wndwHWND := WinShown(globalConfig['Programs']['ErrorList'][key])
                     if (wndwHWND > 0) {
-                        NumPut('UChar', true, localStatus['errorShow'])
-                        NumPut('UInt', wndwHWND, localStatus['errorHWND'])
+                        NumPut('UChar', true, globalStatus['errorShow'])
+                        NumPut('UInt', wndwHWND, globalStatus['errorHWND'])
                     }
                 }
                 SetTitleMatchMode resetTMM
             }
 
             ; focus error window
-            if (NumGet(localStatus['errorShow'], 0, 'UChar')) {
-                errorHWND := NumGet(localStatus['errorHWND'], 0, 'UInt')
+            if (NumGet(globalStatus['errorShow'], 0, 'UChar')) {
+                errorHWND := NumGet(globalStatus['errorHWND'], 0, 'UInt')
 
                 if (WinShown('ahk_id ' errorHWND)) {
                     if (forceActivate && !WinActive('ahk_id ' errorHWND)) {
@@ -278,8 +278,8 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
                     }
                 }
                 else {
-                    NumPut('UChar', false, localStatus['errorShow'])
-                    NumPut('UInt', 0, localStatus['errorHWND'])
+                    NumPut('UChar', false, globalStatus['errorShow'])
+                    NumPut('UInt', 0, globalStatus['errorHWND'])
                 }
             }
 
@@ -287,26 +287,26 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
             else if (overrideProgram != '') {
 
                 ; need to create override program if doesn't exist
-                if (!localRunning.Has(overrideProgram)) {
-                    createProgram(overrideProgram, localStatus, localRunning, localPrograms,, false)
+                if (!globalRunning.Has(overrideProgram)) {
+                    createProgram(overrideProgram, globalStatus, globalRunning, globalPrograms,, false)
                 }
 
                 else {
-                    if (localRunning[overrideProgram].exists()) {
+                    if (globalRunning[overrideProgram].exists()) {
                         if (forceActivate) {
-                            try localRunning[overrideProgram].restore()
+                            try globalRunning[overrideProgram].restore()
                         }
                     }
                     else {
-                        StrPut('', localStatus['overrideProgram'])
-                        localRunning.Delete(overrideProgram)
-                        addKeyListString(localRunning)
+                        StrPut('', globalStatus['overrideProgram'])
+                        globalRunning.Delete(overrideProgram)
+                        addKeyListString(globalRunning)
                     }
                 }
             }
 
             ; activate load screen if its supposed to be shown
-            else if (NumGet(localStatus['loadShow'], 0, 'UChar')) {
+            else if (NumGet(globalStatus['loadShow'], 0, 'UChar')) {
                 ; TODO - load screen activate
             }
 
@@ -314,45 +314,45 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
             else if (currProgram != '') {
 
                 ; need to create current program if doesn't exist
-                if (!localRunning.Has(currProgram)) {
-                    createProgram(overrideProgram, localStatus, localRunning, localPrograms, false, false)
+                if (!globalRunning.Has(currProgram)) {
+                    createProgram(overrideProgram, globalStatus, globalRunning, globalPrograms, false, false)
                 } 
 
                 else {
                     ; focus currProgram if it exists
-                    if (localRunning[currProgram].exists()) {
+                    if (globalRunning[currProgram].exists()) {
                         if (forceActivate) {
-                            try localRunning[currProgram].restore()
+                            try globalRunning[currProgram].restore()
                         }
                     }
                     else {
-                        StrPut('', localStatus['currProgram'])
-                        localRunning.Delete(currProgram)
-                        addKeyListString(localRunning)
+                        StrPut('', globalStatus['currProgram'])
+                        globalRunning.Delete(currProgram)
+                        addKeyListString(globalRunning)
 
                         prevTime := 0
                         prevProgram := ''
-                        for key in StrSplit(localRunning['keys'], ',') {
-                            if (key != currProgram && localRunning[key].time > prevTime) {
+                        for key in StrSplit(globalRunning['keys'], ',') {
+                            if (key != currProgram && globalRunning[key].time > prevTime) {
                                 prevProgram := key
-                                prevTime := localRunning[key].time
+                                prevTime := globalRunning[key].time
                             }
                         }
 
                         ; restore previous program if open
                         if (prevProgram != '') {
-                            StrPut(prevProgram, localStatus['currProgram'])
+                            StrPut(prevProgram, globalStatus['currProgram'])
                         }
 
                         ; updates currProgram if a program exists, else create the default program if no prev program exists
                         else {
-                            openProgram := checkAllPrograms(localPrograms)
+                            openProgram := checkAllPrograms(globalPrograms)
                             if (openProgram != '') {
-                                createProgram(openProgram, localStatus, localRunning, localPrograms, false)
+                                createProgram(openProgram, globalStatus, globalRunning, globalPrograms, false)
                             }
 
-                            else if (localConfig['Programs'].Has('Default') && localConfig['Programs']['Default'] != '') {
-                                createProgram(localConfig['Programs']['Default'], localStatus, localRunning, localPrograms)
+                            else if (globalConfig['Programs'].Has('Default') && globalConfig['Programs']['Default'] != '') {
+                                createProgram(globalConfig['Programs']['Default'], globalStatus, globalRunning, globalPrograms)
                             }
                         }
                     }
@@ -361,13 +361,13 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
 
             ; no current program
             else {
-                openProgram := checkAllPrograms(localPrograms)
+                openProgram := checkAllPrograms(globalPrograms)
                 if (openProgram != '') {
-                    createProgram(openProgram, localStatus, localRunning, localPrograms, false)
+                    createProgram(openProgram, globalStatus, globalRunning, globalPrograms, false)
                 }
 
-                else if (localConfig['Programs'].Has('Default') && localConfig['Programs']['Default'] != '') {
-                    createProgram(localConfig['Programs']['Default'], localStatus, localRunning, localPrograms)
+                else if (globalConfig['Programs'].Has('Default') && globalConfig['Programs']['Default'] != '') {
+                    createProgram(globalConfig['Programs']['Default'], globalStatus, globalRunning, globalPrograms)
                 }
             }
 
@@ -378,10 +378,10 @@ programThread(localConfig, localStatus, localPrograms, localRunning) {
 }
 
 ; creates the controller thread to check the input status of each connected controller
-;  localControllers - mainControllers as gotten as a ComObject through ObjShare
+;  globalControllers - mainControllers as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that checks controller statuses
-controllerThread(localConfig, localControllers) {
+controllerThread(globalConfig, globalControllers) {
     return ThreadObj(
     (
         "
@@ -390,14 +390,14 @@ controllerThread(localConfig, localControllers) {
         
         setCurrentWinTitle('controllerThread')
         
-        global localConfig      := cleanComMap(ObjShare(" localConfig "))
-        global localControllers := cleanComMap(ObjShare(" localControllers "))
+        global globalConfig      := cleanComMap(ObjShare(" globalConfig "))
+        global globalControllers := cleanComMap(ObjShare(" globalControllers "))
 
-        loopSleep := Round(localConfig['General']['AvgLoopSleep'] / 5)
+        loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 5)
 
         loop {
-            for key in StrSplit(localControllers['keys'], ',') {
-                localControllers[Integer(key)].update()
+            for key in StrSplit(globalControllers['keys'], ',') {
+                globalControllers[Integer(key)].update()
             }
 
             ; close if main is no running

@@ -74,13 +74,9 @@ for key, value in globalConfig.subConfigs {
     configObj := Map()
     statusObj := Map()
     
-    ; if getting monitor config -> convert to monitorH and monitorW
+    ; parse gui config separately to set defaults if values aren't provided in config
     if (key = "GUI") {
-        temp := getDisplaySize(globalConfig.subConfigs["GUI"].items["MonitorNum"])
-        configObj["MonitorW"] := temp[1]
-        configObj["MonitorH"] := temp[2]
-
-        mainConfig[key] := configObj
+        parseGUIConfig(value)
         continue
     }
     
@@ -145,21 +141,21 @@ mainRunning      := addKeyListString(Map())
 
 ; configure objects to be used in a thread-safe manner
 ; TODO - is global necessary / good???
-localConfig      := ObjShare(ObjShare(mainConfig))
-localStatus      := ObjShare(ObjShare(mainStatus))
-localControllers := ObjShare(ObjShare(mainControllers))
-localPrograms    := ObjShare(ObjShare(mainPrograms))
-localRunning     := ObjShare(ObjShare(mainRunning))
+global globalConfig      := ObjShare(ObjShare(mainConfig))
+global globalStatus      := ObjShare(ObjShare(mainStatus))
+global globalControllers := ObjShare(ObjShare(mainControllers))
+global globalPrograms    := ObjShare(ObjShare(mainPrograms))
+global globalRunning     := ObjShare(ObjShare(mainRunning))
 
 threads := Map()
 
 ; ----- PARSE START ARGS -----
-for key in StrSplit(localConfig["StartArgs"]["keys"], ",") {
-    if (localConfig["StartArgs"][key] = "-backup") {
-        localStatus := statusRestore(localStatus, localRunning, localPrograms)
+for key in StrSplit(globalConfig["StartArgs"]["keys"], ",") {
+    if (globalConfig["StartArgs"][key] = "-backup") {
+        globalStatus := statusRestore(globalStatus, globalRunning, globalPrograms)
     }
-    else if (localConfig["StartArgs"][key] = "-quiet") {
-        localConfig["Boot"]["EnableBoot"] := false
+    else if (globalConfig["StartArgs"][key] = "-quiet") {
+        globalConfig["Boot"]["EnableBoot"] := false
     }
 }
 
@@ -168,8 +164,8 @@ for key in StrSplit(localConfig["StartArgs"]["keys"], ",") {
 threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
 ; ----- BOOT -----
-if (localConfig["Boot"]["EnableBoot"]) {
-    runFunction(localConfig["Boot"]["BootFunction"])
+if (globalConfig["Boot"]["EnableBoot"]) {
+    runFunction(globalConfig["Boot"]["BootFunction"])
 }
 
 ; ----- START PROGRAM ----- 
@@ -188,7 +184,7 @@ enableMainMessageListener()
 ; the main thread monitors the other threads, checks that looper is running
 ; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
 ; probably going to need to figure out updating loadscreen?
-loopSleep := localConfig["General"]["AvgLoopSleep"] * 3
+loopSleep := globalConfig["General"]["AvgLoopSleep"] * 3
 
 backupTrigger := (loopSleep > 0) ? Round(10000 / loopSleep) : 10000
 backupCount := 0
@@ -206,7 +202,7 @@ loop {
         ;  -> send whole string to runFunction
         if (StrLower(mainMessage[1]) = "run") {
             mainMessage.RemoveAt(1)
-            createProgram(mainMessage, localStatus, localRunning, localPrograms)
+            createProgram(mainMessage, globalStatus, globalRunning, globalPrograms)
         }
         else {
             runFunction(mainMessage)
@@ -229,17 +225,17 @@ loop {
         }
     }
 
-    ; write localStatus to file as backup cache?
+    ; write globalStatus to file as backup cache?
     ; maybe only do it like every 10ish secs?
     backupCount += 1
     if (backupCount >= backupTrigger) {
-        try statusBackup(localStatus, localRunning)
+        try statusBackup(globalStatus, globalRunning)
         
         backupCount := 0
     }
 
     ; check looper
-    if (localConfig["General"]["ForceMaintainMain"] && !NumGet(localStatus["suspendScript"], 0, "UChar") && !WinHidden(MAINLOOP)) {
+    if (globalConfig["General"]["ForceMaintainMain"] && !NumGet(globalStatus["suspendScript"], 0, "UChar") && !WinHidden(MAINLOOP)) {
         Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
     }
 

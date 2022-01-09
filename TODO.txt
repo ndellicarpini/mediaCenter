@@ -39,7 +39,7 @@ GUI
   - Settings Category
     - Enable KB&Mouse Mode
     - Suspend All Scripts
-    - change global settings dialog (updates global.txt)
+    - change global settings dialog (updates global.cfg)
     - change windows settings (launch Settings)
     - Shutdown/Restart buttons
 - create GameSettings dialog

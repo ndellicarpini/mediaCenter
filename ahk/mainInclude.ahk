@@ -1,4 +1,4 @@
-; This script appends files to be included based on the config\global.txt's custom
+; This script appends files to be included based on the config\global.cfg's custom
 ; script directory. This script will add '#Include x' for every '.ahk' file in that
 ; directory
 
@@ -8,7 +8,7 @@
 #Include lib-mc\std.ahk
 #Include lib-mc\confio.ahk
 
-generalConfig := readConfig("config\global.txt",,"brackets", "General")
+generalConfig := readConfig("config\global.cfg",,"brackets", "General")
 
 ; only run if customlibdir exists
 if (generalConfig.items.Has("CustomLibDir") && generalConfig.items["CustomLibDir"] != "") {
