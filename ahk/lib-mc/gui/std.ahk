@@ -10,21 +10,42 @@ global COLOR1 := ""
 global COLOR2 := ""
 
 global GUIMESSAGETITLE := "AHKGUIMESSAGE"
+global GUILOADTITLE := "AHKGUILOAD"
 
 ; sets global monitor gui variables
 ;  guiConfig - GUI config from global.cfg
 ;
 ; returns null
 setMonitorInfo(guiConfig) {
+    ; TODO - get selecting a monitor actually working
+
     global 
 
-    MONITORN := (guiConfig.items.Has("Monitor") && guiConfig.items["Monitor"] != "")
+    MONITORN := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "")
     ? guiConfig.items["Monitor"] : 0
     
     MonitorGet(MONITORN, ML, MT, MR, MB)
 
     MONITORH := Floor(Abs(MB - MT))
     MONITORW := Floor(Abs(MR - ML))
+}
+
+; gets the proper width in pixels based on pixel size of screen
+;  width - percentage of the screen width
+;  useSize - whether or not to apply the size multipler
+;
+; returns proper size in pixels
+percentWidth(width, useSize := true) {
+    return width * MONITORW * ((useSize) ? SIZE : 1)
+}
+
+; gets the proper height in pixels based on pixel size of screen
+;  height - percentage of the screen height
+;  useSize - whether or not to apply the size multipler
+;
+; returns proper size in pixels
+percentHeight(height, useSize := true) {
+    return height * MONITORH * ((useSize) ? SIZE : 1)
 }
 
 ; cleans up gui config & sets default theming values if not provided in the config
@@ -36,19 +57,19 @@ parseGUIConfig(guiConfig) {
 
     setMonitorInfo(guiConfig)
     
-    SIZE := (guiConfig.items.Has("SizeMultiplier") && guiConfig.items["SizeMultiplier"] != "")
-        ? guiConfig.items["SizeMultiplier"] : 1
+    SIZE := (guiConfig.Has("SizeMultiplier") && guiConfig["SizeMultiplier"] != "")
+        ? guiConfig["SizeMultiplier"] : 1
     
-    FONT := (guiConfig.items.Has("Font")) ? guiConfig.items["Font"] : ""
+    FONT := (guiConfig.Has("Font")) ? guiConfig["Font"] : ""
 
-    FONTCOLOR := (guiConfig.items.Has("FontColor") && RegExMatch(guiConfig.items["FontColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig.items["FontColor"], "#") : "ffffff"
+    FONTCOLOR := (guiConfig.Has("FontColor") && RegExMatch(guiConfig["FontColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(guiConfig["FontColor"], "#") : "ffffff"
 
-    COLOR1 := (guiConfig.items.Has("PrimaryColor") && RegExMatch(guiConfig.items["PrimaryColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig.items["PrimaryColor"], "#") : "000000"
+    COLOR1 := (guiConfig.Has("PrimaryColor") && RegExMatch(guiConfig["PrimaryColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(guiConfig["PrimaryColor"], "#") : "000000"
 
-    COLOR2 := (guiConfig.items.Has("SecondaryColor") && RegExMatch(guiConfig.items["SecondaryColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig.items["SecondaryColor"], "#") : "1a1a1a"
+    COLOR2 := (guiConfig.Has("SecondaryColor") && RegExMatch(guiConfig["SecondaryColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(guiConfig["SecondaryColor"], "#") : "1a1a1a"
 }
 
 ; gets a gui object with the specified wintitle
@@ -56,27 +77,11 @@ parseGUIConfig(guiConfig) {
 ;
 ; returns gui object from title
 getGUI(title) {
-    hwnd := WinGetID(title)
+    try {
+        hwnd := WinGetID(title)
 
-    return GuiFromHwnd(hwnd)
-}
-
-; gets the proper width in pixels based on pixel size of screen
-;  width - percentage of the screen width
-;  useSize - whether or not to apply the size multipler
-;
-; returns proper size in pixels
-guiWidth(width, useSize := true) {
-    return width * MONITORW * ((useSize) ? SIZE : 1)
-}
-
-; gets the proper height in pixels based on pixel size of screen
-;  height - percentage of the screen height
-;  useSize - whether or not to apply the size multipler
-;
-; returns proper size in pixels
-guiHeight(height, useSize := true) {
-    return height * MONITORH * ((useSize) ? SIZE : 1)
+        return GuiFromHwnd(hwnd)
+    }
 }
 
 ; sets the font of the guiObj using the default options & param options
@@ -123,7 +128,7 @@ guiMessage(message, timeout := 0) {
     guiObj := Gui.New("+AlwaysOnTop " . GUIOPTIONS, GUIMESSAGETITLE)
     guiObj.BackColor := COLOR1
     guiSetFont(guiObj)
-    guiObj.Add("Text", "w" . guiWidth(0.3), message)
+    guiObj.Add("Text", "Center w" . percentWidth(0.3), message)
 
     guiObj.Show("Center AutoSize NoActivate")
 

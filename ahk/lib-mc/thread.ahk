@@ -11,6 +11,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
         #Include lib-mc\hotkeys.ahk
+        #Include lib-mc\gui\std.ahk
 
         setCurrentWinTitle('hotkeyThread')
 
@@ -26,6 +27,8 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
         global globalControllers := cleanComMap(ObjShare(" globalControllers "))
 
         global globalRunning     := ObjShare(" globalRunning ")
+
+        parseGUIConfig(globalConfig['GUI'])
 
         global currProgram  := StrGet(globalStatus['currProgram'])
         global currOverride := StrGet(globalStatus['overrideProgram'])
@@ -142,20 +145,30 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
             if (hotkeyInfo[2] = 'Pause') {
                 if (NumGet(globalStatus['pause'], 0, 'UChar')) {
                     ; TODO - close pause screen
-
-                    MsgBox('im free')
+                    
+                    if (getGUI(NumGet(globalStatus['errorHWND'], 0, 'UInt'))) {
+                        getGUI(NumGet(globalStatus['errorHWND'], 0, 'UInt')).Destroy()
+                    }
                 }
                 else {
                     ; TODO - open pause screen
 
-                    MsgBox('im paused')
+                    guiMessage('PAUSE ME OOOO', 1000)
                 }
 
                 NumPut('UChar', !NumGet(globalStatus['pause'], 0, 'UChar'), globalStatus['pause'])
             }
             else if (hotkeyInfo[2] = 'Exit') {
                 if (NumGet(globalStatus['errorShow'], 0, 'UChar')) {
-                    CloseErrorMsg(NumGet(globalStatus['errorHWND'], 0, 'UInt'))
+                    errorHWND := NumGet(globalStatus['errorHWND'], 0, 'UInt')
+                    errorGUI := getGUI(errorHWND)
+
+                    if (errorGUI) {
+                        errorGUI.Destroy()
+                    }
+                    else {
+                        CloseErrorMsg(errorHWND)
+                    }
                 }
 
                 else if (currProgram != '') {
@@ -225,6 +238,7 @@ programThread(globalConfig, globalStatus, globalPrograms, globalRunning) {
         "
         #Include lib-mc\std.ahk
         #Include lib-mc\program.ahk
+        #Include lib-mc\gui\std.ahk
 
         setCurrentWinTitle('programThread')
 
@@ -242,6 +256,8 @@ programThread(globalConfig, globalStatus, globalPrograms, globalRunning) {
             currProgram     := StrGet(globalStatus['currProgram'])
             overrideProgram := StrGet(globalStatus['overrideProgram'])
 
+            guiMessageShown := WinShown(GUIMESSAGETITLE)
+
             ; close if main is no running
             if (!WinHidden(MAINNAME)) {
                 ExitApp()
@@ -253,6 +269,13 @@ programThread(globalConfig, globalStatus, globalPrograms, globalRunning) {
                 continue
             }
 
+            ; if gui message exists
+            if (guiMessageShown) {
+                NumPut('UChar', true, globalStatus['errorShow'])
+                NumPut('UInt', guiMessageShown, globalStatus['errorHWND'])
+            }
+
+            ; if errors should be detected, set error here
             if (checkErrors) {
                 resetTMM := A_TitleMatchMode
 

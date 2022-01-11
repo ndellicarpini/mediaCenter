@@ -12,12 +12,14 @@
 
 #Include lib-mc\confio.ahk
 #Include lib-mc\thread.ahk
-#Include lib-mc\gui.ahk
 #Include lib-mc\std.ahk
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
 #Include lib-mc\program.ahk
 #Include lib-mc\data.ahk
+
+#Include lib-mc\gui\std.ahk
+#Include lib-mc\gui\loadscreen.ahk
 
 SetKeyDelay 80, 60
 
@@ -74,18 +76,19 @@ for key, value in globalConfig.subConfigs {
     configObj := Map()
     statusObj := Map()
     
-    ; parse gui config separately to set defaults if values aren't provided in config
-    if (key = "GUI") {
-        parseGUIConfig(value)
-        continue
-    }
-    
     ; for each subconfig (not monitor), convert to appropriate config & status objects
     for key2, value2, in value.items {
         configObj[key2] := value2
     }
 
     mainConfig[key] := configObj
+}
+
+if (mainConfig.Has("GUI")) {
+    parseGUIConfig(mainConfig["GUI"])
+
+    ; TODO - add global.cfg settings for load screen
+    createLoadScreen(StrGet(mainStatus["loadText"]))
 }
 
 ; create required folders
@@ -163,6 +166,11 @@ for key in StrSplit(globalConfig["StartArgs"]["keys"], ",") {
 ; this thread just updates the status of each controller in a loop
 threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
 
+; ----- START ACTION -----
+; this thread reads controller & status to determine what actions needing to be taken
+; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
+threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers), ObjShare(mainRunning))
+
 ; ----- BOOT -----
 if (globalConfig["Boot"]["EnableBoot"]) {
     runFunction(globalConfig["Boot"]["BootFunction"])
@@ -172,10 +180,6 @@ if (globalConfig["Boot"]["EnableBoot"]) {
 ; this thread updates the status mode based on checking running programs
 threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainPrograms), ObjShare(mainRunning))
 
-; ----- START ACTION -----
-; this thread reads controller & status to determine what actions needing to be taken
-; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers), ObjShare(mainRunning))
 
 ; ----- ENABLE LISTENER -----
 enableMainMessageListener()
