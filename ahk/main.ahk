@@ -1,13 +1,14 @@
-﻿; TODO - there is currently a 4MB/hr memory leak due to bad garbage collection for ComObjects
+; TODO - there is currently a 4MB/hr memory leak due to bad garbage collection for ComObjects
 ;      - this could be worse/better depending on usage during runtime, requires more testing
 
 #SingleInstance Force
 #WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include lib-custom\boot.ahk
-#Include lib-custom\browser.ahk
-#Include lib-custom\games.ahk
+#Include LIB-CU~1\boot.ahk
+#Include LIB-CU~1\browser.ahk
+#Include LIB-CU~1\games.ahk
+#Include LIB-CU~1\load.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
@@ -86,19 +87,23 @@ for key, value in globalConfig.subConfigs {
 
 if (mainConfig.Has("GUI")) {
     parseGUIConfig(mainConfig["GUI"])
-
-    ; TODO - add global.cfg settings for load screen
-    createLoadScreen(StrGet(mainStatus["loadText"]))
 }
 
 ; create required folders
-requiredFolders := ["data"]
+requiredFolders := [expandDir("data")]
 
 if (mainConfig["General"].Has("CustomLibDir") && mainConfig["General"]["CustomLibDir"] != "") {
+    mainConfig["General"]["CustomLibDir"] := expandDir(mainConfig["General"]["CustomLibDir"])
     requiredFolders.Push(mainConfig["General"]["CustomLibDir"])
 }
 
+if (mainConfig["General"].Has("AssetDir") && mainConfig["General"]["AssetDir"] != "") {
+    mainConfig["General"]["AssetDir"] := expandDir(mainConfig["General"]["AssetDir"])
+    requiredFolders.Push(mainConfig["General"]["AssetDir"])
+}
+
 if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
+    mainConfig["Programs"]["ConfigDir"] := expandDir(mainConfig["Programs"]["ConfigDir"])
     requiredFolders.Push(mainConfig["Programs"]["ConfigDir"])
 }
 
@@ -160,6 +165,13 @@ for key in StrSplit(globalConfig["StartArgs"]["keys"], ",") {
     else if (globalConfig["StartArgs"][key] = "-quiet") {
         globalConfig["Boot"]["EnableBoot"] := false
     }
+}
+
+if (globalConfig.Has("GUI") && !globalConfig["StartArgs"].Has("-quiet")
+    && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
+    
+    createLoadScreen(StrGet(globalStatus["loadText"])
+        , (globalConfig["GUI"].Has("LoadScreenFunction") ? globalConfig["GUI"]["LoadScreenFunction"] : ""))
 }
 
 ; ----- START CONTROLLER THEAD -----

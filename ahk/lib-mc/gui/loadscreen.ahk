@@ -2,19 +2,23 @@
 
 ; creates & shows the load screen
 ;  loadText - text to show on load screen
+;  loadFunc - custom function for load screen
 ;
 ; returns null
-createLoadScreen(loadText) {
+createLoadScreen(loadText, loadFunc := "") {
     ; TODO - maybe create some sort of load screen config (maybe just html?)
 
     global 
 
     guiObj := Gui.New(GUIOPTIONS, GUILOADTITLE)
-    guiObj.BackColor := COLOR1
-    guiSetFont(guiObj)
 
-    guiObj.Add("ActiveX", "w" . percentWidth(0.1) . " h" . percentWidth(0.1), "mshtml:<img src=E:\Documents\GitHub\mediaCenter\assets\loading-compressed.gif />")
-    guiObj.Add("Text", "Center w" . percentWidth(1), loadText)
+    if (loadFunc != "") {
+        guiObj := runFunction(loadFunc, [guiObj, loadText])
+    }
+    else {
+        guiObj.BackColor := COLOR1
+        guiSetFont(guiObj)
+    }
 
     guiObj.Show("Center NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
 }

@@ -35,10 +35,7 @@ if (generalConfig.items.Has("CustomLibDir") && generalConfig.items["CustomLibDir
         ProcessClose(pid)
     }
 
-    mainFile := FileOpen("main.ahk", "r")
-    mainString := mainFile.Read()
-    mainFile.Close()    
-
+    mainString := fileToString("main.ahk")  
     eol := getEOL(mainString)
 
     ; build new dynamic include string

@@ -439,6 +439,29 @@ validateDir(directory) {
 	}
 }
 
+; takes a directory starting with ..\ and replaces it with the full directory
+;  directory - string to expand
+;
+; returns full directory
+expandDir(directory) {
+	backDirs := 1
+
+	while (SubStr(directory, 1, 3) = "..\") {
+		backDirs += 1
+
+		directory := RegExReplace(directory, "U)^\.\.\\", "")
+	}
+
+	currDirArr := StrSplit(A_ScriptFullPath, "\")
+
+	retString := ""
+	loop (currDirArr.Length - backDirs) {
+		retString .= currDirArr[A_Index] . "\"
+	}
+
+	return retString . directory
+}
+
 ; adds a new member to an object called "keys" that contains a comma-deliminated string with all
 ; of the keys in the object (specifically for ComObject as it cannot enumerate through its keys)
 ;  obj - the map object to be given the member "keys"
@@ -587,6 +610,10 @@ getDynamicIncludes(toRead) {
 	startReplace := false
 	if (InStr(mainString, DYNASTART)) {
 		loop parse mainString, eol {
+			if (A_LoopField = "") {
+				continue
+			}
+
 			if (InStr(A_LoopField, DYNASTART)) {
 				retString .= A_LoopField . eol
 				startReplace := true
