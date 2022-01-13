@@ -36,7 +36,7 @@ setMonitorInfo(guiConfig) {
 ;
 ; returns proper size in pixels
 percentWidth(width, useSize := true) {
-    return width * MONITORW * ((useSize) ? SIZE : 1)
+    return width * MONITORW * ((useSize && width < 1) ? SIZE : 1)
 }
 
 ; gets the proper height in pixels based on pixel size of screen
@@ -45,7 +45,7 @@ percentWidth(width, useSize := true) {
 ;
 ; returns proper size in pixels
 percentHeight(height, useSize := true) {
-    return height * MONITORH * ((useSize) ? SIZE : 1)
+    return height * MONITORH * ((useSize && height < 1) ? SIZE : 1)
 }
 
 ; cleans up gui config & sets default theming values if not provided in the config
@@ -87,12 +87,12 @@ getGUI(title) {
 ; sets the font of the guiObj using the default options & param options
 ;  guiObj - gui object to apply font to
 ;  options - additional options in proper gui option format
+;  enableSizing - enable/disable size multiplier
 ;
 ; returns null
-guiSetFont(guiObj, options := "") {
+guiSetFont(guiObj, options := "s20", enableSizing := true) {
     optionsMap := Map()
     optionsMap["c"] := FONTCOLOR
-    optionsMap["s"] := toString((20 * SIZE))
 
     ; set options from parameter
     if (options != "") {
@@ -105,6 +105,11 @@ guiSetFont(guiObj, options := "") {
         for item in optionsArr {
             optionsMap[SubStr(item, 1, 1)] := SubStr(item, 2)
         }
+    }
+
+    ; update the font size if the size multiplier is enabled
+    if (enableSizing) {
+        optionsMap["s"] := toString(Integer(optionsMap["s"]) * SIZE)
     }
 
     ; convert optionMap into properly formatted options string

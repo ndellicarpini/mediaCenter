@@ -462,6 +462,26 @@ expandDir(directory) {
 	return retString . directory
 }
 
+; gets an asset's path based on the name of the asset & the current AssetDir
+;  asset - asset name / path to get (path=subfolders in assets folder)
+;
+; returns asset's full path 
+getAssetPath(asset) {
+	if (!globalConfig["General"].Has("AssetDir") || globalConfig["General"]["AssetDir"] = "") {
+		ErrorMsg("Cannot get AssetDir when it does not exist in in global.cfg")
+		return
+	}
+
+	assetPath := globalConfig["General"]["AssetDir"] . asset
+
+	if (!FileExist(assetPath)) {
+		ErrorMsg("Requested asset [" . asset . "] does not exist")
+		return
+	}
+
+    return assetPath
+}
+
 ; adds a new member to an object called "keys" that contains a comma-deliminated string with all
 ; of the keys in the object (specifically for ComObject as it cannot enumerate through its keys)
 ;  obj - the map object to be given the member "keys"
@@ -568,13 +588,13 @@ runFunction(text, params := "") {
 	}
 
 	; append args to func from additional outside args
-	if (Type(params) = "String" && params != "") {
-		funcArr.Push(params)
-	}
-	else if (Type(params) = "Array") {
+	if (Type(params) = "Array") {
 		for item in params {
 			funcArr.Push(item)
 		}
+	}
+	else if (params != "") {
+		funcArr.Push(params)
 	}
 
 	; this is kinda annoying, TODO - maybe figure out how to deconstruct array

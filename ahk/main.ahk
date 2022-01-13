@@ -1,14 +1,14 @@
-; TODO - there is currently a 4MB/hr memory leak due to bad garbage collection for ComObjects
+; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
 ;      - this could be worse/better depending on usage during runtime, requires more testing
 
 #SingleInstance Force
 #WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include LIB-CU~1\boot.ahk
-#Include LIB-CU~1\browser.ahk
-#Include LIB-CU~1\games.ahk
-#Include LIB-CU~1\load.ahk
+#Include lib-custom\boot.ahk
+#Include lib-custom\browser.ahk
+#Include lib-custom\games.ahk
+#Include lib-custom\load.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
@@ -155,7 +155,7 @@ global globalControllers := ObjShare(ObjShare(mainControllers))
 global globalPrograms    := ObjShare(ObjShare(mainPrograms))
 global globalRunning     := ObjShare(ObjShare(mainRunning))
 
-threads := Map()
+global threads := Map()
 
 ; ----- PARSE START ARGS -----
 for key in StrSplit(globalConfig["StartArgs"]["keys"], ",") {
@@ -170,8 +170,7 @@ for key in StrSplit(globalConfig["StartArgs"]["keys"], ",") {
 if (globalConfig.Has("GUI") && !globalConfig["StartArgs"].Has("-quiet")
     && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
     
-    createLoadScreen(StrGet(globalStatus["loadText"])
-        , (globalConfig["GUI"].Has("LoadScreenFunction") ? globalConfig["GUI"]["LoadScreenFunction"] : ""))
+    createLoadScreen()
 }
 
 ; ----- START CONTROLLER THEAD -----

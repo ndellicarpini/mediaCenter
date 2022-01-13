@@ -145,7 +145,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
             if (hotkeyInfo[2] = 'Pause') {
                 if (NumGet(globalStatus['pause'], 0, 'UChar')) {
                     ; TODO - close pause screen
-                    
+
                     if (getGUI(NumGet(globalStatus['errorHWND'], 0, 'UInt'))) {
                         getGUI(NumGet(globalStatus['errorHWND'], 0, 'UInt')).Destroy()
                     }
@@ -239,6 +239,7 @@ programThread(globalConfig, globalStatus, globalPrograms, globalRunning) {
         #Include lib-mc\std.ahk
         #Include lib-mc\program.ahk
         #Include lib-mc\gui\std.ahk
+        #Include lib-mc\gui\loadscreen.ahk
 
         setCurrentWinTitle('programThread')
 
@@ -330,7 +331,7 @@ programThread(globalConfig, globalStatus, globalPrograms, globalRunning) {
 
             ; activate load screen if its supposed to be shown
             else if (NumGet(globalStatus['loadShow'], 0, 'UChar')) {
-                ; TODO - load screen activate
+                activateLoadScreen()
             }
 
             ; current program is set

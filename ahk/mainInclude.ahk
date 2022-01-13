@@ -8,11 +8,11 @@
 #Include lib-mc\std.ahk
 #Include lib-mc\confio.ahk
 
-generalConfig := readConfig("config\global.cfg",,"brackets", "General")
+global globalConfig := readConfig("config\global.cfg",,"brackets", "General")
 
 ; only run if customlibdir exists
-if (generalConfig.items.Has("CustomLibDir") && generalConfig.items["CustomLibDir"] != "") {
-    customLibDir := validateDir(generalConfig.items["CustomLibDir"])
+if (globalConfig.items.Has("CustomLibDir") && globalConfig.items["CustomLibDir"] != "") {
+    customLibDir := validateDir(globalConfig.items["CustomLibDir"])
 
     ; check if main exists
     if (!FileExist("main.ahk")) {
