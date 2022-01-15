@@ -5,10 +5,10 @@
 #WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include lib-custom\boot.ahk
-#Include lib-custom\browser.ahk
-#Include lib-custom\games.ahk
-#Include lib-custom\load.ahk
+#Include LIB-CU~1\boot.ahk
+#Include LIB-CU~1\browser.ahk
+#Include LIB-CU~1\games.ahk
+#Include LIB-CU~1\load.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
@@ -21,6 +21,7 @@
 
 #Include lib-mc\gui\std.ahk
 #Include lib-mc\gui\loadscreen.ahk
+#Include lib-mc\gui\pausemenu.ahk
 
 SetKeyDelay 80, 60
 
@@ -203,6 +204,8 @@ loopSleep := globalConfig["General"]["AvgLoopSleep"] * 3
 
 backupTrigger := (loopSleep > 0) ? Round(10000 / loopSleep) : 10000
 backupCount := 0
+
+createPauseMenu()
 
 loop {
     ;perform actions based on mode & main message

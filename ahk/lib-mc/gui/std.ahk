@@ -11,6 +11,7 @@ global COLOR2 := ""
 
 global GUIMESSAGETITLE := "AHKGUIMESSAGE"
 global GUILOADTITLE := "AHKGUILOAD"
+global GUIPAUSETITLE := "AHKGUIPAUSE"
 
 ; sets global monitor gui variables
 ;  guiConfig - GUI config from global.cfg
@@ -108,8 +109,9 @@ guiSetFont(guiObj, options := "s20", enableSizing := true) {
     }
 
     ; update the font size if the size multiplier is enabled
+    ; the font size is scaled based on the 96 / screen's dpi (96 = default windows dpi)
     if (enableSizing) {
-        optionsMap["s"] := toString(Integer(optionsMap["s"]) * SIZE)
+        optionsMap["s"] := toString(Round((96 / A_ScreenDPI) * Integer(optionsMap["s"]) * SIZE))
     }
 
     ; convert optionMap into properly formatted options string
