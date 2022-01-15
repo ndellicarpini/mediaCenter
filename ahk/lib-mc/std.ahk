@@ -652,3 +652,79 @@ getDynamicIncludes(toRead) {
 
 	return retString
 }
+
+; loads the dll library for access in the script
+;  library - string name of library to load
+;
+; returns the library
+dllLoadLib(library) {
+	return DllCall("LoadLibrary", "Str", library)
+}
+
+; frees the dll library for access in the script
+;  library - string name of library to free
+;
+; returns success state
+dllFreeLib(library) {
+	if (library = 0) {
+        return 0
+    }
+
+    return DllCall("FreeLibrary", "uint", library)
+}
+
+; gets the cpu load as a float percentage
+;
+; returns the cpu load
+getCpuLoad() {
+    GetSystemTimes() {
+        kernel := 0
+        user := 0
+        idle := 0
+
+        DllCall("GetSystemTimes", "Int64P", idle, "Int64P", kernel, "Int64P", user)
+        return [kernel + user, idle]
+    }
+
+	one := GetSystemTimes()
+	Sleep(500)
+	two := GetSystemTimes()
+	return 100 * (1 - (two[2] - one[2])/(two[1] - one[1]))
+}
+
+; gets the ram load as a int percentage
+;
+; returns the ram load
+getRamLoad() {
+    status := BufferAlloc(64)
+	NumPut("UInt", status.Size, status)
+    
+	try {
+		if !(DllCall("GlobalMemoryStatusEx", "ptr", status.Ptr)) {
+			ErrorMsg("Failed to get memory status")
+			return 0
+		}
+
+		return NumGet(status, 4, "UInt")
+	}
+
+    return 0
+}
+
+; gets the gpu usage if the user has a nvidia gpu
+; this only works when called from main (has the library initialized)
+; this only works for 1 gpu (gpu0=256)
+;
+; returns the gpu usage
+getNvidiaLoad() {
+	try {
+		nvBuffer := BufferAlloc(136)
+		NumPut("UInt", 136 | 0x10000, nvBuffer)
+
+		DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x189A1FDF, "CDecl UPtr"), "Ptr", 256, "Ptr", nvBuffer.Ptr, "CDecl")
+
+		return NumGet(nvBuffer, 12, "UInt")
+	}
+
+	return 0
+}

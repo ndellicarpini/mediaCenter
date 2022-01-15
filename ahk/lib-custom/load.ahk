@@ -4,13 +4,13 @@
 ;
 ; returns GUI obj with new load screen styling
 loadGUI(args) {
-    guiObj   := args[1]
+    guiObj := args[1]
     
     guiObj.BackColor := COLOR1
     
-    guiSetFont(guiObj, "s40")
+    guiSetFont(guiObj, "s35")
 
-    imgSize := percentWidth(0.05)
+    imgSize := percentWidth(0.04)
     
     guiObj.Add("Text", "vLoadText Center x0 y" . percentHeight(0.92, false) " w" . percentWidth(1), StrGet(globalStatus["loadText"]))
 

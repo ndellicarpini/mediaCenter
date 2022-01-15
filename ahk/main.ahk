@@ -1,14 +1,14 @@
-; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
+﻿; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
 ;      - this could be worse/better depending on usage during runtime, requires more testing
 
 #SingleInstance Force
 #WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include LIB-CU~1\boot.ahk
-#Include LIB-CU~1\browser.ahk
-#Include LIB-CU~1\games.ahk
-#Include LIB-CU~1\load.ahk
+#Include lib-custom\boot.ahk
+#Include lib-custom\browser.ahk
+#Include lib-custom\games.ahk
+#Include lib-custom\load.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
@@ -86,9 +86,7 @@ for key, value in globalConfig.subConfigs {
     mainConfig[key] := configObj
 }
 
-if (mainConfig.Has("GUI")) {
-    parseGUIConfig(mainConfig["GUI"])
-}
+parseGUIConfig(mainConfig["GUI"])
 
 ; create required folders
 requiredFolders := [expandDir("data")]
@@ -137,8 +135,14 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
 }
 
 ; pre running program thread intialize xinput
-xLib := xLoadLib(mainConfig["General"]["XInputDLL"])
+xLib := dllLoadLib("xinput1_3.dll")
 mainControllers := xInitialize(xLib, mainConfig["General"]["MaxXInputControllers"])
+
+; load nvidia library for gpu monitoring
+if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) {
+    nvLib := dllLoadLib("nvapi64.dll")
+    DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
+}
 
 ; adds the list of keys to the map as a string so that the map can be enumerated
 ; despite being a ComObject in the threads
@@ -168,9 +172,7 @@ for key in StrSplit(globalConfig["StartArgs"]["keys"], ",") {
     }
 }
 
-if (globalConfig.Has("GUI") && !globalConfig["StartArgs"].Has("-quiet")
-    && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
-    
+if (!globalConfig["StartArgs"].Has("-quiet") && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
     createLoadScreen()
 }
 
@@ -202,10 +204,9 @@ enableMainMessageListener()
 ; probably going to need to figure out updating loadscreen?
 loopSleep := globalConfig["General"]["AvgLoopSleep"] * 3
 
-backupTrigger := (loopSleep > 0) ? Round(10000 / loopSleep) : 10000
-backupCount := 0
+SetTimer "BackupTimer", 10000
 
-createPauseMenu()
+pauseTimerActive := false
 
 loop {
     ;perform actions based on mode & main message
@@ -229,6 +230,16 @@ loop {
         mainMessage := []
     }
 
+    ; run the pause menu update timer in this thread to not overload hotkey thread
+    if (NumGet(globalStatus['pause'], 0, 'UChar') && !pauseTimerActive) {
+        pauseTimerActive := true
+        SetTimer "PauseSecondTimer", 1000
+    }
+    else if (!NumGet(globalStatus['pause'], 0, 'UChar') && pauseTimerActive) {
+        pauseTimerActive := false
+        SetTimer "PauseSecondTimer", 0
+    }
+
     ; need to check that threads are running
     ; i can't figure out how to re-send objshares, so for now error out
     for key, value in threads {
@@ -243,15 +254,6 @@ loop {
         }
     }
 
-    ; write globalStatus to file as backup cache?
-    ; maybe only do it like every 10ish secs?
-    backupCount += 1
-    if (backupCount >= backupTrigger) {
-        try statusBackup(globalStatus, globalRunning)
-        
-        backupCount := 0
-    }
-
     ; check looper
     if (globalConfig["General"]["ForceMaintainMain"] && !NumGet(globalStatus["suspendScript"], 0, "UChar") && !WinHidden(MAINLOOP)) {
         Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
@@ -263,7 +265,17 @@ loop {
 
 disableMainMessageListener()
 closeAllThreads(threads)
-xFreeLib(xLib)
+dllFreeLib(xLib)
+dllFreeLib(nvLib)
 
 Sleep(100)
 ExitApp()
+
+; write globalStatus/globalRunning to file as backup cache?
+; maybe only do it like every 10ish secs?
+BackupTimer() {
+    global 
+    
+    try statusBackup(globalStatus, globalRunning)
+    return
+}

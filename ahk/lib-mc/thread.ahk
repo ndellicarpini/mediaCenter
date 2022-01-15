@@ -12,6 +12,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
         #Include lib-mc\xinput.ahk
         #Include lib-mc\hotkeys.ahk
         #Include lib-mc\gui\std.ahk
+        #Include lib-mc\gui\pausemenu.ahk
 
         setCurrentWinTitle('hotkeyThread')
 
@@ -142,21 +143,15 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
             }
 
             ; check hardcoded defaults because theres really no better way to do this
-            if (hotkeyInfo[2] = 'Pause') {
-                if (NumGet(globalStatus['pause'], 0, 'UChar')) {
-                    ; TODO - close pause screen
+            if (hotkeyInfo[2] = 'Pause' && globalConfig['GUI'].Has('EnablePauseMenu') && globalConfig['GUI']['EnablePauseMenu']) {
+                NumPut('UChar', !NumGet(globalStatus['pause'], 0, 'UChar'), globalStatus['pause'])
 
-                    if (getGUI(NumGet(globalStatus['errorHWND'], 0, 'UInt'))) {
-                        getGUI(NumGet(globalStatus['errorHWND'], 0, 'UInt')).Destroy()
-                    }
+                if (NumGet(globalStatus['pause'], 0, 'UChar')) {
+                    createPauseMenu()
                 }
                 else {
-                    ; TODO - open pause screen
-
-                    guiMessage('PAUSE ME OOOO', 1000)
+                    destroyPauseMenu()
                 }
-
-                NumPut('UChar', !NumGet(globalStatus['pause'], 0, 'UChar'), globalStatus['pause'])
             }
             else if (hotkeyInfo[2] = 'Exit') {
                 if (NumGet(globalStatus['errorShow'], 0, 'UChar')) {

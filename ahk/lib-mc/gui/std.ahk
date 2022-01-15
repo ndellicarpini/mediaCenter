@@ -8,6 +8,7 @@ global FONT := ""
 global FONTCOLOR := ""
 global COLOR1 := ""
 global COLOR2 := ""
+global COLOR3 := ""
 
 global GUIMESSAGETITLE := "AHKGUIMESSAGE"
 global GUILOADTITLE := "AHKGUILOAD"
@@ -71,6 +72,9 @@ parseGUIConfig(guiConfig) {
 
     COLOR2 := (guiConfig.Has("SecondaryColor") && RegExMatch(guiConfig["SecondaryColor"], "U)#[a-fA-F0-9]{6}"))
         ? StrReplace(guiConfig["SecondaryColor"], "#") : "1a1a1a"
+
+    COLOR3 := (guiConfig.Has("SelectionColor") && RegExMatch(guiConfig["SelectionColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(guiConfig["SelectionColor"], "#") : "ffffff"
 }
 
 ; gets a gui object with the specified wintitle

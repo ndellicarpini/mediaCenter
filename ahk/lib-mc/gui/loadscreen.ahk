@@ -4,10 +4,6 @@
 ;
 ; returns null
 createLoadScreen() {
-    ; TODO - maybe create some sort of load screen config (maybe just html?)
-
-    global
-
     guiObj := Gui.New(GUIOPTIONS, GUILOADTITLE)
 
     if (globalConfig["GUI"].Has("LoadScreenFunction") && globalConfig["GUI"]["LoadScreenFunction"] != "") {
