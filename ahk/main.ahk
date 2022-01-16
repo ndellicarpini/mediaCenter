@@ -202,11 +202,9 @@ enableMainMessageListener()
 ; the main thread monitors the other threads, checks that looper is running
 ; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
 ; probably going to need to figure out updating loadscreen?
-loopSleep := globalConfig["General"]["AvgLoopSleep"] * 3
+loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 
 SetTimer "BackupTimer", 10000
-
-pauseTimerActive := false
 
 loop {
     ;perform actions based on mode & main message
@@ -231,13 +229,12 @@ loop {
     }
 
     ; run the pause menu update timer in this thread to not overload hotkey thread
-    if (NumGet(globalStatus['pause'], 0, 'UChar') && !pauseTimerActive) {
-        pauseTimerActive := true
-        SetTimer "PauseSecondTimer", 1000
+    if (NumGet(globalStatus['pause'], 0, 'UChar') && !WinShown(GUIPAUSETITLE)) {
+        createPauseMenu()
+        
     }
-    else if (!NumGet(globalStatus['pause'], 0, 'UChar') && pauseTimerActive) {
-        pauseTimerActive := false
-        SetTimer "PauseSecondTimer", 0
+    else if (!NumGet(globalStatus['pause'], 0, 'UChar') && WinShown(GUIPAUSETITLE)) {
+        destroyPauseMenu()
     }
 
     ; need to check that threads are running
@@ -266,7 +263,10 @@ loop {
 disableMainMessageListener()
 closeAllThreads(threads)
 dllFreeLib(xLib)
-dllFreeLib(nvLib)
+
+if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
+    dllFreeLib(nvLib)
+}
 
 Sleep(100)
 ExitApp()

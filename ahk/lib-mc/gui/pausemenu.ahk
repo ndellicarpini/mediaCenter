@@ -30,6 +30,8 @@ createPauseMenu() {
         guiObj.Add("Text", "xs0 y+" . percentHeight(0.008), "GPU")
     }
 
+    SetTimer "PauseSecondTimer", 1000
+
     ; SHOW GUI
     guiObj.Show("y0 x0 w" . guiWidth . " h" . guiHeight)
     
@@ -50,6 +52,8 @@ createPauseMenu() {
 ;
 ; returns null
 destroyPauseMenu() {
+    SetTimer "PauseSecondTimer", 0
+    
     if (getGUI(GUIPAUSETITLE)) {
         getGUI(GUIPAUSETITLE).Destroy()
     }

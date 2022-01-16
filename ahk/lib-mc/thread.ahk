@@ -145,13 +145,6 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
             ; check hardcoded defaults because theres really no better way to do this
             if (hotkeyInfo[2] = 'Pause' && globalConfig['GUI'].Has('EnablePauseMenu') && globalConfig['GUI']['EnablePauseMenu']) {
                 NumPut('UChar', !NumGet(globalStatus['pause'], 0, 'UChar'), globalStatus['pause'])
-
-                if (NumGet(globalStatus['pause'], 0, 'UChar')) {
-                    createPauseMenu()
-                }
-                else {
-                    destroyPauseMenu()
-                }
             }
             else if (hotkeyInfo[2] = 'Exit') {
                 if (NumGet(globalStatus['errorShow'], 0, 'UChar')) {
