@@ -30,8 +30,6 @@ createPauseMenu() {
         guiObj.Add("Text", "xs0 y+" . percentHeight(0.008), "GPU")
     }
 
-    SetTimer "PauseSecondTimer", 1000
-
     ; SHOW GUI
     guiObj.Show("y0 x0 w" . guiWidth . " h" . guiHeight)
     
@@ -46,6 +44,8 @@ createPauseMenu() {
         guiObj.Add("Progress", "vGPU Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . percentHeight(0.008), 0)
     }
 
+    SetTimer "PauseSecondTimer", 1000
+    PauseSecondTimer()
 }
 
 ; destroys the pause screen

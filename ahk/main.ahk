@@ -1,4 +1,4 @@
-﻿; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
+; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
 ;      - this could be worse/better depending on usage during runtime, requires more testing
 
 #SingleInstance Force
