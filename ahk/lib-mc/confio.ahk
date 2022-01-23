@@ -466,7 +466,7 @@ readGlobalConfig() {
 		}
 
 		; if global.cfg is valid, return the cleaned copy of it
-		gConfig.cleanAllItems()
+		gConfig.cleanAllItems(true)
 		return gConfig
 	}
 	else {

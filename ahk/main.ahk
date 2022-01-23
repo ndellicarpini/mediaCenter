@@ -50,6 +50,10 @@ NumPut("UChar", false, mainStatus["pause"])
 mainStatus["suspendScript"] := BufferAlloc(1)
 NumPut("UChar", false, mainStatus["suspendScript"])
 
+; whether or not script is in keyboard & mouse mode
+mainStatus["kbmmode"] := BufferAlloc(1)
+NumPut("UChar", false, mainStatus["kbmmode"])
+
 ; current name of programs focused & running, used to get config -> setup hotkeys & background actions
 mainStatus["currProgram"]  := BufferAlloc(2 * 256)
 StrPut("", mainStatus["currProgram"])

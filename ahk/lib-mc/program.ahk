@@ -56,21 +56,16 @@ class Program {
         this.hotkeys := (exeConfig.Has("hotkeys")) ? exeConfig["hotkeys"] : this.hotkeys
 
         ; set pause/tooltip/hotkey attributes
-        this.enablePause := (exeConfig.Has("enablePause")) 
-            ? exeConfig["enablePause"] : this.enablePause
-        
-        this.enableTooltip := (exeConfig.Has("enableTooltip")) 
-            ? exeConfig["enableTooltip"] : this.enableTooltip
+        this.enablePause := (exeConfig.Has("enablePause")) ? exeConfig["enablePause"] : this.enablePause
+        this.enableTooltip := (exeConfig.Has("enableTooltip")) ? exeConfig["enableTooltip"] : this.enableTooltip
 
         ; set pause & tooltip contents if appropriate
         if (this.enablePause) {
-            this.pauseOptions := (exeConfig.Has("pauseOptions")) 
-                ? this.cleanPauseOptions(exeConfig["pauseOptions"]) : this.pauseOptions
+            this.pauseOptions := (exeConfig.Has("pauseOptions")) ? exeConfig["pauseOptions"] : this.pauseOptions
         }
 
         if (this.enableTooltip) {
-            this.tooltipInner := (exeConfig.Has("tooltip")) 
-                ? this.cleanTooltip(toArray(exeConfig["tooltip"])) : this.tooltipText
+            this.tooltipInner := (exeConfig.Has("tooltip")) ? toArray(exeConfig["tooltip"]) : this.tooltipText
         }
     }
 
@@ -218,22 +213,6 @@ class Program {
 
         ErrorMsg(this.name . ".getPID() failed")
         return -1
-    }
-
-    ; clean up pause options to be appended to pause screen (like variable options)
-    ;  pauseConfig - config object w/ pause info from json
-    ;
-    ; returns this.pauseOptions
-    cleanPauseOptions(pauseConfig) {
-        ; TODO
-    }
-
-    ; clean up tooltip
-    ;  tooltipArr - tooltip info from json
-    ;
-    ; returns this.tooltipInner
-    cleanTooltip(tooltipArr) {
-        ; TODO
     }
 
 }

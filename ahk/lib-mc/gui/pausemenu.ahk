@@ -1,10 +1,15 @@
 #Include std.ahk
 
+global PAUSEOPTIONS := ""
+
 ; creates the pause screen
 ;
 ; returns null
 createPauseMenu() {
     ; TODO - fix weirdness with closing pause screen
+
+    ; TODO - move all gui creation to main, create some sort of gui.Add wrapper that keeps track of each guicontrol w/ x,y pos for moving cursor
+    ; can i send a message to a gui somehow?
 
     guiObj := Gui.New(GUIOPTIONS . " +AlwaysOnTop", GUIPAUSETITLE)
     guiObj.BackColor := COLOR1
@@ -49,6 +54,14 @@ createPauseMenu() {
     ; SHOW GUI
     guiObj.Show("y0 x0 w" . guiWidth . " h" . guiHeight)
 
+    ; add pause list
+    temp := addProgramOptions()
+    temp := addDefaultOptions(temp[1], temp[2])
+
+    PAUSEOPTIONS := temp[1]
+    
+    ; TODO - build options using text adds in a loop
+
     SetTimer "PauseSecondTimer", 1000
     PauseSecondTimer()
 }
@@ -63,6 +76,86 @@ destroyPauseMenu() {
         getGUI(GUIPAUSETITLE).Destroy()
     }
 }
+
+; adds default to pause options based on selected options from global config
+;  currOptions - current options map to add default to
+;  currKeys - current key array used to maintain user defined order
+; 
+; returns current options + default options
+addDefaultOptions(currOptions := "", currKeys := "") {
+    defaultOptions := Map()
+    defaultOptions["WinSettings"] := ["Windows Settings", "runWinSettings"]
+    defaultOptions["Settings"] := ["Script Settings", "createSettingsGui config\global.cfg"]
+    
+    if (!NumGet(globalStatus['kbmmode'], 0, 'UChar')) {
+        defaultOptions["KBMMode"] := ["Enable KB & Mouse Mode", "enableKBMM"]
+    }
+    else {
+        defaultOptions["KBMMode"] := ["Disable KB & Mouse Mode", "disableKBMM"]
+    }
+
+    if (!NumGet(globalStatus['suspendScript'], 0, 'UChar')) {
+        defaultOptions["Suspend"] := ["Suspend All Scripts", "suspendScript"]
+    }
+    else {
+        defaultOptions["Suspend"] := ["Resume All Scripts", "resumeScript"]
+    }
+
+    ; create currOptions map if param not passed
+    if (currOptions = "") {
+        currOptions := Map()
+    }
+
+    ; create currKeys array if param not passed
+    if (currKeys = "") {
+        currKeys := []
+    }
+
+    if (globalConfig["GUI"].Has("DefaultPauseOptions") && IsObject(globalConfig["GUI"]["DefaultPauseOptions"])) {
+        globalOptions := globalConfig["GUI"]["DefaultPauseOptions"]
+
+        for key in StrSplit(globalOptions["keys"], ",") {           
+            if (defaultOptions.Has(globalOptions[key])) {
+                currKeys.Push(defaultOptions[globalOptions[key]][1])
+                currOptions[defaultOptions[globalOptions[key]][1]] := defaultOptions[globalOptions[key]][2]
+            }
+        }
+    }
+
+    return [currOptions, currKeys]
+}
+
+; adds program pause options
+;  currOptions - current options map to add program options to
+;  currKeys - current key array used to maintain user defined order
+; 
+; returns current options + program options
+addProgramOptions(currOptions := "", currKeys := "") {
+    ; create currOptions map if param not passed
+    if (currOptions = "") {
+        currOptions := Map()
+    }
+
+    ; create currKeys array if param not passed
+    if (currKeys = "") {
+        currKeys := []
+    }
+
+    currProgram := StrGet(globalStatus["currProgram"])
+
+    if (currProgram = "") {
+        return [currOptions, currKeys]
+    }
+
+    pauseOptions := globalRunning[currProgram].pauseOptions
+    for key in StrSplit(pauseOptions["keys"], ",") {
+        currKeys.Push(key)
+        currOptions[key] := pauseOptions[key]
+    }
+
+    return [currOptions, currKeys]
+}
+
 
 ; TIMER TRIGGERED EACH SECOND IN PAUSE MENU
 ; this timer is actually used in mainThread for performance reasons
