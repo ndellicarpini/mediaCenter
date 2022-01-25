@@ -4,7 +4,6 @@ CODE
 - BOOT
   - create check for internet
 - CONTROLLERS
-  - Abstract out controller as a module
   - Read all buttons as digital inputs (aka remove analog reading from analog buttons)
 - CONFIG
   - Add XML & INDENT parsing to readConfig()
@@ -19,16 +18,22 @@ CODE
   - create background programs
 
 GUI
-- settings for SizeMultiplier, FontSize
-- settings for BGColor, TextColor, SelectColor, SecondaryColor? 
+- create abstract way to have controller interact with gui
+  - GuiPosObj (map)
+    - ID: name of guicontrol
+    - Index: iterator for when controls are added (used to parse x+/y+ values)
+    - Buttons: what the control should do if specific buttons are pressed
+    - L, R, U, D: ids for the left, right, up, & down controls (need to figure out how to properly update existing buttons)
+  - maybe if i figure out how to actually pass custom objects between threads
+    - use separate thread to create/manage guis
+    - share the gui hotkeys with hotkey script
 - create Keyboard
-- create Message
-- create LoadScreen
 - create PauseScreen
   - Home Button (default program)
   - Volume Button (pop-out volume mixer)
   - Controllers Button (pop-out show battery & vibrate button)
   - MultiTasking Button (show programs to switch to/from)
+  - Power Button (WinXP style power menu)
     - create gui for how to handle previous program (Hide/Minimize)
   - Program Specific Settings
     - Show Controls button
@@ -41,7 +46,6 @@ GUI
     - Suspend All Scripts
     - change global settings dialog (updates global.cfg)
     - change windows settings (launch Settings)
-    - Shutdown/Restart buttons
 - create GameSettings dialog
   - change game version
   - change controls
