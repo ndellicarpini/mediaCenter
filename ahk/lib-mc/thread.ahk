@@ -58,11 +58,11 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
                     currController := status[2]
                     currButton := item
 
-                    SetTimer 'ButtonTimer', (-1 * buttonTime)
+                    SetTimer(ButtonTimer, (-1 * buttonTime))
                     while (xCheckController(globalControllers[currController], currButton)) {
                         Sleep(5)
                     }
-                    SetTimer 'ButtonTimer', 0
+                    SetTimer(ButtonTimer, 0)
                 }
             }
         }
@@ -164,11 +164,11 @@ hotkeyThread(globalConfig, globalStatus, globalControllers, globalRunning) {
                 }
 
                 ; if user holds button for a long time, kill everything
-                SetTimer 'NuclearTimer', -3000
+                SetTimer(NuclearTimer, -3000)
                 while (currProgram = StrGet(globalStatus['currProgram']) && xCheckController(globalControllers[currController], hotkeyInfo[1])) {
                     Sleep(5)
                 }
-                SetTimer 'NuclearTimer', 0
+                SetTimer(NuclearTimer, 0)
             }
 
             ; otherwise just run function

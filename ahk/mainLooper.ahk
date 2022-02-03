@@ -1,7 +1,6 @@
 #Include lib-mc\std.ahk
 
 #SingleInstance Force
-#WarnContinuableException Off
 
 setCurrentWinTitle(MAINLOOP)
 

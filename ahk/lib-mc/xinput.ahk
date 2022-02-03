@@ -45,7 +45,7 @@ class XController {
     ;
     ; returns null
     update() {
-        xBuffer := BufferAlloc(16)
+        xBuffer := Buffer(16)
         xResult := DllCall(this.dllAddress, "uint", this.port, "ptr", xBuffer.Ptr)
 
         this.connected := (xResult != 1167) ? true : false
@@ -149,7 +149,7 @@ xInitialize(lib, maxControllers) {
         xAddress := DllCall("GetProcAddress", "uint", lib, "uint", 100)
 
         loop maxControllers {
-            controllerMap[(A_Index - 1)] := XController.New((A_Index - 1), xAddress)
+            controllerMap[(A_Index - 1)] := XController((A_Index - 1), xAddress)
         }
     }
 

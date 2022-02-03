@@ -11,7 +11,7 @@ createPauseMenu() {
     ; TODO - move all gui creation to main, create some sort of gui.Add wrapper that keeps track of each guicontrol w/ x,y pos for moving cursor
     ; can i send a message to a gui somehow?
 
-    guiObj := Gui.New(GUIOPTIONS . " +AlwaysOnTop", GUIPAUSETITLE)
+    guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop", GUIPAUSETITLE)
     guiObj.BackColor := COLOR1
     guiObj.MarginX := percentWidth(0.0095)
     guiObj.MarginY := percentHeight(0.01)

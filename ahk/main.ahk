@@ -2,13 +2,12 @@
 ;      - this could be worse/better depending on usage during runtime, requires more testing
 
 #SingleInstance Force
-#WarnContinuableException Off
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include lib-custom\boot.ahk
-#Include lib-custom\browser.ahk
-#Include lib-custom\games.ahk
-#Include lib-custom\load.ahk
+#Include LIB-CU~1\boot.ahk
+#Include LIB-CU~1\browser.ahk
+#Include LIB-CU~1\games.ahk
+#Include LIB-CU~1\load.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
@@ -26,6 +25,7 @@
 SetKeyDelay 80, 60
 
 setCurrentWinTitle(MAINNAME)
+mainScriptDir := A_ScriptDir
 
 global dynamicInclude := getDynamicIncludes(A_ScriptFullPath)
 global mainMessage := []
@@ -43,38 +43,38 @@ mainConfig["StartArgs"] := A_Args
 ; initialize basic status features
 
 ; whether or not pause screen is shown 
-mainStatus["pause"] := BufferAlloc(1)
+mainStatus["pause"] := Buffer(1)
 NumPut("UChar", false, mainStatus["pause"])
 
 ; whether or not script is suspended (no actions running, changable in pause menu)
-mainStatus["suspendScript"] := BufferAlloc(1)
+mainStatus["suspendScript"] := Buffer(1)
 NumPut("UChar", false, mainStatus["suspendScript"])
 
 ; whether or not script is in keyboard & mouse mode
-mainStatus["kbmmode"] := BufferAlloc(1)
+mainStatus["kbmmode"] := Buffer(1)
 NumPut("UChar", false, mainStatus["kbmmode"])
 
 ; current name of programs focused & running, used to get config -> setup hotkeys & background actions
-mainStatus["currProgram"]  := BufferAlloc(2 * 256)
+mainStatus["currProgram"]  := Buffer(2 * 256)
 StrPut("", mainStatus["currProgram"])
 
 ; name of program overriding the openProgram map -> kept separate for quick actions that should override
 ; all status, but retain current program stack on close (like checking manual in chrome)
-mainStatus["overrideProgram"] := BufferAlloc(2 * 256)
+mainStatus["overrideProgram"] := Buffer(2 * 256)
 StrPut("", mainStatus["overrideProgram"])
 
 ; load screen info
-mainStatus["loadShow"] := BufferAlloc(1)
+mainStatus["loadShow"] := Buffer(1)
 NumPut("UChar", false, mainStatus["loadShow"])
 
-mainStatus["loadText"] := BufferAlloc(2 * 256)
+mainStatus["loadText"] := Buffer(2 * 256)
 StrPut("Now Loading...", mainStatus["loadText"])
 
 ; error info
-mainStatus["errorShow"] := BufferAlloc(1)
+mainStatus["errorShow"] := Buffer(1)
 NumPut("UChar", false, mainStatus["errorShow"])
 
-mainStatus["errorHWND"] := BufferAlloc(4)
+mainStatus["errorHWND"] := Buffer(4)
 NumPut("UInt", 0, mainStatus["errorHWND"])
 
 ; setup status and config as maps rather than config objects for multithreading
@@ -143,9 +143,14 @@ xLib := dllLoadLib("xinput1_3.dll")
 mainControllers := xInitialize(xLib, mainConfig["General"]["MaxXInputControllers"])
 
 ; load nvidia library for gpu monitoring
-if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) {
-    nvLib := dllLoadLib("nvapi64.dll")
-    DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
+if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) { 
+    try {
+        nvLib := dllLoadLib("nvapi64.dll")
+        DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
+    }
+    catch {
+        mainConfig["GUI"]["EnablePauseGPUMonitor"] := false
+    }
 }
 
 ; adds the list of keys to the map as a string so that the map can be enumerated
@@ -183,11 +188,13 @@ if (!globalConfig["StartArgs"].Has("-quiet") && globalConfig["GUI"].Has("EnableL
 ; ----- START CONTROLLER THEAD -----
 ; this thread just updates the status of each controller in a loop
 threads["controllerThread"] := controllerThread(ObjShare(mainConfig), ObjShare(mainControllers))
+SetWorkingDir(mainScriptDir)
 
 ; ----- START ACTION -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
 threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainControllers), ObjShare(mainRunning))
+SetWorkingDir(mainScriptDir)
 
 ; ----- BOOT -----
 if (globalConfig["Boot"]["EnableBoot"]) {
@@ -197,7 +204,7 @@ if (globalConfig["Boot"]["EnableBoot"]) {
 ; ----- START PROGRAM ----- 
 ; this thread updates the status mode based on checking running programs
 threads["programThread"] := programThread(ObjShare(mainConfig), ObjShare(mainStatus), ObjShare(mainPrograms), ObjShare(mainRunning))
-
+SetWorkingDir(mainScriptDir)
 
 ; ----- ENABLE LISTENER -----
 enableMainMessageListener()
@@ -208,7 +215,7 @@ enableMainMessageListener()
 ; probably going to need to figure out updating loadscreen?
 loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 
-SetTimer "BackupTimer", 10000
+SetTimer(BackupTimer, 10000)
 
 loop {
     ;perform actions based on mode & main message

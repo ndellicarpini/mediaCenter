@@ -9,14 +9,14 @@ global MESSAGE_DATA := []
 ;
 ; returns null
 enableMainMessageListener() {
-    OnMessage(MESSAGE_VAL, "handleMessage")
+    OnMessage(MESSAGE_VAL, handleMessage)
 }
 
 ; disables the OnMessage listener for send2Main
 ;
 ; returns null
 disableMainMessageListener() {
-    OnMessage(MESSAGE_VAL, "handleMessage", 1)
+    OnMessage(MESSAGE_VAL, handleMessage, 1)
 }
 
 ; sends a message to main and waits to confirm message was recieved
@@ -28,7 +28,7 @@ sendMessageToMain(message, waitTime := 5000) {
     SetTitleMatchMode(3)
     DetectHiddenWindows(true)
 
-    stringBuffer := BufferAlloc(3 * A_PtrSize)
+    stringBuffer := Buffer(3 * A_PtrSize)
     stringSize := 2 * (StrLen(message) + 1)
 
     NumPut("Ptr", stringSize, "Ptr", StrPtr(message), stringBuffer, A_PtrSize)

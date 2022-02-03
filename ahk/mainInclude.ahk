@@ -3,7 +3,6 @@
 ; directory
 
 #SingleInstance Force
-#WarnContinuableException Off
 
 #Include lib-mc\std.ahk
 #Include lib-mc\confio.ahk

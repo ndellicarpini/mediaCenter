@@ -182,10 +182,10 @@ toString(value, prefix := "") {
 
 ; takes a string and attempts to convert it into either a num, bool, or array
 ;  value - value to convert
-;  trim - if retVal is a string, trim unwanted chars (whitespace & ")
+;  trimString - if retVal is a string, trimString unwanted chars (whitespace & ")
 ;
 ; returns either new value type, or string
-fromString(value, trim := false) {
+fromString(value, trimString := false) {
 	retVal := value
 
 	; try to convert the item into a float, if successful save as number
@@ -208,11 +208,11 @@ fromString(value, trim := false) {
 
 			retVal := []
 			for item in tempArr {
-				retVal.Push(fromString(item, trim))
+				retVal.Push(fromString(item, trimString))
 			}
 		}
 
-		return (trim && Type(retVal) = "String") ? Trim(retVal, ' `t`r`n"') : retVal
+		return (trimString && Type(retVal) = "String") ? Trim(retVal, ' `t`r`n"') : retVal
 	}
 }
 
@@ -338,8 +338,8 @@ inQuotes(mainString, subString, startChar := "", endChar := "") {
 
 	quoteCount := []
 	loop startChar.Length {
-		tempString := RegExReplace(stringsToCheck[1], regexClean(startChar[A_Index]),, startCount)
-		RegExReplace(tempString, regexClean(endChar[A_Index]),, endCount)
+		tempString := RegExReplace(stringsToCheck[1], regexClean(startChar[A_Index]),, &startCount)
+		RegExReplace(tempString, regexClean(endChar[A_Index]),, &endCount)
 
 		tempNum := startCount - endCount
 		if (startChar[A_Index] = endChar[A_Index]) {
@@ -696,7 +696,7 @@ getCpuLoad() {
 ;
 ; returns the ram load
 getRamLoad() {
-    status := BufferAlloc(64)
+    status := Buffer(64)
 	NumPut("UInt", status.Size, status)
     
 	try {
@@ -718,7 +718,7 @@ getRamLoad() {
 ; returns the gpu usage
 getNvidiaLoad() {
 	try {
-		nvBuffer := BufferAlloc(136)
+		nvBuffer := Buffer(136)
 		NumPut("UInt", 136 | 0x10000, nvBuffer)
 
 		DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x189A1FDF, "CDecl UPtr"), "Ptr", 256, "Ptr", nvBuffer.Ptr, "CDecl")

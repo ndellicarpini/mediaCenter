@@ -26,7 +26,7 @@ setMonitorInfo(guiConfig) {
     MONITORN := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "")
     ? guiConfig.items["Monitor"] : 0
     
-    MonitorGet(MONITORN, ML, MT, MR, MB)
+    MonitorGet(MONITORN, &ML, &MT, &MR, &MB)
 
     MONITORH := Floor(Abs(MB - MT))
     MONITORW := Floor(Abs(MR - ML))
@@ -136,7 +136,7 @@ guiSetFont(guiObj, options := "s20", enableSizing := true) {
 guiMessage(message, timeout := 0) {
     global 
 
-    guiObj := Gui.New("+AlwaysOnTop " . GUIOPTIONS, GUIMESSAGETITLE)
+    guiObj := Gui("+AlwaysOnTop " . GUIOPTIONS, GUIMESSAGETITLE)
     guiObj.BackColor := COLOR1
     guiSetFont(guiObj)
     guiObj.Add("Text", "Center w" . percentWidth(0.3), message)

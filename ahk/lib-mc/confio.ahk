@@ -142,7 +142,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 				if (!(inMultiLine > 0 || inQuotes(cleanLine, deliminator)) && InStr(cleanLine, deliminator)) {
 					; save previous left=right to configObj after finding next line withh valid deliminator
 					if (leftItem != "") {
-						configObj.items[leftItem] := StrReplace(Trim(rightItem, ' `t`r`n[],'), "\\", "\")
+						configObj.items[leftItem] := StrReplace(Trim(rightItem, ' `t`r`n,'), "\\", "\")
 					}
 
 					currentItem := StrSplit(cleanLine, deliminator,, 2)
@@ -180,7 +180,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 		; save final left=right items if last item was not saved
 		if (leftItem != "" && !configObj.items.Has(leftItem)) {
 			if (subConfigType = "json") {
-				rightItem := StrReplace(Trim(rightItem, ' `t`r`n[],'), "\\", "\")
+				rightItem := StrReplace(Trim(rightItem, ' `t`r`n,'), "\\", "\")
 			}
 
 			configObj.items[leftItem] := rightItem
@@ -191,7 +191,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 
 	; seperate each subconfig recursively & feed them to addItemsToConfig
 	subConfigHelper(subToRead) {
-		retConfig := Config.New()
+		retConfig := Config()
 
 		subConfigLevel := 0
 		currentSubConfig := ""
@@ -317,14 +317,14 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 
 	; just add items to config if there are no subconfigs in file
 	if (subConfigType = "none") {
-		return addItemsToConfig(Config.New(), configString)
+		return addItemsToConfig(Config(), configString)
 	}
 
 	retObj := subConfigHelper(configString)
 
 	; if looking for multiple subconfigs
 	if (IsObject(subConfig)) {
-		loopObj := Config.New()
+		loopObj := Config()
 
 		for item in subConfig {
 			for key, value in retObj.subConfigs {
@@ -394,7 +394,7 @@ readMultiCfg(toRead, configList, configListType := "or", subConfig := "", perfec
 		}
 	}
 
-	retConfig := Config.New()
+	retConfig := Config()
 	retIndent := ""
 	for item in configs {
 		; clean ids

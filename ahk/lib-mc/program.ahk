@@ -218,7 +218,7 @@ class Program {
 }
 
 ; creates an program to use
-;  params - params to pass to Program.New(), first element of params must be program name
+;  params - params to pass to Program(), first element of params must be program name
 ;  status - thread safe status object
 ;  programs - list of programs parsed at start of main
 ;  launchProgram - if program.launch() should be called
@@ -234,7 +234,7 @@ createProgram(params, status, running, programs, launchProgram := true, setCurre
     for key in StrSplit(programs["keys"], ",") {
         if (key = newName) {
             addKeyListString(running, newName)
-            running[newName] := Program.New(programs[key])
+            running[newName] := Program(programs[key])
 
             if (setCurrent) {
                 StrPut(newName, status["currProgram"])
