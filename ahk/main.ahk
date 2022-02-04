@@ -1,4 +1,4 @@
-; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
+﻿; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
 ;      - this could be worse/better depending on usage during runtime, requires more testing
 
 #SingleInstance Force
@@ -11,7 +11,6 @@
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
 
 #Include lib-mc\confio.ahk
-#Include lib-mc\thread.ahk
 #Include lib-mc\std.ahk
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
@@ -21,6 +20,9 @@
 #Include lib-mc\gui\std.ahk
 #Include lib-mc\gui\loadscreen.ahk
 #Include lib-mc\gui\pausemenu.ahk
+
+#Include lib-mc\mt\std.ahk
+#Include lib-mc\mt\threads.ahk
 
 SetKeyDelay 80, 60
 
