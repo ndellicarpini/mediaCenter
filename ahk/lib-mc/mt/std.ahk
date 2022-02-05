@@ -25,6 +25,16 @@ statusKeys := [
     { k: "currGui",          s: MT_KEY_SIZE }
 ]
 
+calcStatusSize() {
+    totalSize := 0
+    
+    for item in statusKeys {
+        totalSize += item.s
+    }
+
+    return totalSize
+}
+
 calcStatusPtrOffset(param, ptr) {
     ptrOffset := ptr
 
@@ -68,10 +78,38 @@ getStatusParam(param, ptr) {
                 ptrOffset += 16
             }
 
-            retunr retArr
+            return retArr
     }
 }
 
 setStatusParam(param, newVal, buf) {
-
+    switch param {
+        case "pause":  
+            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
+        case "suspendScript": 
+            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
+        case "kbmmode":  
+            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
+        case "currProgram": 
+            StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
+        case "overrideProgram": 
+            StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
+        case "loadShow":   
+            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))     
+        case "loadText":
+            StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_STR_SIZE)
+        case "errorShow": 
+            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))      
+        case "errorHwnd":  
+            NumPut("UInt", newVal, calcStatusPtrOffset(param, ptr))         
+        case "currGui": 
+            StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
+        case "currHotkeys":
+            ptrOffset := calcStatusPtrOffset(param, ptr)
+            newVal := toArray(newVal)
+            loop newVal.Length {
+                StrPut(newVal[A_Index], ptrOffset, 16, "CP0")
+                ptrOffset += 16
+            }
+    }
 }

@@ -43,41 +43,36 @@ globalConfig := readGlobalConfig()
 mainConfig["StartArgs"] := A_Args
 
 ; initialize basic status features
-
+mainStatus := Buffer(calcStatusSize(), 0)
 ; whether or not pause screen is shown 
-mainStatus["pause"] := Buffer(1)
-NumPut("UChar", false, mainStatus["pause"])
+setStatusParam("pause", false, mainStatus.Ptr)
 
 ; whether or not script is suspended (no actions running, changable in pause menu)
-mainStatus["suspendScript"] := Buffer(1)
-NumPut("UChar", false, mainStatus["suspendScript"])
+setStatusParam("suspendScript", false, mainStatus.Ptr)
 
 ; whether or not script is in keyboard & mouse mode
-mainStatus["kbmmode"] := Buffer(1)
-NumPut("UChar", false, mainStatus["kbmmode"])
+setStatusParam("kbbmode", false, mainStatus.Ptr)
 
 ; current name of programs focused & running, used to get config -> setup hotkeys & background actions
-mainStatus["currProgram"]  := Buffer(2 * 256)
-StrPut("", mainStatus["currProgram"])
+setStatusParam("currProgram", "", mainStatus.Ptr)
 
 ; name of program overriding the openProgram map -> kept separate for quick actions that should override
 ; all status, but retain current program stack on close (like checking manual in chrome)
-mainStatus["overrideProgram"] := Buffer(2 * 256)
-StrPut("", mainStatus["overrideProgram"])
+setStatusParam("overrideProgram", "", mainStatus.Ptr)
 
 ; load screen info
-mainStatus["loadShow"] := Buffer(1)
-NumPut("UChar", false, mainStatus["loadShow"])
-
-mainStatus["loadText"] := Buffer(2 * 256)
-StrPut("Now Loading...", mainStatus["loadText"])
+setStatusParam("loadShow", false, mainStatus.Ptr)
+setStatusParam("loadText", "Now Loading...", mainStatus.Ptr)
 
 ; error info
-mainStatus["errorShow"] := Buffer(1)
-NumPut("UChar", false, mainStatus["errorShow"])
+setStatusParam("errorShow", false, mainStatus.Ptr)
+setStatusParam("errorHwnd", 0, mainStatus.Ptr)
 
-mainStatus["errorHWND"] := Buffer(4)
-NumPut("UInt", 0, mainStatus["errorHWND"])
+; current hotkeys
+setStatusParam("currHotkeys", [], mainStatus.Ptr)
+
+; current active gui
+setStatusParam("currGui", "", mainStatus.Ptr)
 
 ; setup status and config as maps rather than config objects for multithreading
 for key, value in globalConfig.subConfigs {
