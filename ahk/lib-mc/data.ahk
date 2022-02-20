@@ -2,23 +2,16 @@
 ;  status - status obj to backup
 ;
 ; returns null
-statusBackup(status, running) {
+statusBackup(running) {
     backup := Map()
 
-    backup["pause"] := status["pause"]
-    backup["suspendScript"] := status["suspendScript"]
-    backup["currProgram"]  := status["currProgram"]
-    backup["overrideProgram"] := status["overrideProgram"]
-    backup["loadShow"] := status["loadShow"]
-    backup["loadText"] := status["loadText"]
-    backup["errorShow"] := status["errorShow"]
-    backup["errorHWND"] := status["errorHWND"]
+    for key, value in MT_STATUS_KEYS {
+        backup[key] := getStatusParam(key)
+    }
     
-    if (running.Has("keys") && running["keys"] != "") {
-        backup["openPrograms"] := Map()
-        for key in StrSplit(running["keys"], ",") {
-            backup["openPrograms"][key] := running[key].time
-        }
+    backup["mainRunning"] := Map()
+    for key, value in running {
+        backup["mainRunning"][key] := value.time
     }
 
     backupFile := FileOpen("data\backup.bin", "w -rwd")
@@ -31,19 +24,17 @@ statusBackup(status, running) {
 ;  programs - program configs parsed in main
 ; 
 ; returns status updated with values from backup
-statusRestore(status, running, programs) {
+statusRestore(running, programs) {
     backup := ObjLoad("data\backup.bin")
     
     for key, value in backup {
-        if (key = "openPrograms") {
+        if (key = "mainRunning") {
             for name, time in backup["openPrograms"] {
-                createProgram(name, status, running, programs, false, false, time)
+                createProgram(name, running, programs, false, false, time)
             }
         }
         else {
-            status[key] := value
+            setStatusParam(key, value)
         }
     }
-
-    return status
 }

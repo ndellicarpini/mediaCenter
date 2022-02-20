@@ -5,7 +5,7 @@ global PAUSEOPTIONS := ""
 ; creates the pause screen
 ;
 ; returns null
-createPauseMenu() {
+createPauseMenu(currProgram) {
     ; TODO - fix weirdness with closing pause screen
 
     ; TODO - move all gui creation to main, create some sort of gui.Add wrapper that keeps track of each guicontrol w/ x,y pos for moving cursor
@@ -55,14 +55,11 @@ createPauseMenu() {
     guiObj.Show("y0 x0 w" . guiWidth . " h" . guiHeight)
 
     ; add pause list
-    temp := addProgramOptions()
-    temp := addDefaultOptions(temp[1], temp[2])
-
-    PAUSEOPTIONS := temp[1]
+    MsgBox(toString(createPauseOptions(currProgram)))
     
     ; TODO - build options using text adds in a loop
 
-    SetTimer "PauseSecondTimer", 1000
+    SetTimer(PauseSecondTimer, 1000)
     PauseSecondTimer()
 }
 
@@ -70,7 +67,7 @@ createPauseMenu() {
 ;
 ; returns null
 destroyPauseMenu() {
-    SetTimer "PauseSecondTimer", 0
+    SetTimer(PauseSecondTimer, 0)
     
     if (getGUI(GUIPAUSETITLE)) {
         getGUI(GUIPAUSETITLE).Destroy()
@@ -87,14 +84,14 @@ addDefaultOptions(currOptions := "", currKeys := "") {
     defaultOptions["WinSettings"] := ["Windows Settings", "runWinSettings"]
     defaultOptions["Settings"] := ["Script Settings", "createSettingsGui config\global.cfg"]
     
-    if (!NumGet(globalStatus['kbmmode'], 0, 'UChar')) {
+    if (!getStatusParam("KBMMode")) {
         defaultOptions["KBMMode"] := ["Enable KB & Mouse Mode", "enableKBMM"]
     }
     else {
         defaultOptions["KBMMode"] := ["Disable KB & Mouse Mode", "disableKBMM"]
     }
 
-    if (!NumGet(globalStatus['suspendScript'], 0, 'UChar')) {
+    if (!getStatusParam("suspendScript")) {
         defaultOptions["Suspend"] := ["Suspend All Scripts", "suspendScript"]
     }
     else {
@@ -126,34 +123,21 @@ addDefaultOptions(currOptions := "", currKeys := "") {
 }
 
 ; adds program pause options
-;  currOptions - current options map to add program options to
-;  currKeys - current key array used to maintain user defined order
+;  currProgram = program to get pause options from
 ; 
 ; returns current options + program options
-addProgramOptions(currOptions := "", currKeys := "") {
-    ; create currOptions map if param not passed
-    if (currOptions = "") {
-        currOptions := Map()
+createPauseOptions(currProgram) {
+    currOptions := Map()
+    currKeys := []
+    
+    if (currProgram != "") {
+        for key, value in currProgram.pauseOptions {
+            currKeys.Push(key)
+            currOptions[key] := value
+        }    
     }
 
-    ; create currKeys array if param not passed
-    if (currKeys = "") {
-        currKeys := []
-    }
-
-    currProgram := StrGet(globalStatus["currProgram"])
-
-    if (currProgram = "") {
-        return [currOptions, currKeys]
-    }
-
-    pauseOptions := globalRunning[currProgram].pauseOptions
-    for key in StrSplit(pauseOptions["keys"], ",") {
-        currKeys.Push(key)
-        currOptions[key] := pauseOptions[key]
-    }
-
-    return [currOptions, currKeys]
+    return addDefaultOptions(currOptions, currKeys)
 }
 
 

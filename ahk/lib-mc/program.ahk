@@ -219,25 +219,23 @@ class Program {
 
 ; creates an program to use
 ;  params - params to pass to Program(), first element of params must be program name
-;  status - thread safe status object
 ;  programs - list of programs parsed at start of main
 ;  launchProgram - if program.launch() should be called
 ;  setCurrent - if currProgram should be updated
 ;  customTime - manual time value to set (useful for backup)
 ;
 ; returns either the program, or empty string
-createProgram(params, status, running, programs, launchProgram := true, setCurrent := true, customTime := 0) {   
+createProgram(params, running, programs, launchProgram := true, setCurrent := true, customTime := 0) {   
     newProgram := IsObject(params) ? params : toArray(StrSplit(params, A_Space))
 
     newName := newProgram.RemoveAt(1)
 
-    for key in StrSplit(programs["keys"], ",") {
+    for key, value in programs {
         if (key = newName) {
-            addKeyListString(running, newName)
-            running[newName] := Program(programs[key])
+            running[newName] := Program(value)
 
             if (setCurrent) {
-                StrPut(newName, status["currProgram"])
+                setStatusParam("currProgram", newName)
             }
 
             if (launchProgram) {
@@ -246,6 +244,11 @@ createProgram(params, status, running, programs, launchProgram := true, setCurre
 
             if (customTime > 0) {
                 running[newName].time := customTime
+            }
+
+            if (running[newName].hotkeys.Count > 0) {
+                setStatusParam("currHotkeys"
+                    , addHotkeys(getStatusParam("currHotkeys"), running[newName].hotkeys))
             }
         
             return
@@ -316,30 +319,16 @@ checkWNDW(wndw, retName := false) {
     }
 
     if (IsObject(wndw)) {
-		if (wndw.Has("keys")) {
-			for key in StrSplit(wndw["keys"], ",") {
-				if (WinShown(key)) {
-                    if (retName) {
-                        return key
-                    }
-                    else {
-                        return true
-                    }
-				}
-			}
-		}
-		else {
-			for key, empty in wndw {
-				if (WinShown(key)) {
-					if (retName) {
-                        return key
-                    }
-                    else {
-                        return true
-                    }
-				}
-			}
-		}
+        for key, empty in wndw {
+            if (WinShown(key)) {
+                if (retName) {
+                    return key
+                }
+                else {
+                    return true
+                }
+            }
+        }
 	}
     else {
         return WinShown(wndw) ? true : false
@@ -353,9 +342,9 @@ checkWNDW(wndw, retName := false) {
 ;
 ; returns either the name of the program or ""
 checkAllPrograms(programs) {
-    for key in StrSplit(programs["keys"], ",") {
-        if ((programs[key].Has("exe") && checkEXE(programs[key]["exe"]))
-            || (programs[key].Has("wndw") && checkWNDW(programs[key]["wndw"]))) {
+    for key, value in programs {
+        if ((value.Has("exe") && checkEXE(value["exe"]))
+            || (value.Has("wndw") && checkWNDW(value["wndw"]))) {
             
             return key
         }

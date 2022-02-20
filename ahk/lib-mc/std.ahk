@@ -274,6 +274,33 @@ toArray(obj) {
 	return (Type(obj) = "Array") ? obj : [obj]
 }
 
+; checks if 2 arrays have the same contents
+;  arr1 - first array
+;  arr2 - second array
+;  checkOrder - requires the arrays contents to be in the same order
+;
+; returns true if the arrays are equal
+arrayEquals(arr1, arr2, checkOrder := true) {
+	if (Type(arr1) != "Array" || Type(arr2) != "Array") {
+		return false
+	}
+
+	if (arr1.Length != arr2.Length) {
+		return false
+	}
+
+	if (checkOrder) {
+		retVal := true
+		loop arr1.Length {
+			retVal := retVal && (arr1[A_Index] = arr2[A_Index])
+		}
+
+		return retVal
+	}
+	
+	return inArray(arr1, arr2)
+}
+
 ; cleans text to have special characters set to match identical in regex
 ;  text - text to clean for regex
 ;
@@ -671,60 +698,4 @@ dllFreeLib(library) {
     }
 
     return DllCall("FreeLibrary", "uint", library)
-}
-
-; gets the cpu load as a float percentage
-;
-; returns the cpu load
-getCpuLoad() {
-    GetSystemTimes() {
-        kernel := 0
-        user := 0
-        idle := 0
-
-        DllCall("GetSystemTimes", "Int64P", idle, "Int64P", kernel, "Int64P", user)
-        return [kernel + user, idle]
-    }
-
-	one := GetSystemTimes()
-	Sleep(500)
-	two := GetSystemTimes()
-	return 100 * (1 - (two[2] - one[2])/(two[1] - one[1]))
-}
-
-; gets the ram load as a int percentage
-;
-; returns the ram load
-getRamLoad() {
-    status := Buffer(64)
-	NumPut("UInt", status.Size, status)
-    
-	try {
-		if !(DllCall("GlobalMemoryStatusEx", "ptr", status.Ptr)) {
-			ErrorMsg("Failed to get memory status")
-			return 0
-		}
-
-		return NumGet(status, 4, "UInt")
-	}
-
-    return 0
-}
-
-; gets the gpu usage if the user has a nvidia gpu
-; this only works when called from main (has the library initialized)
-; this only works for 1 gpu (gpu0=256)
-;
-; returns the gpu usage
-getNvidiaLoad() {
-	try {
-		nvBuffer := Buffer(136)
-		NumPut("UInt", 136 | 0x10000, nvBuffer)
-
-		DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x189A1FDF, "CDecl UPtr"), "Ptr", 256, "Ptr", nvBuffer.Ptr, "CDecl")
-
-		return NumGet(nvBuffer, 12, "UInt")
-	}
-
-	return 0
 }

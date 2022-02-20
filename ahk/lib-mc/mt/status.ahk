@@ -11,43 +11,49 @@ global MT_STR_SIZE := 2048  ; used for strings
 ;   - current gui as part of status
 ;   - create guis in main
 
-statusKeys := [
-    { k: "pause",            s: MT_CHR_SIZE }
-    { k: "suspendScript",    s: MT_CHR_SIZE }
-    { k: "kbmmode",          s: MT_CHR_SIZE }
-    { k: "currProgram",      s: MT_KEY_SIZE }
-    { k: "overrideProgram",  s: MT_KEY_SIZE }
-    { k: "loadShow",         s: MT_CHR_SIZE }
-    { k: "loadText",         s: MT_STR_SIZE }
-    { k: "errorShow",        s: MT_CHR_SIZE }
-    { k: "errorHwnd",        s: MT_NUM_SIZE }
-    { k: "currHotkeys",      s: (64 * 16) }
-    { k: "currGui",          s: MT_KEY_SIZE }
-]
+global MT_STATUS_KEYS := {
+    pause: MT_CHR_SIZE,
+    suspendScript: MT_CHR_SIZE,
+    kbmmode: MT_CHR_SIZE,
+    currProgram: MT_KEY_SIZE,
+    overrideProgram: MT_KEY_SIZE,
+    loadShow: MT_CHR_SIZE,
+    loadText: MT_STR_SIZE,
+    errorShow: MT_CHR_SIZE,
+    errorHwnd: MT_NUM_SIZE,
+    currGui: MT_KEY_SIZE,
+    internalMemo: MT_KEY_SIZE,
 
-calcStatusSize() {
+    ; support for up to 32 hotkeys
+    currHotkeys: MT_KEY_SIZE * 64,
+}
+
+statusInitBuffer() {
     totalSize := 0
     
-    for item in statusKeys {
-        totalSize += item.s
+    for key in MT_STATUS_KEYS.OwnProps() {
+        totalSize += MT_STATUS_KEYS.%key%
     }
 
-    return totalSize
+    return Buffer(totalSize, 0)
 }
 
 calcStatusPtrOffset(param, ptr) {
     ptrOffset := ptr
+    if (ptr = "") {
+        ptrOffset := globalStatus
+    }
 
-    for item in statusKeys {
-        if (item.k = param) {
+    for key in MT_STATUS_KEYS.OwnProps() {
+        if (key = param) {
             return ptrOffset
         }
 
-        ptrOffset += item.s
+        ptrOffset += MT_STATUS_KEYS.%key%
     }
 }
 
-getStatusParam(param, ptr) {
+getStatusParam(param, ptr := "") {
     switch param {
         case "pause":  
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")
@@ -68,21 +74,30 @@ getStatusParam(param, ptr) {
         case "errorHwnd":  
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UInt")         
         case "currGui": 
+            return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)        
+        case "internalMemo": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
         case "currHotkeys":
             ptrOffset := calcStatusPtrOffset(param, ptr)
-            retArr := []
-            
-            loop 64 {
-                retArr.Push(StrGet(ptrOffset, 16, "CP0"))
-                ptrOffset += 16
+
+            retMap := Map()
+            loop 32 {
+                key := StrGet(ptrOffset, MT_KEY_SIZE)
+                val := StrGet(ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
+
+                if (key = "") {
+                    break
+                }
+
+                retMap[key] := val
+                ptrOffset += MT_KEY_SIZE
             }
 
-            return retArr
+            return retMap
     }
 }
 
-setStatusParam(param, newVal, buf) {
+setStatusParam(param, newVal, ptr := "") {
     switch param {
         case "pause":  
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
@@ -103,13 +118,29 @@ setStatusParam(param, newVal, buf) {
         case "errorHwnd":  
             NumPut("UInt", newVal, calcStatusPtrOffset(param, ptr))         
         case "currGui": 
+            StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)  
+        case "internalMemo": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
         case "currHotkeys":
             ptrOffset := calcStatusPtrOffset(param, ptr)
-            newVal := toArray(newVal)
-            loop newVal.Length {
-                StrPut(newVal[A_Index], ptrOffset, 16, "CP0")
-                ptrOffset += 16
+            keys := []
+            vals := []
+
+            for key, val in newVal {
+                keys.Push(key)
+                vals.Push(val)
+            }
+
+            loop 32 {
+                if (A_Index > keys.Length) {
+                    StrPut("", ptrOffset, MT_KEY_SIZE)
+                    ptrOffset += MT_KEY_SIZE
+                }
+                else {
+                    StrPut(keys[A_Index], ptrOffset, MT_KEY_SIZE)
+                    StrPut(vals[A_Index], ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
+                    ptrOffset += MT_KEY_SIZE
+                }
             }
     }
 }

@@ -12,7 +12,7 @@ loadGUI(args) {
 
     imgSize := percentWidth(0.04)
     
-    guiObj.Add("Text", "vLoadText Center x0 y" . percentHeight(0.92, false) " w" . percentWidth(1), StrGet(globalStatus["loadText"]))
+    guiObj.Add("Text", "vLoadText Center x0 y" . percentHeight(0.92, false) " w" . percentWidth(1), getStatusParam("loadText"))
 
     imgHTML := (
         "<html>"

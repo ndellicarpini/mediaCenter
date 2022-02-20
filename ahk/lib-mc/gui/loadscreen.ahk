@@ -13,7 +13,7 @@ createLoadScreen() {
         guiObj.BackColor := COLOR1
         guiSetFont(guiObj, "italic s40")
 
-        guiObj.Add("Text", "vLoadText Right x0 y" . percentHeight(0.92, false) " w" . percentWidth(0.985, false), StrGet(globalStatus["loadText"]))
+        guiObj.Add("Text", "vLoadText Right x0 y" . percentHeight(0.92, false) " w" . percentWidth(0.985, false), getStatusParam("loadText"))
     }
 
     guiObj.Show("Center NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
@@ -26,7 +26,7 @@ activateLoadScreen() {
     loadObj := getGUI(GUILOADTITLE)
 
     if (loadObj) {
-        loadObj["LoadText"].Text := StrGet(globalStatus["loadText"])
+        loadObj["LoadText"].Text := getStatusParam("loadText")
         WinActivate(GUILOADTITLE)
     }
     else {
@@ -38,8 +38,6 @@ activateLoadScreen() {
 ;
 ; returns null
 destroyLoadScreen() {
-    NumPut('UChar', false, globalStatus['loadShow'])
-
     if (getGUI(GUILOADTITLE)) {
         getGUI(GUILOADTITLE).Destroy()
     }

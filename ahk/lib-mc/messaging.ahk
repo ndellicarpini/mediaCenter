@@ -68,6 +68,11 @@ sendListToMain(list) {
 ;
 ; returns null
 handleMessage(wParam, lParam, msg, hwnd) {
+    global MESSAGE_ENABLE
+    global MESSAGE_DATA
+    
+    global mainMessage
+
     stringAddress := NumGet(lParam, (2 * A_PtrSize), "Ptr")
     messageData := StrGet(stringAddress)
 

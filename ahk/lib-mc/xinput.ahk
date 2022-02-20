@@ -1,214 +1,163 @@
-; class containing the current status of all buttons & axis on an xinput controller
-;  port - port of xinput device (0 -> (MaxXInputControllers - 1))
-;  dllAddress - dll address for xinput library as gotten from load library & getprocaddress
-;  connected - true if xinput device connected, false else
-class XController {
-    port := -1
-    dllAddress := ""
-    connected := false
+xButtons := {
+    offset: 4,
+    type: "UShort",
 
-    HOME    := false
-    START   := false
-    SELECT  := false
+    DU:  0x0001,
+    DD:  0x0002,
+    DL:  0x0004,
+    DR:  0x0008,
 
-    A       := false
-    B       := false
-    X       := false
-    Y       := false
-    LB      := false
-    RB      := false
-    LSB     := false
-    RSB     := false
+    A:   0x1000,
+    B:   0x2000,
+    X:   0x4000,
+    Y:   0x8000,
+    LB:  0x0100,
+    RB:  0x0200,
+    LSB: 0x0040,
+    RSB: 0x0080,
 
-    DU      := false
-    DD      := false
-    DL      := false
-    DR      := false
-
-    ; all fractional values based on max ranges
-    ; max range -32768-32767
-    LSX     := 0
-    LSY     := 0
-    RSX     := 0
-    RSY     := 0
-
-    ; max range 0-255
-    LT      := 0
-    RT      := 0
-
-    __New(port, dllAddress) {
-        this.port := port
-        this.dllAddress := dllAddress
-    }
-
-    ; checks connection status of controller & updates all buttons & axis
-    ;
-    ; returns null
-    update() {
-        xBuffer := Buffer(16)
-        xResult := DllCall(this.dllAddress, "uint", this.port, "ptr", xBuffer.Ptr)
-
-        this.connected := (xResult != 1167) ? true : false
-        
-        if (!this.connected) {
-            this.reset()
-            return
-        }
-        
-        this.LT  := NumGet(xBuffer, 6, "uchar") / 255
-        this.RT  := NumGet(xBuffer, 7, "uchar") / 255
-
-        this.LSX := NumGet(xBuffer, 8, "short") / 32768
-        this.LSY := NumGet(xBuffer, 10, "short") / 32768
-        this.RSX := NumGet(xBuffer, 12, "short") / 32768
-        this.RSY := NumGet(xBuffer, 14, "short") / 32768
-
-        buttons  := NumGet(xBuffer, 4, "ushort")
-
-        this.DU      := (buttons & 0x0001) ? true : false
-        this.DD      := (buttons & 0x0002) ? true : false
-        this.DL      := (buttons & 0x0004) ? true : false
-        this.DR      := (buttons & 0x0008) ? true : false
-
-        this.A       := (buttons & 0x1000) ? true : false
-        this.B       := (buttons & 0x2000) ? true : false
-        this.X       := (buttons & 0x4000) ? true : false
-        this.Y       := (buttons & 0x8000) ? true : false
-        
-        this.LB      := (buttons & 0x0100) ? true : false
-        this.RB      := (buttons & 0x0200) ? true : false
-        this.LSB     := (buttons & 0x0040) ? true : false
-        this.RSB     := (buttons & 0x0080) ? true : false
-        
-        this.SELECT  := (buttons & 0x0020) ? true : false
-        this.START   := (buttons & 0x0010) ? true : false
-        this.HOME    := (buttons & 0x0400) ? true : false
-    }
-
-    ; resets the controller's buttons & axis values back to the default
-    ;
-    ; returns null
-    reset() {
-        this.HOME    := false
-        this.START   := false
-        this.SELECT  := false
-
-        this.A       := false
-        this.B       := false
-        this.X       := false
-        this.Y       := false
-        this.LB      := false
-        this.RB      := false
-        this.LSB     := false
-        this.RSB     := false
-
-        this.DU      := false
-        this.DD      := false
-        this.DL      := false
-        this.DR      := false
-
-        this.LSX     := 0
-        this.LSY     := 0
-        this.RSX     := 0
-        this.RSY     := 0
-
-        this.LT      := 0
-        this.RT      := 0
-    }
+    SELECT: 0x0020,
+    START:  0x0010,
+    HOME:   0x0400,
 }
 
-; initializes the xinput library if the dll file exists
-;  dll - path to xinput dll
-;
-; returns either empty string if no dll, or xinput library
-xLoadLib(dll) {
-    return DllCall("LoadLibrary", "str", dll)
+xAxis := {
+    LT: {
+        offset: 6,
+        type: "UChar",
+        max: 255
+    },
+    RT: {
+        offset: 7,
+        type: "UChar",
+        max: 255
+    },
+
+    LSX: {
+        offset: 8,
+        type: "Short",
+        max: 32768
+    },
+    LSY: {
+        offset: 10,
+        type: "Short",
+        max: 32768
+    },
+
+    RSX: {
+        offset: 12,
+        type: "Short",
+        max: 32768
+    },
+    RSY: {
+        offset: 14,
+        type: "Short",
+        max: 32768
+    },
 }
 
-; frees the xinput library if it was loaded
-;  lib - library if it is loaded
-;
-; returns 0?
-xFreeLib(lib) {
-    if (lib = 0) {
-        return 0
-    }
-
-    return DllCall("FreeLibrary", "uint", lib)
+xInitBuffer(maxControllers) {
+    return Buffer(16 * maxControllers, 0)
 }
 
-; intializes the set of controller objects based on the maxController count
-;  lib - loaded xinput library
-;  maxControllers - maximum number of xinput devices to initialize
-;
-; returns map of controller objects
-xInitialize(lib, maxControllers) {
-    controllerMap := Map()
+xGetStatus(maxControllers, getStatusPtr) {
+    retData := []
 
-    if (lib != 0) {
-        xAddress := DllCall("GetProcAddress", "uint", lib, "uint", 100)
+    loop maxControllers {
+        xBuf := Buffer(16, 0)
+        xResult := DllCall(getStatusPtr, "UInt", (A_Index - 1), "Ptr", xBuf.Ptr)
 
-        loop maxControllers {
-            controllerMap[(A_Index - 1)] := XController((A_Index - 1), xAddress)
-        }
-    }
-
-    return controllerMap
-}
-
-; checks one controller that all/some buttons specified are pressed
-;  controller - controller to check buttons of
-;  mode - either "and" or "or" logical operator between buttons
-;  buttons - all buttons to check with mode's operator
-;
-;  returns boolean based on button status
-xCheckController(controller, buttons, mode := "and") {
-    if (!controller.connected) {
-        return false
-    }
-
-    buttonStatus := (mode = "or") ? false : true
-
-    buttons := toArray(buttons)
-    for button in buttons {
-        currButt := StrUpper(button)
-        
-        if (mode = "or") {
-            buttonStatus := buttonStatus || ((currButt = "RT" || currButt = "LT") ? (controller.%currButt% > 0.1) : controller.%currButt%)
+        if (xResult = 1167) {
+            retData.Push(Buffer(16, 0))
         }
         else {
-            buttonStatus := buttonStatus && ((currButt = "RT" || currButt = "LT") ? (controller.%currButt% > 0.1) : controller.%currButt%)
+            retData.Push(xBuf)
         }
     }
 
-    return buttonStatus
+    return retData
 }
 
-; checks all controllers that all buttons specificed are pressed
-;  controllerMap - map of controllers
-;  mode - either "and" or "or" logical operator between buttons
-;  includeIndex - change return to array and add controller index
-;  buttons - all buttons to check with mode's operator
-;
-; returns boolean if 1 controller has buttons based on mode, or array including index if includeIndex
-xCheckAllControllers(controllerMap, buttons, mode := "and", includeIndex := false) {
-    ; check each controller 
-    for key in StrSplit(controllerMap["keys"], ",") {              
+xCheckStatus(toCheck, port, ptr) {
+    statusData := Buffer(16)
+    loop 2 {
+        NumPut("UInt64", NumGet(ptr + (port * 16) + (8 * (A_Index - 1)), 0, "UInt64")
+        , statusData.Ptr + (8 * (A_Index - 1)), 0)
+    }
 
-        if (xCheckController(controllerMap[Integer(key)], buttons, mode)) {
-            if (includeIndex) {
-                return [true, Integer(key)]
-            }
-            else {
-                return true
-            }
+    if (statusData = 0) {
+        return false
+    }
+
+    retVal := true
+    buttons := 0x000000
+    for item in toArray(toCheck) {
+        if (item = "") {
+            continue
+        }
+
+        try {
+            buttons := buttons | xButtons.%item%
+        }
+        catch {
+            MsgBox(item)
+            retVal := retVal & xCheckAxis(statusData, item)
         }
     }
 
-    if (includeIndex) {
-        return [false, -1]
+    retVal := retVal & (((buttons & NumGet(statusData, xButtons.offset, xButtons.type)) > 0) ? true : false)
+    return retVal
+}
+
+xCheckAxis(statusData, axis) {
+    currAxis := ""
+    for key in xAxis.OwnProps() {
+        if (InStr(axis, key)) {
+            currAxis := key
+            break
+        }
     }
-    else {
-        return false
+
+    if (currAxis = "") {
+        ErrorMsg("Tried to get an axis that doesn't exist: " . axis, true)
     }
+
+    if (currAxis = axis) {
+        return NumGet(statusData, xAxis.%currAxis%.offset, xAxis.%currAxis%.type)
+    }
+
+    value := 0
+    comparison := ""
+    remainingChars := StrReplace(axis, currAxis, "")
+    remainingCharArr := StrSplit(remainingChars)
+
+    for char in remainingCharArr {
+        try {
+            value := Float(remainingChars)
+            break
+        }
+        catch {
+            comparison .= char
+            remainingChars := SubStr(remainingChars, 2)
+        }
+    }
+
+    if (remainingChars = "") {
+        ErrorMsg("No value to compare axis to " . axis, true)
+    }
+
+    currValue := NumGet(statusData, xAxis.%currAxis%.offset, xAxis.%currAxis%.type) / xAxis.%currAxis%.max
+
+
+    if (InStr(remainingChars, ">") && currValue > value) {
+        return true
+    }
+    else if (InStr(remainingChars, "<") && currValue < value) {
+        return true
+    }
+    else if (InStr(remainingChars, "=") && currValue = value) {
+        return true
+    }
+
+    return false
 }
