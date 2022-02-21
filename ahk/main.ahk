@@ -1,6 +1,3 @@
-﻿; TODO - there is currently a ~4MB/hr memory leak due to bad garbage collection for ComObjects
-;      - this could be worse/better depending on usage during runtime, requires more testing
-
 #SingleInstance Force
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
@@ -30,54 +27,12 @@ SetKeyDelay 80, 60
 setCurrentWinTitle(MAINNAME)
 mainScriptDir := A_ScriptDir
 
-global dynamicInclude := getDynamicIncludes(A_ScriptFullPath)
-global mainMessage := []
-
-; ----- READ GLOBAL CONFIG -----
-mainConfig      := Map()
-mainStatus      := Map()
-mainRunning     := Map()
-mainPrograms    := Map()
-
-globalConfig := readGlobalConfig()
-
-; initialize startup arguments
+; ----- INITIALIZE GLOBALCONFIG (READ-ONLY) -----
+mainConfig := Map()
 mainConfig["StartArgs"] := A_Args
 
-; initialize basic status features
-mainStatus := statusInitBuffer()
-; whether or not pause screen is shown 
-setStatusParam("pause", false, mainStatus.Ptr)
-
-; whether or not script is suspended (no actions running, changable in pause menu)
-setStatusParam("suspendScript", false, mainStatus.Ptr)
-
-; whether or not script is in keyboard & mouse mode
-setStatusParam("kbbmode", false, mainStatus.Ptr)
-
-; current name of programs focused & running, used to get config -> setup hotkeys & background actions
-setStatusParam("currProgram", "", mainStatus.Ptr)
-
-; name of program overriding the openProgram map -> kept separate for quick actions that should override
-; all status, but retain current program stack on close (like checking manual in chrome)
-setStatusParam("overrideProgram", "", mainStatus.Ptr)
-
-; load screen info
-setStatusParam("loadShow", false, mainStatus.Ptr)
-setStatusParam("loadText", "Now Loading...", mainStatus.Ptr)
-
-; error info
-setStatusParam("errorShow", false, mainStatus.Ptr)
-setStatusParam("errorHwnd", 0, mainStatus.Ptr)
-
-; current hotkeys
-setStatusParam("currHotkeys", Map(), mainStatus.Ptr)
-
-; current active gui
-setStatusParam("currGui", "", mainStatus.Ptr)
-
-; setup status and config as maps rather than config objects for multithreading
-for key, value in globalConfig.subConfigs {
+; read from global.cfg
+for key, value in readGlobalConfig().subConfigs {
     configObj := Map()
     statusObj := Map()
     
@@ -98,12 +53,10 @@ if (mainConfig["General"].Has("CustomLibDir") && mainConfig["General"]["CustomLi
     mainConfig["General"]["CustomLibDir"] := expandDir(mainConfig["General"]["CustomLibDir"])
     requiredFolders.Push(mainConfig["General"]["CustomLibDir"])
 }
-
 if (mainConfig["General"].Has("AssetDir") && mainConfig["General"]["AssetDir"] != "") {
     mainConfig["General"]["AssetDir"] := expandDir(mainConfig["General"]["AssetDir"])
     requiredFolders.Push(mainConfig["General"]["AssetDir"])
 }
-
 if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
     mainConfig["Programs"]["ConfigDir"] := expandDir(mainConfig["Programs"]["ConfigDir"])
     requiredFolders.Push(mainConfig["Programs"]["ConfigDir"])
@@ -115,7 +68,52 @@ for value in requiredFolders {
     }
 }
 
-; ----- PARSE PROGRAM CONFIGS -----
+; load nvidia library for gpu monitoring
+if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) { 
+    try {
+        nvLib := dllLoadLib("nvapi64.dll")
+        DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
+    }
+    catch {
+        mainConfig["GUI"]["EnablePauseGPUMonitor"] := false
+    }
+}
+
+
+; ----- INITIALIZE GLOBALSTATUS -----
+mainStatus := statusInitBuffer()
+
+; whether or not pause screen is shown 
+setStatusParam("pause", false, mainStatus.Ptr)
+; whether or not script is suspended (no actions running, changable in pause menu)
+setStatusParam("suspendScript", false, mainStatus.Ptr)
+; whether or not script is in keyboard & mouse mode
+setStatusParam("kbbmode", false, mainStatus.Ptr)
+; current name of programs focused & running, used to get config -> setup hotkeys & background actions
+setStatusParam("currProgram", "", mainStatus.Ptr)
+; load screen info
+setStatusParam("loadShow", false, mainStatus.Ptr)
+setStatusParam("loadText", "Now Loading...", mainStatus.Ptr)
+; error info
+setStatusParam("errorShow", false, mainStatus.Ptr)
+setStatusParam("errorHwnd", 0, mainStatus.Ptr)
+; current hotkeys
+setStatusParam("currHotkeys", Map(), mainStatus.Ptr)
+; current active gui
+setStatusParam("currGui", "", mainStatus.Ptr)
+; some function that should be digested by a thread
+setStatusParam("internalMessage", "", mainStatus.Ptr)
+
+
+; ----- INITIALIZE GLOBALCONTROLLERS -----
+mainControllers  := xInitBuffer(mainConfig["General"]["MaxXInputControllers"])
+
+
+; ----- INITIALIZE PROGRAM CONFIGS -----
+mainRunning  := Map()
+mainPrograms := Map()
+
+; read program configs from ConfigDir
 if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
     loop files validateDir(mainConfig["Programs"]["ConfigDir"]) . "*", "FR" {
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
@@ -137,37 +135,24 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
     }
 }
 
-; load nvidia library for gpu monitoring
-if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) { 
-    try {
-        nvLib := dllLoadLib("nvapi64.dll")
-        DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
-    }
-    catch {
-        mainConfig["GUI"]["EnablePauseGPUMonitor"] := false
-    }
-}
 
-; adds the list of keys to the map as a string so that the map can be enumerated
-; despite being a ComObject in the threads
-mainConfig       := addKeyListString(mainConfig)
-
-mainControllers  := xInitBuffer(mainConfig["General"]["MaxXInputControllers"])
-
+; ----- INITIALIZE THREADS -----
 ; configure objects to be used in a thread-safe manner
-; TODO - is global necessary / good???
+;  read-only objects can be used w/ ObjShare 
+;  read/write objects must be a buffer ptr w/ custom getters/setters
 global globalConfig      := ObjShare(ObjShare(mainConfig))
 global globalStatus      := mainStatus.Ptr
 global globalControllers := mainControllers.Ptr
 
-global threads := Map()
+; message sent from send2Main
+global externalMessage := []
 
 ; ----- PARSE START ARGS -----
-for key in StrSplit(globalConfig["StartArgs"]["keys"], ",") {
-    if (globalConfig["StartArgs"][key] = "-backup") {
-        globalStatus := statusRestore(mainRunning, mainPrograms)
+for key, value in globalConfig["StartArgs"] {
+    if (value = "-backup") {
+        statusRestore(mainRunning, mainPrograms)
     }
-    else if (globalConfig["StartArgs"][key] = "-quiet") {
+    else if (value = "-quiet") {
         globalConfig["Boot"]["EnableBoot"] := false
     }
 }
@@ -178,13 +163,13 @@ if (!globalConfig["StartArgs"].Has("-quiet") && globalConfig["GUI"].Has("EnableL
 
 ; ----- START CONTROLLER THEAD -----
 ; this thread just updates the status of each controller in a loop
-threads["controllerThread"] := controllerThread(ObjShare(mainConfig), mainControllers.Ptr)
+controllerThreadRef := controllerThread(ObjShare(mainConfig), mainControllers.Ptr)
 SetWorkingDir(mainScriptDir)
 
-; ----- START ACTION -----
+; ----- START HOTKEY THREAD -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-threads["hotkeyThread"] := hotkeyThread(ObjShare(mainConfig), mainStatus.Ptr, mainControllers.Ptr)
+hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), mainStatus.Ptr, mainControllers.Ptr)
 SetWorkingDir(mainScriptDir)
 
 ; ----- BOOT -----
@@ -203,13 +188,15 @@ SetTimer(BackupTimer, 10000)
 ; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
 ; probably going to need to figure out updating loadscreen?
 
+forceMaintain := globalConfig["General"]["ForceMaintainMain"]
 forceActivate := globalConfig["General"]["ForceActivateWindow"]
+
 checkErrors   := globalConfig["Programs"].Has("ErrorList") && globalConfig["Programs"]["ErrorList"] != ""
+
 loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"])
 
+checkAllCount := 0
 loop {
-    ;perform actions based on mode & main message
-
     ; infinite loop during suspention
     if (getStatusParam("suspendScript")) {
         Sleep(loopSleep)
@@ -218,40 +205,37 @@ loop {
 
     ; --- CHECK MESSAGES ---
 
-    ; do something based on main message (like launching app)
+    ; do something based on external message (like launching app)
     ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
-    ; if first word = Run
-    ;  -> second word of message would be the name of the program to launch, then all other words
-    ;     would be sent to the launch command. 
-    ; else 
-    ;  -> send whole string to runFunction
-    if (mainMessage.Length > 0) {
-        if (StrLower(mainMessage[1]) = "run") {
-            mainMessage.RemoveAt(1)
-            createProgram(mainMessage, mainRunning, mainPrograms)
+    if (externalMessage.Length > 0) {
+        if (StrLower(externalMessage[1]) = "run") {
+            externalMessage.RemoveAt(1)
+            createProgram(externalMessage, mainRunning, mainPrograms)
         }
         else {
-            runFunction(mainMessage)
+            runFunction(externalMessage)
         }
 
         ; reset message after processing
-        mainMessage := []
+        externalMessage := []
     }
 
-    internalMemo := getStatusParam("internalMemo")
-    if (internalMemo != "") {
-        if (StrLower(internalMemo) = "pause") {
-            ; run the pause menu update timer in this thread to not overload hotkey thread
+    internalMessage := getStatusParam("internalMessage")
+    if (internalMessage != "") {
+        currProgram := getStatusParam("currProgram")
+        currGui     := getStatusParam("currGui")
+
+        if (StrLower(internalMessage) = "pause") {
             if (!WinShown(GUIPAUSETITLE)) {
                 setStatusParam("pause", true)
                 createPauseMenu((currProgram != "") ? mainRunning[currProgram] : "")
             }
             else {
-                setStatusParam("false", true)
+                setStatusParam("pause", false)
                 destroyPauseMenu()
             }
         }
-        else if (StrLower(internalMemo) = "exit") {
+        else if (StrLower(internalMessage) = "exit") {
             if (getStatusParam("errorShow")) {
                 errorHwnd := getStatusParam("errorHwnd")
                 errorGUI := getGUI(errorHwnd)
@@ -268,7 +252,7 @@ loop {
                 mainRunning[currProgram].exit()
             }
         }
-        else if (StrLower(internalMemo) = "nuclear") {
+        else if (StrLower(internalMessage) = "nuclear") {
             killed := false
             if (!killed && getStatusParam("errorShow")) {
                 try {
@@ -279,7 +263,7 @@ loop {
                 }
             }
 
-            if (!killed && currProgram != '') {
+            if (!killed && currProgram != "") {
                 ProcessKill(mainRunning[currProgram].getPID())
                 killed := true
             }
@@ -291,45 +275,29 @@ loop {
             }
         }
         else {
-            runFunction(internalMemo)
+            runFunction(internalMessage)
         }
 
         ; reset message after processing
-        setStatusParam("internalMemo", "")
+        setStatusParam("internalMessage", "")
     }
     
     Sleep(loopSleep)
 
-    hotkeySet := false
+    activeSet := false
     currHotkeys := defaultHotkeys(globalConfig)
 
-    ; --- CHECK OPEN GUIS ---
-    guiMessageShown := WinShown(GUIMESSAGETITLE)
-
-    ; if gui message exists
-    if (guiMessageShown) {
-        if (!hotkeySet) {
-            currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
-            hotkeySet := true
-        }
-
-        setStatusParam("errorShow", true)
-        setStatusParam("errorHwnd", guiMessageShown)
-    }
-    
-
-    ; --- CHECK RUNNING PROGRAMS ---
-    currProgram     := getStatusParam("currProgram")
-    overrideProgram := getStatusParam("overrideProgram")
+    ; --- CHECK OVERRIDE ---
+    ; focus error window
 
     ; if errors should be detected, set error here
     if (checkErrors) {
         resetTMM := A_TitleMatchMode
 
         SetTitleMatchMode 2
-        for key in StrSplit(globalConfig["Programs"]["ErrorList"]["keys"], ",") {
+        for key, value in globalConfig["Programs"]["ErrorList"] {
 
-            wndwHWND := WinShown(globalConfig["Programs"]["ErrorList"][key])
+            wndwHWND := WinShown(value)
             if (wndwHWND > 0) {
                 setStatusParam("errorShow", true)
                 setStatusParam("errorHwnd", wndwHWND)
@@ -340,18 +308,17 @@ loop {
         SetTitleMatchMode resetTMM
     }
 
-    ; focus error window
     if (getStatusParam("errorShow")) {
         errorHwnd := getStatusParam("errorHwnd")
 
         if (WinShown("ahk_id " errorHwnd)) {
-            if (forceActivate && !WinActive("ahk_id " errorHwnd)) {
-                WinActivate("ahk_id " errorHwnd)
-            }
+            if (!activeSet) {
+                if (forceActivate && !WinActive("ahk_id " errorHwnd)) {
+                    WinActivate("ahk_id " errorHwnd)
+                }
 
-            if (!hotkeySet) {
                 currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
-                hotkeySet := true
+                activeSet := true
             }
         }
         else {
@@ -360,105 +327,58 @@ loop {
         }
     }
 
-    ; focus override program
-    else if (overrideProgram != "") {
-
-        ; need to create override program if doesn't exist
-        if (!mainRunning.Has(overrideProgram)) {
-            createProgram(overrideProgram, mainRunning, mainPrograms, true, false)
-        }
-
-        else {
-            if (mainRunning[overrideProgram].exists()) {
-                if (forceActivate) {
-                    try mainRunning[overrideProgram].restore()
-                }
-
-                if (!hotkeySet) {
-                    currHotkeys := addHotkeys(currHotkeys, mainRunning[overrideProgram].hotkeys)
-                    hotkeySet := true
-                }
-            }
-            else {
-                setStatusParam("overrideProgram", "")
-                mainRunning.Delete(overrideProgram)
-            }
-        }
-    }
-
     ; activate load screen if its supposed to be shown
-    else if (getStatusParam("loadShow")) {
+    if (!activeSet && getStatusParam("loadShow")) {
         activateLoadScreen()
+        activeSet := true
     }
+
+    ; --- CHECK ALL OPEN ---
+    currProgram := getStatusParam("currProgram")
+    currGui     := getStatusParam("currGui")
+
+    if (checkAllCount > 10) {
+        checkAllPrograms(mainRunning, mainPrograms)
+        
+        mostRecentProgram := getMostRecentProgram(mainRunning)
+        if (mostRecentProgram != currProgram) {
+            setStatusParam("currProgram", mostRecentProgram)
+        }
+
+        checkAllCount := 0
+    }
+
+    ; --- CHECK OPEN GUIS ---
+
+
+    ; --- CHECK RUNNING PROGRAMS ---
 
     ; current program is set
-    else if (currProgram != "") {
-
-        ; need to create current program if doesn't exist
-        if (!mainRunning.Has(currProgram)) {
-            createProgram(currProgram, mainRunning, mainPrograms, false, false)
-        } 
-
-        else {
-            ; focus currProgram if it exists
+    if (currProgram != "") {
+        if (mainRunning.Has(currProgram)) {
             if (mainRunning[currProgram].exists()) {
-                if (forceActivate) {
-                    try mainRunning[currProgram].restore()
-                }
+                if (!activeSet) {
+                    if (forceActivate) {
+                        try mainRunning[currProgram].restore()
+                    }
 
-                if (!hotkeySet) {
-                    currHotkeys := addHotkeys(currHotkeys, mainRunning[currProgram].hotkeys)
-                    hotkeySet := true
+                    if (mainRunning[currProgram].hotkeys.Count > 0) {
+                        currHotkeys := addHotkeys(currHotkeys, mainRunning[currProgram].hotkeys)
+                    }
+
+                    activeSet := true
                 }
             }
             else {
-                prevTime := 0
-                prevProgram := ""
-                for key, value in mainRunning {
-                    if (key != currProgram && value.time > prevTime) {
-                        prevProgram := key
-                        prevTime := value.time
-                    }
-                }
-
-                ; restore previous program if open
-                if (prevProgram != "") {
-                    setStatusParam("currProgram", prevProgram)
-                }
-
-                ; updates currProgram if a program exists, else create the default program if no prev program exists
-                else {
-                    openProgram := checkAllPrograms(mainPrograms)
-                    if (openProgram != "") {
-                        createProgram(openProgram, mainRunning, mainPrograms, false)
-                    }
-
-                    else if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "") {
-                        createProgram(globalConfig["Programs"]["Default"], mainRunning, mainPrograms)
-                    }
-
-                    else {
-                        setStatusParam("currProgram", "")
-                        mainRunning.Delete(currProgram)
-                    }
-                }
+                setStatusParam("currProgram", "")
             }
+        } 
+        else {
+            createProgram(currProgram, mainRunning, mainPrograms, false, false)
         }
     }
 
-    ; no current program
-    else {
-        openProgram := checkAllPrograms(mainPrograms)
-        if (openProgram != "") {
-            createProgram(openProgram, mainRunning, mainPrograms, false)
-        }
-
-        else if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "") {
-            createProgram(globalConfig["Programs"]["Default"], mainRunning, mainPrograms)
-        }
-    }
-
-    ; check if hotkeys need to be updated
+    ; --- CHECK HOTKEYS ---
     statusHotkeys := getStatusParam("currHotkeys")
 
     statusKeys := []
@@ -479,30 +399,33 @@ loop {
         setStatusParam("currHotkeys", currHotkeys)
     }
 
-    ; need to check that threads are running
-    ; i can't figure out how to re-send objshares, so for now error out
-    for key, value in threads {
-        try {
-            value.FuncPtr("")
-        }
-        catch {
-            ErrorMsg((
-                "Thread " . key . " has crashed?"
-                "I hope this isn't something i need to fix"
-            ), true)
-        }
+    ; --- CHECK THREADS ---
+    try {
+        controllerThreadRef.FuncPtr("")
+    }
+    catch {
+        controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
+    }
+    try {
+        hotkeyThreadRef.FuncPtr("")
+    }
+    catch {
+        hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
     }
 
-    ; check looper
-    if (globalConfig["General"]["ForceMaintainMain"] && !NumGet(globalStatus["suspendScript"], 0, "UChar") && !WinHidden(MAINLOOP)) {
+    ; --- CHECK LOOPER ---
+    if (forceMaintain && !WinHidden(MAINLOOP)) {
         Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
     }
  
+    checkAllCount += 1
     Sleep(loopSleep)
 }
 
 disableMainMessageListener()
-closeAllThreads(threads)
+
+try controllerThreadRef.ExitApp()
+try hotkeyThreadRef.ExitApp()
 
 if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
     dllFreeLib(nvLib)
@@ -513,9 +436,7 @@ ExitApp()
 
 ; write globalStatus/globalRunning to file as backup cache?
 ; maybe only do it like every 10ish secs?
-BackupTimer() {
-    global 
-    
+BackupTimer() {    
     try statusBackup(mainRunning)
     return
 }

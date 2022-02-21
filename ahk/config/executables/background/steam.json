@@ -1,0 +1,8 @@
+{
+    "name": "Steam",
+
+    "exe": "steam.exe",
+    "dir": "E:\\Games\\Steam",
+
+    "background": "true"
+}

@@ -5,7 +5,7 @@
 defaultHotkeys(config) {
     newHotkeys := Map()
 
-    for key in StrSplit(config["Hotkeys"]["keys"], ",") {
+    for key in config["Hotkeys"] {
         ; only add pause hotkey if pausing is enabled
         if (key = "Pause" && config["General"].Has("EnablePause") && config["General"]["EnablePause"] = true) {    
             newHotkeys[config["Hotkeys"][key]] := key

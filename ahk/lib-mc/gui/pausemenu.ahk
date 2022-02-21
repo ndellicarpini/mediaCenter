@@ -23,10 +23,10 @@ createPauseMenu(currProgram) {
     currentTimeArr := StrSplit(FormatTime(, "h:mm tt`ndddd, MMM d yyy"), "`n")
 
     guiSetFont(guiObj, "s50")
-    guiObj.Add("Text", "vTime Section Left xm0 ym10 w" . (guiWidth * 0.46), currentTimeArr[1])
+    guiObj.Add("Text", "vTime Section Center xm0 ym10 w" . (guiWidth * 0.46), currentTimeArr[1])
 
     guiSetFont(guiObj)
-    guiObj.Add("Text", "vDate Left wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
+    guiObj.Add("Text", "vDate Center wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
 
     guiObj.Add("Text", "Section vInfoText x+" . percentWidth(0.010) . " ys+5", "CPU")
     guiObj.Add("Text", "xs0 y+" . percentHeight(0.008), "RAM")
@@ -111,10 +111,10 @@ addDefaultOptions(currOptions := "", currKeys := "") {
     if (globalConfig["GUI"].Has("DefaultPauseOptions") && IsObject(globalConfig["GUI"]["DefaultPauseOptions"])) {
         globalOptions := globalConfig["GUI"]["DefaultPauseOptions"]
 
-        for key in StrSplit(globalOptions["keys"], ",") {           
-            if (defaultOptions.Has(globalOptions[key])) {
-                currKeys.Push(defaultOptions[globalOptions[key]][1])
-                currOptions[defaultOptions[globalOptions[key]][1]] := defaultOptions[globalOptions[key]][2]
+        for key, value in globalOptions {           
+            if (defaultOptions.Has(value)) {
+                currKeys.Push(defaultOptions[value][1])
+                currOptions[defaultOptions[value][1]] := defaultOptions[value][2]
             }
         }
     }

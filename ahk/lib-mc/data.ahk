@@ -3,6 +3,8 @@
 ;
 ; returns null
 statusBackup(running) {
+    global globalStatus
+
     backup := Map()
 
     for key, value in MT_STATUS_KEYS {
@@ -29,7 +31,7 @@ statusRestore(running, programs) {
     
     for key, value in backup {
         if (key = "mainRunning") {
-            for name, time in backup["openPrograms"] {
+            for name, time in backup["mainRunning"] {
                 createProgram(name, running, programs, false, false, time)
             }
         }

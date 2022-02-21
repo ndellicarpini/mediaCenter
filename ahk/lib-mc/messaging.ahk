@@ -71,7 +71,7 @@ handleMessage(wParam, lParam, msg, hwnd) {
     global MESSAGE_ENABLE
     global MESSAGE_DATA
     
-    global mainMessage
+    global externalMessage
 
     stringAddress := NumGet(lParam, (2 * A_PtrSize), "Ptr")
     messageData := StrGet(stringAddress)
@@ -84,7 +84,7 @@ handleMessage(wParam, lParam, msg, hwnd) {
             MESSAGE_ENABLE := false
 
             ; send message to main
-            mainMessage := MESSAGE_DATA
+            externalMessage := MESSAGE_DATA
             MESSAGE_DATA := []
         }
         else {

@@ -3,31 +3,29 @@ global MT_NUM_SIZE := 4     ; used for ints/floats
 global MT_KEY_SIZE := 128   ; used for keys/names
 global MT_STR_SIZE := 2048  ; used for strings
 
-; TODO 
-; - refactor threads into just controller & hotkeys
-; - maybe create individual thread for each controller?
-; - move programThread into main
-;   - share hotkeys as part of status
-;   - current gui as part of status
-;   - create guis in main
-
+; keep info about the status as a global include so that multiple threads know
+; how to access the status buffer
+; 
+; TODO - think about DefineProps getters/setter
 global MT_STATUS_KEYS := {
     pause: MT_CHR_SIZE,
     suspendScript: MT_CHR_SIZE,
     kbmmode: MT_CHR_SIZE,
     currProgram: MT_KEY_SIZE,
-    overrideProgram: MT_KEY_SIZE,
     loadShow: MT_CHR_SIZE,
     loadText: MT_STR_SIZE,
     errorShow: MT_CHR_SIZE,
     errorHwnd: MT_NUM_SIZE,
     currGui: MT_KEY_SIZE,
-    internalMemo: MT_KEY_SIZE,
+    internalMessage: MT_KEY_SIZE,
 
     ; support for up to 32 hotkeys
     currHotkeys: MT_KEY_SIZE * 64,
 }
 
+; creates the status buffer based on the data in MT_STATUS_KEYS
+;
+; returns status buffer
 statusInitBuffer() {
     totalSize := 0
     
@@ -38,6 +36,11 @@ statusInitBuffer() {
     return Buffer(totalSize, 0)
 }
 
+; calculates the requested param's offset from buffer ptr
+;  param - param to get offset of
+;  ptr - base ptr of status buffer (if blank will default to globalStatus)
+;
+; returns ptr offset
 calcStatusPtrOffset(param, ptr) {
     ptrOffset := ptr
     if (ptr = "") {
@@ -53,6 +56,11 @@ calcStatusPtrOffset(param, ptr) {
     }
 }
 
+; gets the requested param
+;  param - requested param
+;  ptr - base ptr of status buffer (if blank will default to globalStatus)
+;
+; returns param
 getStatusParam(param, ptr := "") {
     switch param {
         case "pause":  
@@ -63,8 +71,6 @@ getStatusParam(param, ptr := "") {
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")       
         case "currProgram": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)    
-        case "overrideProgram": 
-            return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
         case "loadShow":   
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")     
         case "loadText":
@@ -75,7 +81,7 @@ getStatusParam(param, ptr := "") {
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UInt")         
         case "currGui": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)        
-        case "internalMemo": 
+        case "internalMessage": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
         case "currHotkeys":
             ptrOffset := calcStatusPtrOffset(param, ptr)
@@ -97,6 +103,12 @@ getStatusParam(param, ptr := "") {
     }
 }
 
+; sets the requested param
+;  param - requested param
+;  newVal - new val to save as param
+;  ptr - base ptr of status buffer (if blank will default to globalStatus)
+;
+; returns null
 setStatusParam(param, newVal, ptr := "") {
     switch param {
         case "pause":  
@@ -106,8 +118,6 @@ setStatusParam(param, newVal, ptr := "") {
         case "kbmmode":  
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
         case "currProgram": 
-            StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
-        case "overrideProgram": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
         case "loadShow":   
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))     
@@ -119,7 +129,7 @@ setStatusParam(param, newVal, ptr := "") {
             NumPut("UInt", newVal, calcStatusPtrOffset(param, ptr))         
         case "currGui": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)  
-        case "internalMemo": 
+        case "internalMessage": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
         case "currHotkeys":
             ptrOffset := calcStatusPtrOffset(param, ptr)

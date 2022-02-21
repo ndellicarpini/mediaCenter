@@ -39,6 +39,8 @@ class Program {
         this.dir  := (exeConfig.Has("dir"))  ? exeConfig["dir"]  : this.dir
         this.exe  := (exeConfig.Has("exe"))  ? exeConfig["exe"]  : this.exe
         this.wndw := (exeConfig.Has("wndw")) ? exeConfig["wndw"] : this.wndw
+        
+        this.background := (exeConfig.Has("background")) ? exeConfig["background"] : this.background
 
         this.time := A_TickCount
 
@@ -65,13 +67,13 @@ class Program {
         }
 
         if (this.enableTooltip) {
-            this.tooltipInner := (exeConfig.Has("tooltip")) ? toArray(exeConfig["tooltip"]) : this.tooltipText
+            this.tooltipInner := (exeConfig.Has("tooltip")) ? toArray(exeConfig["tooltip"]) : this.tooltipInner
         }
     }
 
     launch(args) {
         ; TODO
-        ; take args from mainMessage
+        ; take args from externalMessage
         ; set currEXE -> then tooltip -> then postTooltip
         if (this.customLaunch != "") {
             runFunction(this.customLaunch, args)
@@ -337,18 +339,82 @@ checkWNDW(wndw, retName := false) {
 	return false
 }
 
-; checks that any of the programs exist in program list
-;  programs - list of program configs
+; get the most recently opened program if it exists, otherwise return blank
+;  running - currently running programs in mainRunning
+;  checkBackground - boolean if to check background apps as well
 ;
-; returns either the name of the program or ""
-checkAllPrograms(programs) {
-    for key, value in programs {
-        if ((value.Has("exe") && checkEXE(value["exe"]))
-            || (value.Has("wndw") && checkWNDW(value["wndw"]))) {
-            
-            return key
+; returns either name of recently opened program or empty string
+getMostRecentProgram(running, checkBackground := false) {
+    prevTime := 0
+    prevProgram := ""
+    for key, value in running {
+        if (!checkBackground && value.background) {
+            continue
+        }
+
+        if (value.time > prevTime) {
+            prevTime := value.time
+            prevProgram := key
         }
     }
 
-    return ""
+    return prevProgram
+}
+
+; checks & updates the running list of programs
+; launches missing background programs
+;  running - currently running program map
+;  programs - list of program configs
+;
+; returns null
+checkAllPrograms(running, programs) {
+    for key, value in programs {
+        if (!running.Has(key) && ((value.Has("exe") && checkEXE(value["exe"])) || (value.Has("wndw") && checkWNDW(value["wndw"])))) {
+            createProgram(key, running, programs, false, false)
+        }
+    }
+
+    numForeground := 0
+    for key, value in running {
+        if (!value.exists()) {
+            running.Delete(key)
+        }
+        else if (!value.background) {
+            numForeground += 1
+        }
+    }
+
+    if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "" && numForeground = 0) {
+        if (!programs.Has(globalConfig["Programs"]["Default"])) {
+            ErrorMsg("Default Program" . globalConfig["Programs"]["Default"] . " has no config", true)
+        }
+
+        createProgram(globalConfig["Programs"]["Default"], running, programs, true, false)
+    }
+
+    if (globalConfig["Programs"].Has("Required") && globalConfig["Programs"]["Required"] != "") {
+        checkRequiredPrograms(running, programs)
+    }
+}
+
+; checks & updates the running list of programs specifically for required programs
+;  running - currently running program map
+;  programs - list of program configs
+;
+; returns null
+checkRequiredPrograms(running, programs) {
+    for item in toArray(globalConfig["Programs"]["Required"]) {
+        if (!programs.Has(item)) {
+            ErrorMsg("Required Program " . item . "has no config", true)
+        }
+
+        if (!running.Has(item)) {
+            if ((programs[item].Has("exe") && checkEXE(programs[item]["exe"])) || (programs[item].Has("wndw") && checkWNDW(programs[item]["wndw"]))) {
+                createProgram(item, running, programs, false, false)
+            }
+            else {
+                createProgram(item, running, programs, true, false)
+            }
+        }
+    }
 }

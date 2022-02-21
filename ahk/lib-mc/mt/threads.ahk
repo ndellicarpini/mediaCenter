@@ -11,7 +11,7 @@ controllerThread(globalConfig, globalControllers) {
         
         setCurrentWinTitle('controllerThread')
         
-        global globalConfig      := cleanComMap(ObjShare(" globalConfig "))
+        global globalConfig      := ObjShare(" globalConfig ")
         global globalControllers := " globalControllers "
 
         xLibrary := dllLoadLib('xinput1_3.dll')
@@ -75,44 +75,36 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         global buttonTime := 70
 
         ; variables are global to be accessed in timers
-        global globalConfig      := cleanComMap(ObjShare(" globalConfig "))
+        global globalConfig      := ObjShare(" globalConfig ")
         global globalStatus      := " globalStatus "
         global globalControllers := " globalControllers "
-
-        global currProgram  := getStatusParam('currProgram')
-        global currOverride := getStatusParam('overrideProgram')
-        global currError    := getStatusParam('errorHwnd')
-
-        global currLoad     := getStatusParam('loadShow')
 
         global currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
         global currController := -1
         global currButton := ''
+
+        global hotkeyBuffer := []
 
         maxControllers := globalConfig['General']['MaxXInputControllers']
         loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 4)
 
         ; --- MAIN LOOP ---
         loop {
-            currProgram  := getStatusParam('currProgram')
-            currOverride := getStatusParam('overrideProgram')
-            currError    := getStatusParam('errorHwnd')
-    
-            currLoad     := getStatusParam('loadShow')
-
-            currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
-
             ; only check buttons if script not suspended
             if (getStatusParam('suspendScript')) {
                 Sleep(loopSleep)
                 continue
             }
 
+            currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
+
+            ; if hotkeys are not valid, just skip
             if (!currHotkeys.Has('uniqueKeys') || !currHotkeys.Has('hotkeys')) {
                 Sleep(loopSleep)
                 continue
             }
 
+            ; check hotkeys
             for item in currHotkeys['uniqueKeys'] {
                 loop maxControllers {
                     if (xCheckStatus(item, (A_Index - 1), globalControllers)) {
@@ -127,6 +119,13 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                     }
                 }
             }
+            
+            ; if hotkeyBuffer has items, prioritize sending buffered inputs
+            if (hotkeyBuffer.Length > 0) {
+                if (getStatusParam('internalMessage') = '') {
+                    setStatusParam('internalMessage', hotkeyBuffer.RemoveAt(1))
+                }
+            }
 
             ; close if main is no running
             if (!WinHidden(MAINNAME)) {
@@ -137,23 +136,50 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         }
 
         ; --- TIMERS ---
-        ButtonTimer() {
-            global
+        ButtonTimer() {   
+            global globalStatus     
+            global globalControllers
+
+            global currHotkeys
+            global currController
+            global currButton
+
+            global hotkeyBuffer
+
+            currProgram  := getStatusParam('currProgram')
+            currGui      := getStatusParam('currGui')
+            currError    := getStatusParam('errorHwnd')
+            currLoad     := getStatusParam('loadShow')
 
             hotkeyInfo := checkHotkeys(currButton, currHotkeys['hotkeys'], currController, globalControllers)
+            if (hotkeyInfo = -1) {
+                currController := -1
+                currButton := ''
 
-            if (hotkeyInfo[2] = 'Pause' && currLoad) {
                 return
             }
 
-            setStatusParam('internalMemo', hotkeyInfo[2])
+            ; TODO - think about if hard-coded disable pause when loading is good
+            if (hotkeyInfo[2] = 'Pause' && currLoad) {
+                currController := -1
+                currButton := ''
+
+                return
+            }
+
+            ; check if can just send input or need to buffer
+            if (getStatusParam('internalMessage') != '') {
+                hotkeyBuffer.Push(hotkeyInfo[2])
+            }
+            else {
+                setStatusParam('internalMessage', hotkeyInfo[2])
+            }
 
             ; if user holds button for a long time, kill everything
             if (hotkeyInfo[2] = 'Exit') {
                 SetTimer(NuclearTimer, -3000)
-                while ((currProgram = getStatusParam('currProgram') 
-                    || currOverride = getStatusParam('overrideProgram')
-                    || currError = getStatusParam('errorHwnd'))
+                while ((currProgram = getStatusParam('currProgram') || currGui = getStatusParam('currGui')
+                    || currError = getStatusParam('errorHwnd' || currLoad = getStatusParam('loadShow')))
                     && xCheckStatus(hotkeyInfo[1], currController, globalControllers)) {
                     
                     Sleep(5)
@@ -173,27 +199,12 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         }
 
         NuclearTimer() {
-            global
+            global globalStatus
 
-            setStatusParam('internalMemo', 'Nuclear')
+            setStatusParam('internalMessage', 'Nuclear')
             return
         }
 
         "
     ))
-}
-
-; closes all threads
-;  threads - map of all current threads
-;
-; returns null
-closeAllThreads(threads) {
-    for key, value in threads {
-        try {
-            value.ExitApp()
-        }
-        catch {
-            continue
-        }
-    }
 }

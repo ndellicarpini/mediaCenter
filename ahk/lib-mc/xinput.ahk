@@ -85,7 +85,7 @@ xCheckStatus(toCheck, port, ptr) {
         , statusData.Ptr + (8 * (A_Index - 1)), 0)
     }
 
-    if (statusData = 0) {
+    if (statusData = 0 || toCheck = "") {
         return false
     }
 
@@ -100,12 +100,20 @@ xCheckStatus(toCheck, port, ptr) {
             buttons := buttons | xButtons.%item%
         }
         catch {
-            MsgBox(item)
-            retVal := retVal & xCheckAxis(statusData, item)
+            axisVal := xCheckAxis(statusData, item)
+
+            if (Type(axisVal) != "String") {
+                return axisVal
+            }
+
+            retVal := retVal & (axisVal = "true") ? true : false
         }
     }
 
-    retVal := retVal & (((buttons & NumGet(statusData, xButtons.offset, xButtons.type)) > 0) ? true : false)
+    if (buttons != 0) {
+        retVal := retVal & ((buttons & NumGet(statusData, xButtons.offset, xButtons.type) > 0) ? true : false)
+    }
+
     return retVal
 }
 
@@ -148,16 +156,15 @@ xCheckAxis(statusData, axis) {
 
     currValue := NumGet(statusData, xAxis.%currAxis%.offset, xAxis.%currAxis%.type) / xAxis.%currAxis%.max
 
+    if (InStr(comparison, ">") && currValue > value) {
+        return "true"
+    }
+    else if (InStr(comparison, "<") && currValue < value) {
+        return "true"
+    }
+    else if (InStr(comparison, "=") && currValue = value) {
+        return "true"
+    }
 
-    if (InStr(remainingChars, ">") && currValue > value) {
-        return true
-    }
-    else if (InStr(remainingChars, "<") && currValue < value) {
-        return true
-    }
-    else if (InStr(remainingChars, "=") && currValue = value) {
-        return true
-    }
-
-    return false
+    return "false"
 }
