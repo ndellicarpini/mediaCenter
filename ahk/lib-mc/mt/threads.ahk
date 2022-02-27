@@ -16,9 +16,13 @@ controllerThread(globalConfig, globalControllers) {
 
         xLibrary := dllLoadLib('xinput1_3.dll')
         xGetStatusPtr := 0
+        xGetBatteryPtr := 0
+        xSetVibrationPtr := 0
         
         if (xLibrary != 0) {
             xGetStatusPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'UInt', 100)
+            xGetBatteryPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputGetBatteryInformation')
+            xSetVibrationPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputSetState')
         }
         else {
             ErrorMsg('Failed to initialize xinput', true)
@@ -27,14 +31,22 @@ controllerThread(globalConfig, globalControllers) {
         maxControllers := globalConfig['General']['MaxXInputControllers']
         loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 5)
 
+        currVibration := []
+        loop maxControllers {
+            currVibration.Push(0)
+        }
+
         loop {
             controllerStatus := xGetStatus(maxControllers, xGetStatusPtr)
-            loop controllerStatus.Length {
+            batteryStatus    := xGetBattery(maxControllers, xGetBatteryPtr)
+            currVibration    := xSetVibration(maxControllers, xSetVibrationPtr, currVibration, globalControllers)
+            loop maxControllers {
                 port := A_Index - 1
 
+                NumPut('UChar', batteryStatus[A_Index], globalControllers + (port * 18) + 1, 0)
                 loop 2 {
                     NumPut('UInt64', NumGet(controllerStatus[port + 1].Ptr + (8 * (A_Index - 1)), 0, 'UInt64')
-                        , globalControllers + (port * 16) + (8 * (A_Index - 1)), 0)
+                        , globalControllers + (port * 18) + 2 + (8 * (A_Index - 1)), 0)
                 }
             }
 
