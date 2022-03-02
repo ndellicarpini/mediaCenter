@@ -18,6 +18,7 @@ global MT_STATUS_KEYS := {
     errorHwnd: MT_NUM_SIZE,
     currGui: MT_KEY_SIZE,
     internalMessage: MT_KEY_SIZE,
+    buttonTime: MT_NUM_SIZE,
 
     ; support for up to 32 hotkeys
     currHotkeys: MT_KEY_SIZE * 64,
@@ -78,6 +79,8 @@ getStatusParam(param, ptr := "") {
         case "errorShow": 
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")      
         case "errorHwnd":  
+            return NumGet(calcStatusPtrOffset(param, ptr), 0, "UInt")     
+        case "buttonTime":  
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UInt")         
         case "currGui": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)        
@@ -126,6 +129,8 @@ setStatusParam(param, newVal, ptr := "") {
         case "errorShow": 
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))      
         case "errorHwnd":  
+            NumPut("UInt", newVal, calcStatusPtrOffset(param, ptr))      
+        case "buttonTime":  
             NumPut("UInt", newVal, calcStatusPtrOffset(param, ptr))         
         case "currGui": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)  

@@ -36,6 +36,23 @@ addHotkeys(currHotkeys, newHotkeys) {
     return currHotkeys
 }
 
+; checks & returns a hotkey modifier string if it exists
+;  hotkey - hotkey string to check for modifier
+;
+; returns modifier
+checkHotkeyModifier(hotkey) {
+    hotkeyUpper := StrUpper(hotkey)
+
+    modifiers := ["[HOLD]", "[REPEAT]"]
+    for item in modifiers {
+        if (InStr(StrUpper(hotkey), item)) {
+            return item
+        }
+    }
+
+    return ""
+}
+
 ; splits a hotkey string into different attributes of the hotkey map
 ; & -> first element becomes main, all others become sub | -> all elements become main
 ;  currHotkeys - current hotkey map
@@ -59,12 +76,16 @@ optimizeHotkeys(currHotkeys) {
         ; --- FUNCTION ---
         cleanHotkeys := Map()
         buttonCount := Map()
+        modifiers := Map()
     
         ; clean new hotkeys from program to put into proper format
         for key, value in currHotkeys {
-            if (InStr(key, "&")) {
+            currModifier := checkHotkeyModifier(key)
+            currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")            
+
+            if (InStr(currKey, "&")) {
                 addItem := ""
-                currHotkey := StrSplit(key, "&")
+                currHotkey := StrSplit(currKey, "&")
     
                 for item in currHotkey {
                     currItem := Trim(item, " `t`r`n")
@@ -82,15 +103,17 @@ optimizeHotkeys(currHotkeys) {
                 }
     
                 cleanHotkeys[RTrim(addItem, "&")] := value
+                modifiers[RTrim(addItem, "&")] := Trim(StrLower(currModifier), "[] `t`r`n")
             }
-            else if (InStr(key, "|")) {
-                currHotkey := StrSplit(key, "|")
+            else if (InStr(currKey, "|")) {
+                currHotkey := StrSplit(currKey, "|")
     
                 ; treat or button combos as 2 separate button definitions
                 for item in currHotkey {
                     currItem := Trim(item, " `t`r`n")
     
                     cleanHotkeys[currItem] := value
+                    modifiers[currItem] := Trim(StrLower(currModifier), "[] `t`r`n")
     
                     if (currItem != "") {
                         if (!buttonCount.Has(currItem)) {
@@ -103,9 +126,10 @@ optimizeHotkeys(currHotkeys) {
                 }
             }
             else {
-                currItem := Trim(key, " `t`r`n")
+                currItem := Trim(currKey, " `t`r`n")
     
                 cleanHotkeys[currItem] := value
+                modifiers[currItem] := Trim(StrLower(currModifier), "[] `t`r`n")
     
                 if (currItem != "") {
                     if (!buttonCount.Has(currItem)) {
@@ -120,6 +144,7 @@ optimizeHotkeys(currHotkeys) {
     
         retHotkeys := Map()
         retHotkeys["hotkeys"] := cleanHotkeys
+        retHotkeys["modifiers"] := modifiers
     
         ; sort unique buttons by number of references to each button in the total
         ; hotkeys, lets me reduce the number of button checks in a loop by only
@@ -146,7 +171,8 @@ optimizeHotkeys(currHotkeys) {
 ; returns array of button combo pressed & function from currHotkeys based on controller
 checkHotkeys(currButton, currHotkeys, port, ptr) {
     checkArr := []
-    for key, value in currHotkeys {
+
+    for key, value in currHotkeys["hotkeys"] {
         if (InStr(key, currButton)) {
             checkArr.Push(key)
         }
@@ -154,7 +180,11 @@ checkHotkeys(currButton, currHotkeys, port, ptr) {
 
     ; if only 1 hotkeys references button & button is pressed -> return hotkey
     if (checkArr.Length = 1 && checkArr[1] = currButton) {
-        return [toArray(StrSplit(checkArr[1], "&")), currHotkeys[checkArr[1]]]
+        return {
+            hotkey: toArray(StrSplit(checkArr[1], "&")), 
+            function: currHotkeys["hotkeys"][checkArr[1]], 
+            modifier: currHotkeys["modifiers"][checkArr[1]]
+        }
     }
 
     maxValidAmp := 0
@@ -176,5 +206,9 @@ checkHotkeys(currButton, currHotkeys, port, ptr) {
         return -1
     }
 
-    return [toArray(StrSplit(maxValidItem, "&")), currHotkeys[maxValidItem]]
+    return {
+        hotkey: toArray(StrSplit(maxValidItem, "&")), 
+        function: currHotkeys["hotkeys"][maxValidItem], 
+        modifier: currHotkeys["modifiers"][maxValidItem]
+    }
 }

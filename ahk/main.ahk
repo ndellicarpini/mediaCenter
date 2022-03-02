@@ -1,4 +1,4 @@
-#SingleInstance Force
+﻿#SingleInstance Force
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include lib-custom\boot.ahk
@@ -16,6 +16,7 @@
 #Include lib-mc\hotkeys.ahk
 
 #Include lib-mc\gui\std.ahk
+#Include lib-mc\gui\interface.ahk
 #Include lib-mc\gui\loadscreen.ahk
 #Include lib-mc\gui\pausemenu.ahk
 
@@ -25,7 +26,7 @@
 SetKeyDelay 80, 60
 
 setCurrentWinTitle(MAINNAME)
-mainScriptDir := A_ScriptDir
+global MAINSCRIPTDIR := A_ScriptDir
 
 ; ----- INITIALIZE GLOBALCONFIG (READ-ONLY) -----
 mainConfig := Map()
@@ -97,6 +98,8 @@ setStatusParam("loadText", "Now Loading...", mainStatus.Ptr)
 ; error info
 setStatusParam("errorShow", false, mainStatus.Ptr)
 setStatusParam("errorHwnd", 0, mainStatus.Ptr)
+; time to hold a hotkey for it to trigger
+setStatusParam("buttonTime", 70, mainStatus.Ptr)
 ; current hotkeys
 setStatusParam("currHotkeys", Map(), mainStatus.Ptr)
 ; current active gui
@@ -112,6 +115,7 @@ mainControllers  := xInitBuffer(mainConfig["General"]["MaxXInputControllers"])
 ; ----- INITIALIZE PROGRAM CONFIGS -----
 mainRunning  := Map()
 mainPrograms := Map()
+mainGuis     := Map()
 
 ; read program configs from ConfigDir
 if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
@@ -164,13 +168,11 @@ if (!globalConfig["StartArgs"].Has("-quiet") && globalConfig["GUI"].Has("EnableL
 ; ----- START CONTROLLER THEAD -----
 ; this thread just updates the status of each controller in a loop
 controllerThreadRef := controllerThread(ObjShare(mainConfig), mainControllers.Ptr)
-SetWorkingDir(mainScriptDir)
 
 ; ----- START HOTKEY THREAD -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
 hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), mainStatus.Ptr, mainControllers.Ptr)
-SetWorkingDir(mainScriptDir)
 
 ; ----- BOOT -----
 if (globalConfig["Boot"]["EnableBoot"]) {
@@ -218,6 +220,8 @@ loop {
 
         ; reset message after processing
         externalMessage := []
+
+        continue
     }
 
     internalMessage := getStatusParam("internalMessage")
@@ -228,11 +232,11 @@ loop {
         if (StrLower(internalMessage) = "pause") {
             if (!WinShown(GUIPAUSETITLE)) {
                 setStatusParam("pause", true)
-                createPauseMenu((currProgram != "") ? mainRunning[currProgram] : "")
+                createPauseMenu((currProgram != "") ? mainRunning[currProgram] : "", mainGuis)
             }
             else {
                 setStatusParam("pause", false)
-                destroyPauseMenu()
+                destroyPauseMenu(mainGuis)
             }
         }
         else if (StrLower(internalMessage) = "exit") {
@@ -274,12 +278,20 @@ loop {
                 ProcessKill(WinGetPID(WinHidden(MAINNAME)))
             }
         }
+        else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
+            mainGuis[currGui].%StrReplace(internalMessage, "gui.", "")%()
+        }
+        else if (StrLower(SubStr(internalMessage, 1, 4)) = "program.") {
+            mainRunning[currProgram].%StrReplace(internalMessage, "program.", "")%()
+        }
         else {
             runFunction(internalMessage)
         }
 
         ; reset message after processing
         setStatusParam("internalMessage", "")
+
+        continue
     }
     
     Sleep(loopSleep)
@@ -318,6 +330,8 @@ loop {
                 }
 
                 currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
+
+                setStatusParam("buttonTime", 25)
                 activeSet := true
             }
         }
@@ -337,9 +351,16 @@ loop {
     currProgram := getStatusParam("currProgram")
     currGui     := getStatusParam("currGui")
 
-    if (checkAllCount > 10) {
+    if (checkAllCount > 10 || (currProgram = "" && currGui = "")) {
+        checkAllGuis(mainGuis)
+
+        mostRecentGui := getMostRecentGui(mainGuis)
+        if (mostRecentGui != currGui) {
+            setStatusParam("currGui", mostRecentGui)
+        }
+
         checkAllPrograms(mainRunning, mainPrograms)
-        
+
         mostRecentProgram := getMostRecentProgram(mainRunning)
         if (mostRecentProgram != currProgram) {
             setStatusParam("currProgram", mostRecentProgram)
@@ -349,11 +370,32 @@ loop {
     }
 
     ; --- CHECK OPEN GUIS ---
+    if (currGui != "") {
+        if (mainGuis.Has(currGui) && WinShown(currGui)) {
+            if (!activeSet) {
+                if (forceActivate) {
+                    try WinActivate(currGui)
+                }
 
+                if (mainGuis[currGui].hotkeys.Count > 0) {
+                    currHotkeys := addHotkeys(currHotkeys, mainGuis[currGui].hotkeys)
+                }
 
-    ; --- CHECK RUNNING PROGRAMS ---
+                setStatusParam("buttonTime", 25)
+                activeSet := true
+            }
+        } 
+        else {
+            if (mainGuis.Has(currGui)) {
+                mainGuis[currGui].Destroy()
+                mainGuis.Delete(currGui)
+            }
 
-    ; current program is set
+            setStatusParam("currGui", "")
+        }
+    }
+
+    ; --- CHECK OPEN PROGRAMS ---
     if (currProgram != "") {
         if (mainRunning.Has(currProgram)) {
             if (mainRunning[currProgram].exists()) {
@@ -366,6 +408,7 @@ loop {
                         currHotkeys := addHotkeys(currHotkeys, mainRunning[currProgram].hotkeys)
                     }
 
+                    setStatusParam("buttonTime", 70)
                     activeSet := true
                 }
             }
@@ -415,7 +458,7 @@ loop {
 
     ; --- CHECK LOOPER ---
     if (forceMaintain && !WinHidden(MAINLOOP)) {
-        Run A_AhkPath . " " . "mainLooper.ahk", A_ScriptDir, "Hide"
+        Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
     }
  
     checkAllCount += 1

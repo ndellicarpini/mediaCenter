@@ -162,16 +162,16 @@ xDisableVibration(port, ptr) {
 ; returns boolean if hotkey status is fulfilled by controller status, or axis value
 xCheckStatus(toCheck, port, ptr) {
     statusData := Buffer(16)
-    loop 2 {
-        NumPut("UInt64", NumGet(ptr + (port * 18) + 2 + (8 * (A_Index - 1)), 0, "UInt64")
-        , statusData.Ptr + (8 * (A_Index - 1)), 0)
-    }
+    copyBufferData(ptr + (port * 18) + 2, statusData.Ptr, 16)
 
     if (toCheck = "" || StrGet(ptr + (port * 18) + 2, 16) = "") {
         return false
     }
 
     retVal := true
+
+    axisVal := true
+    checkAxis := false
     buttons := 0x000000
     for item in toArray(toCheck) {
         if (item = "") {
@@ -182,21 +182,22 @@ xCheckStatus(toCheck, port, ptr) {
             buttons := buttons | xButtons.%item%
         }
         catch {
-            axisVal := xCheckAxis(statusData, item)
+            axisData := xCheckAxis(statusData, item)
 
-            if (Type(axisVal) != "String") {
-                return axisVal
+            if (Type(axisData) != "String") {
+                return axisData
             }
 
-            retVal := retVal & (axisVal = "true") ? true : false
+            checkAxis := true
+            axisVal := axisVal && ((axisData = "true") ? true : false)
         }
     }
 
-    if (buttons != 0) {
-        retVal := retVal & ((buttons & NumGet(statusData, xButtons.offset, xButtons.type) > 0) ? true : false)
+    if (buttons = 0x000000) {
+        return ((checkAxis) ? axisVal : false)
     }
 
-    return retVal
+    return ((checkAxis) ? axisVal : true) && (buttons = (buttons & NumGet(statusData, xButtons.offset, xButtons.type)))
 }
 
 ; checks the axis of a specific controller

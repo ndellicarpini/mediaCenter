@@ -1,7 +1,4 @@
-#Include std.ahk
-#Include confio.ahk
-
-; create an executable generic object that gets added to openEXE
+; creates an executable generic object that gets added to mainRunning
 ; this executable object will contain a lot of the generic features taken from executable json files
 ; each function & more in json files has default version as well
 class Program {
@@ -219,15 +216,15 @@ class Program {
 
 }
 
-; creates an program to use
+; creates a program that gets added to mainRunning
 ;  params - params to pass to Program(), first element of params must be program name
 ;  programs - list of programs parsed at start of main
 ;  launchProgram - if program.launch() should be called
 ;  setCurrent - if currProgram should be updated
 ;  customTime - manual time value to set (useful for backup)
 ;
-; returns either the program, or empty string
-createProgram(params, running, programs, launchProgram := true, setCurrent := true, customTime := 0) {   
+; returns null
+createProgram(params, running, programs, launchProgram := true, setCurrent := true, customTime := "") {   
     newProgram := IsObject(params) ? params : toArray(StrSplit(params, A_Space))
 
     newName := newProgram.RemoveAt(1)
@@ -244,13 +241,12 @@ createProgram(params, running, programs, launchProgram := true, setCurrent := tr
                 running[newName].launch(newProgram)
             }
 
-            if (customTime > 0) {
+            if (customTime != "") {
                 running[newName].time := customTime
             }
 
             if (running[newName].hotkeys.Count > 0) {
-                setStatusParam("currHotkeys"
-                    , addHotkeys(getStatusParam("currHotkeys"), running[newName].hotkeys))
+                setStatusParam("currHotkeys", addHotkeys(getStatusParam("currHotkeys"), running[newName].hotkeys))
             }
         
             return
@@ -258,7 +254,6 @@ createProgram(params, running, programs, launchProgram := true, setCurrent := tr
     }
 
     ErrorMsg("Program " . newName . " was not found")
-    return
 }
 
 ; cleans up program setting if it is a file, converting it into a newline deliminated list

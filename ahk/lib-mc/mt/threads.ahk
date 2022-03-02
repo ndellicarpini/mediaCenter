@@ -3,7 +3,7 @@
 ;
 ; returns the ThreadObj that checks controller statuses
 controllerThread(globalConfig, globalControllers) {
-    return ThreadObj(
+    ref := ThreadObj(
     (
         "
         #Include lib-mc\std.ahk
@@ -44,10 +44,7 @@ controllerThread(globalConfig, globalControllers) {
                 port := A_Index - 1
 
                 NumPut('UChar', batteryStatus[A_Index], globalControllers + (port * 18) + 1, 0)
-                loop 2 {
-                    NumPut('UInt64', NumGet(controllerStatus[port + 1].Ptr + (8 * (A_Index - 1)), 0, 'UInt64')
-                        , globalControllers + (port * 18) + 2 + (8 * (A_Index - 1)), 0)
-                }
+                copyBufferData(controllerStatus[A_Index].Ptr, globalControllers + (port * 18) + 2, 16)
             }
 
             ; close if main is no running
@@ -60,6 +57,11 @@ controllerThread(globalConfig, globalControllers) {
         }
         "
     ))
+
+    global MAINSCRIPTDIR
+    SetWorkingDir(MAINSCRIPTDIR)
+
+    return ref
 }
 
 ; creates the thread that does actions based on current mainStatus & mainControllers
@@ -69,7 +71,7 @@ controllerThread(globalConfig, globalControllers) {
 ;
 ; returns the ThreadObj that does x based on mainStatus
 hotkeyThread(globalConfig, globalStatus, globalControllers) {
-    return ThreadObj(
+    ref := ThreadObj(
     (
         "
         #Include lib-mc\std.ahk
@@ -83,18 +85,20 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         SetKeyDelay 80, 60
 
         ; --- GLOBAL VARIABLES ---
-        ; time user needs to hold button to trigger hotkey function
-        global buttonTime := 70
 
         ; variables are global to be accessed in timers
         global globalConfig      := ObjShare(" globalConfig ")
         global globalStatus      := " globalStatus "
         global globalControllers := " globalControllers "
 
+        ; time user needs to hold button to trigger hotkey function
+        global buttonTime := getStatusParam('buttonTime')
+
         global currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
         global currController := -1
         global currButton := ''
 
+        global hotkeyData := {}
         global hotkeyBuffer := []
 
         maxControllers := globalConfig['General']['MaxXInputControllers']
@@ -109,6 +113,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
+            buttonTime  := getStatusParam('buttonTime')
 
             ; if hotkeys are not valid, just skip
             if (!currHotkeys.Has('uniqueKeys') || !currHotkeys.Has('hotkeys')) {
@@ -156,6 +161,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             global currController
             global currButton
 
+            global hotkeyData
             global hotkeyBuffer
 
             currProgram  := getStatusParam('currProgram')
@@ -163,8 +169,9 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             currError    := getStatusParam('errorHwnd')
             currLoad     := getStatusParam('loadShow')
 
-            hotkeyInfo := checkHotkeys(currButton, currHotkeys['hotkeys'], currController, globalControllers)
-            if (hotkeyInfo = -1) {
+            hotkeyData := checkHotkeys(currButton, currHotkeys, currController, globalControllers)
+
+            if (hotkeyData = -1) {
                 currController := -1
                 currButton := ''
 
@@ -172,7 +179,8 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             ; TODO - think about if hard-coded disable pause when loading is good
-            if (hotkeyInfo[2] = 'Pause' && currLoad) {
+            ;      - now also exit is hard-coded off when paused
+            if ((hotkeyData.function = 'Pause' && currLoad) || (hotkeyData.function = 'Exit' && getStatusParam('pause'))) {
                 currController := -1
                 currButton := ''
 
@@ -181,27 +189,54 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
             ; check if can just send input or need to buffer
             if (getStatusParam('internalMessage') != '') {
-                hotkeyBuffer.Push(hotkeyInfo[2])
+                hotkeyBuffer.Push(hotkeyData.function)
             }
             else {
-                setStatusParam('internalMessage', hotkeyInfo[2])
+                setStatusParam('internalMessage', hotkeyData.function)
             }
 
             ; if user holds button for a long time, kill everything
-            if (hotkeyInfo[2] = 'Exit') {
+            if (hotkeyData.function = 'Exit') {
                 SetTimer(NuclearTimer, -3000)
                 while ((currProgram = getStatusParam('currProgram') || currGui = getStatusParam('currGui')
                     || currError = getStatusParam('errorHwnd' || currLoad = getStatusParam('loadShow')))
-                    && xCheckStatus(hotkeyInfo[1], currController, globalControllers)) {
+                    && xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
                     
                     Sleep(5)
                 }
                 SetTimer(NuclearTimer, 0)
             }
 
-            ; wait for user to release buttons
-            while (xCheckStatus(hotkeyInfo[1], currController, globalControllers)) {
-                Sleep(5)
+            ; forces internalMessage = function while hotkey is held 
+            if (hotkeyData.modifier = 'hold') {
+                while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
+                    if (getStatusParam('internalMessage') = '') {
+                        setStatusParam('internalMessage', hotkeyData.function)
+                    }
+                    
+                    Sleep(loopSleep)
+                }
+            }
+
+            ; after a delay, repeatedly adds new function call to hotkey buffer while hotkey is held
+            else if (hotkeyData.modifier = 'repeat') {
+                SetTimer(RepeatTimer, -400)
+
+                while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
+                    Sleep(5)
+                }
+
+                ; clear hotkey buffer when button is released
+                hotkeyBuffer := []
+                SetTimer(RepeatTimer, 0)
+                SetTimer(RepeatFastTimer, 0)
+            }
+
+            ; loop while hotkey is held
+            else {
+                while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
+                    Sleep(5)
+                }
             }
 
             currController := -1
@@ -210,6 +245,41 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             return
         }
 
+        ; timer for the delayed 2nd add to hotkey buffer
+        ; starts RepeatFastTimer
+        RepeatTimer() {
+            global hotkeyData
+            global hotkeyBuffer
+
+            ; check if can just send input or need to buffer
+            if (getStatusParam('internalMessage') != '') {
+                hotkeyBuffer.Push(hotkeyData.function)
+            }
+            else {
+                setStatusParam('internalMessage', hotkeyData.function)
+            }
+
+            SetTimer(RepeatFastTimer, 40)
+            return
+        }
+
+        ; timer for repeated function adds to buffer at short interval 
+        RepeatFastTimer() {
+            global hotkeyData
+            global hotkeyBuffer
+
+            ; check if can just send input or need to buffer
+            if (getStatusParam('internalMessage') != '') {
+                hotkeyBuffer.Push(hotkeyData.function)
+            }
+            else {
+                setStatusParam('internalMessage', hotkeyData.function)
+            }
+
+            return
+        }
+
+        ; timer for after exit has been held for long enough
         NuclearTimer() {
             global globalStatus
 
@@ -219,4 +289,9 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
         "
     ))
+
+    global MAINSCRIPTDIR
+    SetWorkingDir(MAINSCRIPTDIR)
+
+    return ref
 }

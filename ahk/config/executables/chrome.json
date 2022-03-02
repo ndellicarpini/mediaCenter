@@ -22,7 +22,8 @@
     "hotkeys": {
         "SELECT": "browserOSK",
         "START": "browserNewTab",
-        "Y&RT>=0.4": "Exit"
+        "Y&RT>=0.4": "Exit",
+        "START&SELECT": "Exit"
     },
     "pauseOptions": {
         "Controls": "browserControls",

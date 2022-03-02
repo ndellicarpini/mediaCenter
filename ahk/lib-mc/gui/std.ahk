@@ -54,19 +54,21 @@ percentHeight(height, useSize := true) {
 ;
 ; returns the cpu load
 getCpuLoad() {
-    GetSystemTimes() {
-        kernel := 0
-        user := 0
-        idle := 0
+    static prevKernelUser := 0
+    static prevIdle := 0
 
-        DllCall("GetSystemTimes", "Int64P", &idle, "Int64P", &kernel, "Int64P", &user)
-        return [kernel + user, idle]
-    }
+    kernel := 0
+    user := 0
+    idle := 0
 
-	one := GetSystemTimes()
-	Sleep(500)
-	two := GetSystemTimes()
-	return 100 * (1 - (two[2] - one[2])/(two[1] - one[1]))
+    DllCall("GetSystemTimes", "Int64P", &idle, "Int64P", &kernel, "Int64P", &user)
+
+    retVal := 100 * (1 - ((idle - prevIdle) / ((kernel + user) - prevKernelUser)))
+
+    prevKernelUser := kernel + user
+    prevIdle := idle
+
+	return retVal
 }
 
 ; gets the ram load as a int percentage
@@ -152,6 +154,10 @@ getGUI(title) {
 ;
 ; returns null
 guiSetFont(guiObj, options := "s20", enableSizing := true) {
+    if (Type(guiObj) = "Interface") {
+        guiObj := guiObj.guiObj
+    }
+
     optionsMap := Map()
     optionsMap["c"] := FONTCOLOR
 

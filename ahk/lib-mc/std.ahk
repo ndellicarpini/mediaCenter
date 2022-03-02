@@ -509,6 +509,45 @@ getAssetPath(asset) {
     return assetPath
 }
 
+; gets the raw data from a buffer & puts it into a another buffer
+;  getPtr - ptr to the buffer to get the data
+;  setPtr - ptr to the buffer to set the data
+;  size - amount of data to set
+;
+; returns null
+copyBufferData(getPtr, setPtr, size) {
+	ptrOffset := 0
+	remainingBytes := size
+
+	while (remainingBytes >= 8) {
+		NumPut("UInt64", NumGet(getPtr + ptrOffset, 0, "UInt64"), setPtr + ptrOffset, 0)
+		
+		remainingBytes -= 8
+		ptrOffset += 8
+	}
+
+	if (remainingBytes >= 4) {
+		NumPut("UInt", NumGet(getPtr + ptrOffset, 0, "UInt"), setPtr + ptrOffset, 0)
+		
+		remainingBytes -= 4
+		ptrOffset += 4
+	}
+
+	if (remainingBytes >= 2) {
+		NumPut("UShort", NumGet(getPtr + ptrOffset, 0, "UShort"), setPtr + ptrOffset, 0)
+		
+		remainingBytes -= 2
+		ptrOffset += 2
+	}
+
+	if (remainingBytes >= 1) {
+		NumPut("UChar", NumGet(getPtr + ptrOffset, 0, "UChar"), setPtr + ptrOffset, 0)
+		
+		remainingBytes -= 1
+		ptrOffset += 1
+	}
+}
+
 ; runs a text as a function, seperating by spaces
 ;  text - string to run as function
 ;  params - additional params to push after string params
@@ -520,6 +559,16 @@ runFunction(text, params := "") {
 	
 	funcArr := []
 
+	; prepend args to func from additional outside args
+	if (Type(params) = "Array") {
+		for item in params {
+			funcArr.Push(item)
+		}
+	}
+	else if (params != "") {
+		funcArr.Push(params)
+	}
+
 	; set args for func from words in text
 	for item in textArr {
 		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%") {
@@ -528,16 +577,6 @@ runFunction(text, params := "") {
 		else {
 			funcArr.Push(item)
 		}
-	}
-
-	; append args to func from additional outside args
-	if (Type(params) = "Array") {
-		for item in params {
-			funcArr.Push(item)
-		}
-	}
-	else if (params != "") {
-		funcArr.Push(params)
 	}
 
 	; this is kinda annoying, TODO - maybe figure out how to deconstruct array

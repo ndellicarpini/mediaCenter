@@ -1,20 +1,18 @@
-#Include std.ahk
-
-global PAUSEOPTIONS := ""
-
 ; creates the pause screen
+;  currProgram - current program
+;  mainGuis - current guis
 ;
 ; returns null
-createPauseMenu(currProgram) {
-    ; TODO - fix weirdness with closing pause screen
+createPauseMenu(currProgram, mainGuis) {
+    createInterface(mainGuis, GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true)
+    pauseInt := mainGuis[GUIPAUSETITLE]
 
-    ; TODO - move all gui creation to main, create some sort of gui.Add wrapper that keeps track of each guicontrol w/ x,y pos for moving cursor
-    ; can i send a message to a gui somehow?
+    pauseInt.unselectColor := COLOR1
+    pauseInt.selectColor := COLOR3
 
-    guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop", GUIPAUSETITLE)
-    guiObj.BackColor := COLOR1
-    guiObj.MarginX := percentWidth(0.0095)
-    guiObj.MarginY := percentHeight(0.01)
+    pauseInt.guiObj.BackColor := COLOR1
+    pauseInt.guiObj.MarginX := percentWidth(0.0095)
+    pauseInt.guiObj.MarginY := percentHeight(0.01)
 
     guiWidth := percentWidth(0.25)
     guiHeight := percentHeight(1)
@@ -22,56 +20,87 @@ createPauseMenu(currProgram) {
     ; add static elements
     currentTimeArr := StrSplit(FormatTime(, "h:mm tt`ndddd, MMM d yyy"), "`n")
 
-    guiSetFont(guiObj, "s50")
-    guiObj.Add("Text", "vTime Section Center xm0 ym10 w" . (guiWidth * 0.46), currentTimeArr[1])
+    ; --- ADD TIME & DATE --- 
+    guiSetFont(pauseInt, "s50")
+    pauseInt.Add("Text", "vTime Section Center xm0 ym10 w" . (guiWidth * 0.46), currentTimeArr[1])
 
-    guiSetFont(guiObj)
-    guiObj.Add("Text", "vDate Center wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
+    guiSetFont(pauseInt)
+    pauseInt.Add("Text", "vDate Center wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
 
-    guiObj.Add("Text", "Section vInfoText x+" . percentWidth(0.010) . " ys+5", "CPU")
-    guiObj.Add("Text", "xs0 y+" . percentHeight(0.008), "RAM")
-
-    if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
-        guiObj.Add("Text", "xs0 y+" . percentHeight(0.008), "GPU")
-    }
-
-    guiObj.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . percentWidth(0.078) " ys0 x+" . percentWidth(0.006), 0)
-    guiObj.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . percentHeight(0.008), 0)
+    ; --- ADD MONITORS ---
+    pauseInt.Add("Text", "vInfoText Section x+" . percentWidth(0.010) . " ys+5", "CPU")
+    pauseInt.Add("Text", "xs0 y+" . percentHeight(0.008), "RAM")
 
     if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
-        guiObj.Add("Progress", "vGPU Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . percentHeight(0.008), 0)
+        pauseInt.Add("Text", "xs0 y+" . percentHeight(0.008), "GPU")
     }
 
+    pauseInt.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . percentWidth(0.078) " ys0 x+" . percentWidth(0.006), 0)
+    pauseInt.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . percentHeight(0.008), 0)
+
+    if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
+        pauseInt.Add("Progress", "vGPU Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . percentHeight(0.008), 0)
+    }
+
+    ; --- ADD TOP ROW BUTTONS ---
     buttonSpacing := percentWidth(0.0097)
 
-    ; TODO - maybe just set the background color to represent selected or not, can't actually set/check focus of pictures
-    guiObj.Add("Picture", "vHome Section Background" . COLOR3 . " xm0 y+" percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png"))
-    guiObj.Add("Picture", "vVolume wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png"))
-    guiObj.Add("Picture", "vControllers wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png"))
-    guiObj.Add("Picture", "vMulti wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png"))
-    guiObj.Add("Picture", "vPower Background" . COLOR3 . " wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png"))
+    pauseInt.Add("Picture", "vHome Section xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png"))
+    pauseInt.Add("Picture", "vVolume xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png"))
+    pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png"))
+    pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png"))
+    pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png"))
 
-    ; SHOW GUI
-    guiObj.Show("y0 x0 w" . guiWidth . " h" . guiHeight)
+    ; --- ADD PAUSE OPTIONS ---
+    defaultOptions := defaultPauseOptions()
+    programOptions := programPauseOptions(currProgram)
 
-    ; add pause list
-    MsgBox(toString(createPauseOptions(currProgram)))
+    optionWidth := guiWidth - (2 * percentWidth(0.0095))
+    optionHeight := percentHeight(0.05)
+
+    y_index := 1
+
+    ; program options
+    if (programOptions.Count > 0) {
+        guiSetFont(pauseInt, "bold s30")
+        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . optionHeight . " w" . optionWidth, "Current Program: " . getStatusParam("currProgram"))
     
-    ; TODO - build options using text adds in a loop
+        guiSetFont(pauseInt, "s20")
+
+        for key, value in programOptions {
+            pauseInt.Add("Text", "v" . key . " f(" . value.function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.005) . " h" . optionHeight . " w" . optionWidth, value.title)
+            y_index += 1
+        }
+    }
+
+    ; global options
+    if (defaultOptions.Count > 0) {
+        guiSetFont(pauseInt, "bold s30")
+        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . optionHeight . " w" . optionWidth, "Options")
+    
+        guiSetFont(pauseInt, "s20")
+
+        for key, value in defaultOptions {
+            pauseInt.Add("Text", "v" . key . " f(" . value.function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.005) . " h" . optionHeight . " w" . optionWidth, value.title)
+            y_index += 1
+        }
+    }
+
+    ; --- SHOW GUI ---
+    pauseInt.Show("y0 x0 w" . guiWidth . " h" . guiHeight)
 
     SetTimer(PauseSecondTimer, 1000)
     PauseSecondTimer()
 }
 
 ; destroys the pause screen
+;  mainGuis - current guis 
 ;
 ; returns null
-destroyPauseMenu() {
+destroyPauseMenu(mainGuis) {
     SetTimer(PauseSecondTimer, 0)
     
-    if (getGUI(GUIPAUSETITLE)) {
-        getGUI(GUIPAUSETITLE).Destroy()
-    }
+    mainGuis[GUIPAUSETITLE].Destroy()
 }
 
 ; adds default to pause options based on selected options from global config
@@ -79,70 +108,56 @@ destroyPauseMenu() {
 ;  currKeys - current key array used to maintain user defined order
 ; 
 ; returns current options + default options
-addDefaultOptions(currOptions := "", currKeys := "") {
+defaultPauseOptions() {
     defaultOptions := Map()
-    defaultOptions["WinSettings"] := ["Windows Settings", "runWinSettings"]
-    defaultOptions["Settings"] := ["Script Settings", "createSettingsGui config\global.cfg"]
+    defaultOptions["WinSettings"] := {title: "Windows Settings", function: "runWinSettings"}
+    defaultOptions["Settings"] := {title: "Script Settings", function: "createSettingsGui config\global.cfg"}
     
     if (!getStatusParam("KBMMode")) {
-        defaultOptions["KBMMode"] := ["Enable KB & Mouse Mode", "enableKBMM"]
+        defaultOptions["KBMMode"] := {title: "Enable KB & Mouse Mode", function: "updateKBMM"}
     }
     else {
-        defaultOptions["KBMMode"] := ["Disable KB & Mouse Mode", "disableKBMM"]
+        defaultOptions["KBMMode"] := {title: "Disable KB & Mouse Mode", function: "updateKBMM"}
     }
 
     if (!getStatusParam("suspendScript")) {
-        defaultOptions["Suspend"] := ["Suspend All Scripts", "suspendScript"]
+        defaultOptions["Suspend"] := {title: "Suspend All Scripts", function: "updateSuspendScript"}
     }
     else {
-        defaultOptions["Suspend"] := ["Resume All Scripts", "resumeScript"]
-    }
-
-    ; create currOptions map if param not passed
-    if (currOptions = "") {
-        currOptions := Map()
-    }
-
-    ; create currKeys array if param not passed
-    if (currKeys = "") {
-        currKeys := []
+        defaultOptions["Suspend"] := {title: "Resume All Scripts", function: "updateSuspendScript"}
     }
 
     if (globalConfig["GUI"].Has("DefaultPauseOptions") && IsObject(globalConfig["GUI"]["DefaultPauseOptions"])) {
         globalOptions := globalConfig["GUI"]["DefaultPauseOptions"]
 
-        for key, value in globalOptions {           
-            if (defaultOptions.Has(value)) {
-                currKeys.Push(defaultOptions[value][1])
-                currOptions[defaultOptions[value][1]] := defaultOptions[value][2]
+        for item in globalOptions {           
+            if (!defaultOptions.Has(item)) {
+                defaultOptions.Delete(item)
             }
         }
     }
 
-    return [currOptions, currKeys]
+    return defaultOptions
 }
 
 ; adds program pause options
 ;  currProgram = program to get pause options from
 ; 
-; returns current options + program options
-createPauseOptions(currProgram) {
-    currOptions := Map()
-    currKeys := []
-    
+; returns program pause settings
+programPauseOptions(currProgram) {   
+    programOptions := Map()
+
     if (currProgram != "") {
         for key, value in currProgram.pauseOptions {
-            currKeys.Push(key)
-            currOptions[key] := value
+            programOptions[StrReplace(value, A_Space, "")] := {title: key, function: value}
         }    
     }
 
-    return addDefaultOptions(currOptions, currKeys)
+    return programOptions
 }
 
-
-; TIMER TRIGGERED EACH SECOND IN PAUSE MENU
-; this timer is actually used in mainThread for performance reasons
+; timer triggered each second while pause menu is open
+; updates the time & monitors
 PauseSecondTimer() {
     pauseObj := getGUI(GUIPAUSETITLE)
 
@@ -153,6 +168,7 @@ PauseSecondTimer() {
             pauseObj["Time"].Text := currentTimeArr[1]
             pauseObj["Date"].Text := currentTimeArr[2]
 
+            ; MsgBox(getCpuLoad())
             pauseObj["CPU"].Value := Ceil(getCpuLoad())
             pauseObj["RAM"].Value := Ceil(getRamLoad())
 
