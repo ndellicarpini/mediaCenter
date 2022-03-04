@@ -56,33 +56,52 @@ createPauseMenu(currProgram, mainGuis) {
     programOptions := programPauseOptions(currProgram)
 
     optionWidth := guiWidth - (2 * percentWidth(0.0095))
-    optionHeight := percentHeight(0.05)
+    optionHeight := percentHeight(0.045)
 
     y_index := 1
 
     ; program options
     if (programOptions.Count > 0) {
         guiSetFont(pauseInt, "bold s30")
-        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . optionHeight . " w" . optionWidth, "Current Program: " . getStatusParam("currProgram"))
+        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . percentHeight(0.05) . " w" . optionWidth, getStatusParam("currProgram"))
     
-        guiSetFont(pauseInt, "s20")
+        guiSetFont(pauseInt, "s25")
 
-        for key, value in programOptions {
-            pauseInt.Add("Text", "v" . key . " f(" . value.function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.005) . " h" . optionHeight . " w" . optionWidth, value.title)
-            y_index += 1
+        if (currProgram.pauseOrder.Length > 0) {
+            pauseOrderList := []
+            for item in currProgram.pauseOrder {
+                if (currProgram.pauseOptions.Has(item)) {
+                    pauseOrderList.Push(StrReplace(currProgram.pauseOptions[item], A_Space, ""))
+                }
+            }
+        
+            for item in pauseOrderList {
+                if (programOptions.Has(item)) {
+                    pauseInt.Add("Text", "v" . item . " f(" . programOptions[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . programOptions[item].title)
+                    y_index += 1
+                }
+            }
+        }
+        else {
+            for key, value in programOptions {
+                pauseInt.Add("Text", "v" . key . " f(" . value.function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . value.title)
+                y_index += 1
+            }
         }
     }
 
     ; global options
-    if (defaultOptions.Count > 0) {
+    if (defaultOptions.items.Count > 0) {
         guiSetFont(pauseInt, "bold s30")
-        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . optionHeight . " w" . optionWidth, "Options")
+        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . percentHeight(0.05) . " w" . optionWidth, "Options")
     
-        guiSetFont(pauseInt, "s20")
+        guiSetFont(pauseInt, "s25")
 
-        for key, value in defaultOptions {
-            pauseInt.Add("Text", "v" . key . " f(" . value.function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.005) . " h" . optionHeight . " w" . optionWidth, value.title)
-            y_index += 1
+        for item in defaultOptions.order {
+            if (defaultOptions.items.Has(item)) {
+                pauseInt.Add("Text", "v" . item . " f(" . defaultOptions.items[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . defaultOptions.items[item].title)
+                y_index += 1
+            }
         }
     }
 
@@ -110,14 +129,15 @@ destroyPauseMenu(mainGuis) {
 ; returns current options + default options
 defaultPauseOptions() {
     defaultOptions := Map()
+    defaultOrder := ["KBMMode", "Suspend", "Settings", "WinSettings"]
     defaultOptions["WinSettings"] := {title: "Windows Settings", function: "runWinSettings"}
     defaultOptions["Settings"] := {title: "Script Settings", function: "createSettingsGui config\global.cfg"}
     
     if (!getStatusParam("KBMMode")) {
-        defaultOptions["KBMMode"] := {title: "Enable KB & Mouse Mode", function: "updateKBMM"}
+        defaultOptions["KBMMode"] := {title: "Enable KB && Mouse Mode", function: "updateKBMM"}
     }
     else {
-        defaultOptions["KBMMode"] := {title: "Disable KB & Mouse Mode", function: "updateKBMM"}
+        defaultOptions["KBMMode"] := {title: "Disable KB && Mouse Mode", function: "updateKBMM"}
     }
 
     if (!getStatusParam("suspendScript")) {
@@ -137,7 +157,7 @@ defaultPauseOptions() {
         }
     }
 
-    return defaultOptions
+    return {order: defaultOrder, items: defaultOptions}
 }
 
 ; adds program pause options

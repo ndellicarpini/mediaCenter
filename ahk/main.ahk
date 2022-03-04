@@ -1,4 +1,4 @@
-﻿#SingleInstance Force
+#SingleInstance Force
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include lib-custom\boot.ahk

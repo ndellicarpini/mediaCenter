@@ -14,6 +14,7 @@ class Program {
     enablePause   := true
     enableTooltip := true
 
+    pauseOrder   := []
     pauseOptions := Map()
     hotkeys      := Map()
 
@@ -60,7 +61,8 @@ class Program {
 
         ; set pause & tooltip contents if appropriate
         if (this.enablePause) {
-            this.pauseOptions := (exeConfig.Has("pauseOptions")) ? exeConfig["pauseOptions"] : this.pauseOptions
+            this.pauseOptions := (exeConfig.Has("pauseOptions")) ? exeConfig["pauseOptions"]        : this.pauseOptions
+            this.pauseOrder   := (exeConfig.Has("pauseOrder"))   ? toArray(exeConfig["pauseOrder"]) : this.pauseOrder
         }
 
         if (this.enableTooltip) {

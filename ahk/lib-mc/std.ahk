@@ -203,7 +203,7 @@ fromString(value, trimString := false) {
 		}
 		
 		; check if value is an array (contains ","), and convert appropriately
-		else if (InStr(value, ",") && (SubStr(value, 1, 1) = "[" && SubStr(value, -1, 1) = "]")) {
+		else if (SubStr(value, 1, 1) = "[" && SubStr(value, -1, 1) = "]") {
 			tempArr := StrSplit(Trim(value, " `r`n`t[]"), ",")
 
 			retVal := []

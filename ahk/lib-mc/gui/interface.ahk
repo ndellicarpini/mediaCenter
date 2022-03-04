@@ -14,6 +14,14 @@ class Interface {
     currentX := 1
     currentY := 1
 
+    guiX := 0
+    guiY := 0
+    guiW := 0
+    guiH := 0
+    
+    scrollVOffset := 0
+    scrollHOffset := 0
+
     ; same as Program
     hotkeys := Map()
     time := 0
@@ -69,6 +77,22 @@ class Interface {
     ;
     ; returns null
     Show(options := "") {
+        optionsArr := StrSplit(options, A_Space)
+        for item in optionsArr {
+            if (StrLower(SubStr(item, 1, 1)) = "x") {
+                this.guiX := Integer(SubStr(item, 2))
+            }
+            else if (StrLower(SubStr(item, 1, 1)) = "y") {
+                this.guiY := Integer(SubStr(item, 2))
+            }
+            else if (StrLower(SubStr(item, 1, 1)) = "w") {
+                this.guiW := Integer(SubStr(item, 2))
+            }
+            else if (StrLower(SubStr(item, 1, 1)) = "h") {
+                this.guiH := Integer(SubStr(item, 2))
+            }
+        }
+
         loop this.control2D.Length {
             x_index := A_Index
 
@@ -267,6 +291,52 @@ class Interface {
     ; basically just colors the background of a control to be considered selected
     ; skips controls that don't have a key & wraps around both axis
 
+    ; check if the selected control is outside of the wndw & vertically scroll if it is
+    checkScrollVertical(selectedControl) {
+        y := 0
+        h := 0
+        
+        ControlGetPos(, &y,, &h, selectedControl)
+
+        if (this.currentY = 1) {
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", (-1 * this.scrollVOffset), "Ptr", 0, "Ptr", 0)
+            this.scrollVOffset := 0
+        }
+        else if (y < 0) {
+            diff := -1 * (y - percentHeight(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
+            this.scrollVOffset += diff
+        }
+        else if ((y + h) > (this.guiY + this.guiH)) {
+            diff := -1 * (Abs((y + h) - (this.guiY + this.guiH)) + percentHeight(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
+            this.scrollVOffset += diff
+        }
+    }
+
+    ; check if the selected control is outside of the wndw & horizontally scroll if it is
+    checkScrollHorizontal(selectedControl) {
+        x := 0
+        w := 0
+        
+        ControlGetPos(&x,, &w,, selectedControl)
+
+        if (this.currentX = 1) {
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", (-1 * this.scrollHOffset), "Int", 0, "Ptr", 0, "Ptr", 0)
+            this.scrollHOffset := 0
+        }
+        else if (x < 0) {
+            diff := -1 * (x - percentWidth(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
+            this.scrollHOffset += diff
+        }
+        else if ((x + w) > (this.guiX + this.guiW)) {
+            diff := -1 * (Abs((x + w) - (this.guiX + this.guiW)) + percentWidth(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
+            this.scrollHOffset += diff
+        }
+    }
+
     up() {    
         nextY := 0
         attemptedY := this.currentY - 1
@@ -293,6 +363,8 @@ class Interface {
         this.currentY := nextY
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
+        
+        this.checkScrollVertical(this.guiObj[this.control2D[this.currentX][this.currentY].control])
     }
     
     down() {    
@@ -322,6 +394,8 @@ class Interface {
         this.currentY := nextY
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
+        
+        this.checkScrollVertical(this.guiObj[this.control2D[this.currentX][this.currentY].control])
     }
     
     left() {    
@@ -356,6 +430,8 @@ class Interface {
         this.currentY := nextY
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
+
+        this.checkScrollHorizontal(this.guiObj[this.control2D[this.currentX][this.currentY].control])
     }
     
     right() {    
@@ -391,9 +467,11 @@ class Interface {
         this.currentY := nextY
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
         this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
+
+        this.checkScrollHorizontal(this.guiObj[this.control2D[this.currentX][this.currentY].control])
     }
 
-    ; okay look im sorry but it works really well
+    ; okay look im sorry but it works pretty well
     upleft() {
         this.up()
         this.left()
