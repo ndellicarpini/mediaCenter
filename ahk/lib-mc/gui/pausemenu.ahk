@@ -32,18 +32,25 @@ createPauseMenu() {
     pauseInt.Add("Text", "vDate Center wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
 
     ; --- ADD MONITORS ---
-    pauseInt.Add("Text", "vInfoText Section x+" . percentWidth(0.010) . " ys+5", "CPU")
-    pauseInt.Add("Text", "xs0 y+" . percentHeight(0.008), "RAM")
-
     if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
-        pauseInt.Add("Text", "xs0 y+" . percentHeight(0.008), "GPU")
+        monitorSpacing := percentHeight(0.008)
+
+        pauseInt.Add("Text", "vInfoText Section x+" . percentWidth(0.010) . " ys+5", "CPU")
+        pauseInt.Add("Text", "xs0 y+" . monitorSpacing, "RAM")
+        pauseInt.Add("Text", "xs0 y+" . monitorSpacing, "GPU")
+
+        pauseInt.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . percentWidth(0.078) " ys0 x+" . percentWidth(0.006), 0)
+        pauseInt.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
+        pauseInt.Add("Progress", "vGPU Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
     }
+    else {
+        monitorSpacing := percentHeight(0.038)
 
-    pauseInt.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . percentWidth(0.078) " ys0 x+" . percentWidth(0.006), 0)
-    pauseInt.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . percentHeight(0.008), 0)
+        pauseInt.Add("Text", "vInfoText Section x+" . percentWidth(0.010) . " ys+5", "CPU")
+        pauseInt.Add("Text", "xs0 y+" . monitorSpacing, "RAM")
 
-    if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
-        pauseInt.Add("Progress", "vGPU Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . percentHeight(0.008), 0)
+        pauseInt.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . percentWidth(0.078) " ys0 x+" . percentWidth(0.006), 0)
+        pauseInt.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
     }
 
     ; --- ADD TOP ROW BUTTONS ---
