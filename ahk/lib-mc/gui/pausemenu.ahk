@@ -8,7 +8,7 @@ createPauseMenu() {
     global globalPrograms
     global globalGuis
 
-    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true)
+    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true, "count-current", "setStatusParam pause 0", true)
     pauseInt := globalGuis[GUIPAUSETITLE]
 
     pauseInt.unselectColor := COLOR1
@@ -47,13 +47,25 @@ createPauseMenu() {
     }
 
     ; --- ADD TOP ROW BUTTONS ---
-    buttonSpacing := percentWidth(0.0097)
+    if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "") {
+        buttonSpacing := percentWidth(0.0097)
 
-    pauseInt.Add("Picture", "vHome Section xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png", globalConfig))
-    pauseInt.Add("Picture", "vVolume xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
-    pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-    pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
-    pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+        pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png", globalConfig))
+        pauseInt.Add("Picture", "vVolume xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+    
+    }
+    else {
+        buttonSpacing := percentWidth(0.0257)
+
+        pauseInt.Add("Picture", "vVolume Section xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\volume.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vPower xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+    }
+
 
     ; --- ADD PAUSE OPTIONS ---
     currProgram := getStatusParam("currProgram")
@@ -112,7 +124,7 @@ destroyPauseMenu() {
 
     SetTimer(PauseSecondTimer, 0)
     
-    globalGuis[GUIPAUSETITLE].Destroy()
+    globalGuis[GUIPAUSETITLE].guiObj.Destroy()
 }
 
 ; adds default to pause options based on selected options from global config
@@ -189,20 +201,38 @@ programPauseOptions(currProgram) {
     }
 
     ; add exit
-    programOptions["programPauseExit"] := {title: "Exit", function: "programPauseExit"}
-    programOrder.Push("programPauseExit")
+    programOptions["currProgramExit"] := {title: "Exit", function: "currProgramExit"}
+    programOrder.Push("currProgramExit")
 
     return {order: programOrder, items: programOptions}
 }
 
-; exits the current program & closes the pause menu
+; exits the current program
 ;
 ; returns null
-programPauseExit() {
+currProgramExit() {
     global globalRunning
 
     globalRunning[getStatusParam("currProgram")].exit()
-    destroyPauseMenu()
+}
+
+; runs/restores the default program
+;
+; returns null
+defaultProgramOpen() {
+    global globalConfig
+    global globalRunning
+
+    if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "") {
+        defaultProgram := globalConfig["Programs"]["Default"]
+
+        if (globalRunning.Has(defaultProgram)) {
+            globalRunning[defaultProgram].restore()
+        }
+        else {
+            createProgram(defaultProgram, true, true)
+        }
+    }
 }
 
 ; timer triggered each second while pause menu is open

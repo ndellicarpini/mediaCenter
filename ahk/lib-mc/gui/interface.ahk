@@ -7,6 +7,9 @@ class Interface {
     guiName := ""
     selectColor := ""
     deselectColor := ""
+
+    customDeselect := Map()
+    customDestroy  := ""
     
     ; 2d grid of interactable controls
     control2D := [[]]
@@ -22,11 +25,19 @@ class Interface {
     scrollVOffset := 0
     scrollHOffset := 0
 
+    ; if closing guis on select
+    ;  all - closes all guis
+    ;  current - closes current gui
+    ;  count-all - closes all guis if no new guis
+    ;  count-current - closes current gui if no new guis
+    ;  off - doesn't close guis
+    closeGuiMode := "off"
+
     ; same as Program
     hotkeys := Map()
     time := 0
 
-    __New(title, options := "", eventObj := "", enableAnalog := false, additionalHotkeys := "") {
+    __New(title, options := "", eventObj := "", enableAnalog := false, closeGuiMode := "off", customDestroy := "", additionalHotkeys := "") {
         ; create the gui object
         if (eventObj != "") {
             this.guiObj := Gui(options, title, eventObj)
@@ -68,8 +79,10 @@ class Interface {
             }
         }
 
-        this.time := A_TickCount
-        this.guiName := title
+        this.time          := A_TickCount
+        this.guiName       := title
+        this.closeGuiMode  := closeGuiMode
+        this.customDestroy := customDestroy
     }
 
     ; exactly like gui.show except renders the selected item w/ the proper background
@@ -106,7 +119,7 @@ class Interface {
                         this.guiObj[currControl].Opt("Background" . this.selectColor)
                     }
                     else {
-                        this.guiObj[currControl].Opt("Background" . this.deselectColor)
+                        this.guiObj[currControl].Opt("Background" . ((this.customDeselect.Has(currControl)) ? this.customDeselect[currControl] : this.unselectColor))
                     }
                 }
             }
@@ -133,6 +146,7 @@ class Interface {
         addControl := false
         controlName := ""
         controlFunc := ""
+        controlDeselect := ""
         xpos := -1
         ypos := -1
 
@@ -158,6 +172,11 @@ class Interface {
             ; get name of control for key
             if (SubStr(item, 1, 1) = "v") {
                 controlName := SubStr(item, 2)
+            }
+
+            ; check for custom fallback background
+            else if (SubStr(item, 1, 10) = "Background") {
+                controlDeselect := SubStr(item, 10)
             }
 
             ; check for a function string
@@ -192,7 +211,7 @@ class Interface {
         }
 
         ; if control is interactable
-        if (addControl) {
+        if (addControl && controlName != "") {
             ; add empty slots if xpos > max xpos
             if (xpos > 0) {
                 while (this.control2D.Length < xpos) {
@@ -255,6 +274,10 @@ class Interface {
             else {
                 this.control2D[xpos][ypos] := {control: controlName, function: controlFunc}
             }
+
+            if (controlDeselect != "") {
+                this.customDeselect[controlName] := controlDeselect
+            }
         }
 
         cleanOptions := options
@@ -274,6 +297,11 @@ class Interface {
     ; 
     ; returns null
     Destroy() {
+        if (this.customDestroy != "") {
+            runFunction(this.customDestroy)
+            return
+        }
+
         try this.guiObj.Destroy()
     }
 
@@ -281,8 +309,22 @@ class Interface {
     ;
     ; returns null
     select() {
+        global globalGuis
+
+        currGuiCount := globalGuis.Count
+
         if (this.control2D[this.currentX][this.currentY].function != "") {
             runFunction(this.control2D[this.currentX][this.currentY].function)
+        }
+
+        if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount <= globalGuis.Count)) {
+            for key, value in globalGuis {
+                value.Destroy()
+                globalGuis.Delete(key)
+            }
+        }
+        else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount <= globalGuis.Count)) {
+            this.Destroy()
         }
     }
 
@@ -357,14 +399,18 @@ class Interface {
             attemptedY -= 1
         }
     
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.unselectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
-    
+        oldControl := this.control2D[this.currentX][this.currentY].control
+
+        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
+        this.guiObj[oldControl].Redraw()
         this.currentY := nextY
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
+
+        newControl := this.control2D[this.currentX][this.currentY].control
+
+        this.guiObj[newControl].Opt("Background" . this.selectColor)
+        this.guiObj[newControl].Redraw()
         
-        this.checkScrollVertical(this.guiObj[this.control2D[this.currentX][this.currentY].control])
+        this.checkScrollVertical(this.guiObj[newControl])
     }
     
     down() {    
@@ -387,15 +433,19 @@ class Interface {
     
             attemptedY += 1
         }
+
+        oldControl := this.control2D[this.currentX][this.currentY].control
     
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.unselectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
-    
+        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
+        this.guiObj[oldControl].Redraw()
         this.currentY := nextY
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
+
+        newControl := this.control2D[this.currentX][this.currentY].control
+
+        this.guiObj[newControl].Opt("Background" . this.selectColor)
+        this.guiObj[newControl].Redraw()
         
-        this.checkScrollVertical(this.guiObj[this.control2D[this.currentX][this.currentY].control])
+        this.checkScrollVertical(this.guiObj[newControl])
     }
     
     left() {    
@@ -422,16 +472,20 @@ class Interface {
     
             attemptedX -= 1
         }
+
+        oldControl := this.control2D[this.currentX][this.currentY].control
     
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.unselectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
-    
+        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
+        this.guiObj[oldControl].Redraw()
         this.currentX := nextX
         this.currentY := nextY
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
 
-        this.checkScrollHorizontal(this.guiObj[this.control2D[this.currentX][this.currentY].control])
+        newControl := this.control2D[this.currentX][this.currentY].control
+
+        this.guiObj[newControl].Opt("Background" . this.selectColor)
+        this.guiObj[newControl].Redraw()
+
+        this.checkScrollHorizontal(this.guiObj[newControl])
     }
     
     right() {    
@@ -459,16 +513,19 @@ class Interface {
             attemptedX += 1
         }
     
+        oldControl := this.control2D[this.currentX][this.currentY].control
     
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.unselectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
-    
+        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
+        this.guiObj[oldControl].Redraw()
         this.currentX := nextX
         this.currentY := nextY
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Opt("Background" . this.selectColor)
-        this.guiObj[this.control2D[this.currentX][this.currentY].control].Redraw()
 
-        this.checkScrollHorizontal(this.guiObj[this.control2D[this.currentX][this.currentY].control])
+        newControl := this.control2D[this.currentX][this.currentY].control
+        
+        this.guiObj[newControl].Opt("Background" . this.selectColor)
+        this.guiObj[newControl].Redraw()
+
+        this.checkScrollHorizontal(this.guiObj[newControl])
     }
 
     ; okay look im sorry but it works pretty well
@@ -495,14 +552,16 @@ class Interface {
 ;  options - passed to interface() 
 ;  additionalHotkeys - passed to interface()
 ;  enableAnalog - passed to interface()
+;  closeGuiMode - passed to interface()
+;  customDestroy - passed to interface()
 ;  setCurrent - sets the new gui as currGui
 ;  customTime - override the launch time
 ;
 ; returns null
-createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, setCurrent := true, customTime := "") {
+createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
     global globalGuis
     
-    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, additionalHotkeys)
+    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, closeGuiMode, customDestroy, additionalHotkeys)
 
     if (setCurrent) {
         setStatusParam("currGui", title)
@@ -510,10 +569,6 @@ createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", 
 
     if (customTime != "") {
         globalGuis[title].time := customTime
-    }
-
-    if (globalGuis[title].hotkeys.Count > 0) {
-        setStatusParam("currHotkeys", addHotkeys(getStatusParam("currHotkeys"), globalGuis[title].hotkeys))
     }
 
     return

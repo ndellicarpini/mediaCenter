@@ -2,7 +2,7 @@
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include lib-custom\boot.ahk
-#Include lib-custom\browser.ahk
+#Include lib-custom\chrome.ahk
 #Include lib-custom\games.ahk
 #Include lib-custom\load.ahk
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
@@ -23,10 +23,17 @@
 #Include lib-mc\mt\status.ahk
 #Include lib-mc\mt\threads.ahk
 
-SetKeyDelay 80, 60
+SetKeyDelay 50, 50
 
 setCurrentWinTitle(MAINNAME)
 global MAINSCRIPTDIR := A_ScriptDir
+
+global globalConfig
+global globalStatus
+global globalControllers
+global globalPrograms
+global globalRunning
+global globalGuis
 
 ; ----- INITIALIZE GLOBALCONFIG (READ-ONLY) -----
 mainConfig := Map()
@@ -113,9 +120,9 @@ mainControllers  := xInitBuffer(mainConfig["General"]["MaxXInputControllers"])
 
 
 ; ----- INITIALIZE PROGRAM CONFIGS -----
-global globalRunning  := Map()
-global globalPrograms := Map()
-global globalGuis     := Map()
+globalRunning  := Map()
+globalPrograms := Map()
+globalGuis     := Map()
 
 ; read program configs from ConfigDir
 if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
@@ -139,17 +146,13 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
     }
 }
 
-
 ; ----- INITIALIZE THREADS -----
 ; configure objects to be used in a thread-safe manner
 ;  read-only objects can be used w/ ObjShare 
 ;  read/write objects must be a buffer ptr w/ custom getters/setters
-global globalConfig      := ObjShare(ObjShare(mainConfig))
-global globalStatus      := mainStatus.Ptr
-global globalControllers := mainControllers.Ptr
-
-; message sent from send2Main
-global externalMessage := []
+globalConfig      := ObjShare(ObjShare(mainConfig))
+globalStatus      := mainStatus.Ptr
+globalControllers := mainControllers.Ptr
 
 ; ----- PARSE START ARGS -----
 for key, value in globalConfig["StartArgs"] {
@@ -180,6 +183,9 @@ if (globalConfig["Boot"]["EnableBoot"]) {
 }
 
 ; ----- ENABLE LISTENER -----
+; message sent from send2Main
+global externalMessage := []
+
 enableMainMessageListener()
 
 ; ----- ENABLE BACKUP -----
@@ -230,14 +236,7 @@ loop {
         currGui     := getStatusParam("currGui")
 
         if (StrLower(internalMessage) = "pause") {
-            if (!WinShown(GUIPAUSETITLE)) {
-                setStatusParam("pause", true)
-                createPauseMenu()
-            }
-            else {
-                setStatusParam("pause", false)
-                destroyPauseMenu()
-            }
+            setStatusParam("pause", !getStatusParam("pause"))
         }
         else if (StrLower(internalMessage) = "exit") {
             if (getStatusParam("errorShow")) {
@@ -374,6 +373,14 @@ loop {
     }
 
     ; --- CHECK OPEN GUIS ---
+    if (getStatusParam("pause") && !WinShown(GUIPAUSETITLE)) {
+        createPauseMenu()
+    }
+
+    if (!getStatusParam("pause") && WinShown(GUIPAUSETITLE)) {
+        destroyPauseMenu()
+    }
+
     if (currGui != "") {
         if (globalGuis.Has(currGui) && WinShown(currGui)) {
             if (!activeSet) {

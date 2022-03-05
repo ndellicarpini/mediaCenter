@@ -12,7 +12,6 @@
     "dir": "C:\retroarch",
 
     "launch": "raLaunch",
-    "postTooltip": "raPostLaunch",
 
     "pause": "raPause",
     "resume": "raResume",
@@ -21,10 +20,6 @@
     "minimize": "raMin",
     "exit": "raExit",
 
-    "tooltip": [
-        "Press %assets\xbox\home.png% for Menu",
-        "Press %assets\xbox\select.png% + %assets\xbox\start.png% to Exit"
-    ],
     "hotkeys": {
         "HOME&SELECT": "raLoad",
         "HOME&START":  "raSave",

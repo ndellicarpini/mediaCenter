@@ -9,26 +9,21 @@
     "wndw": "Google Chrome",
 
     "launch": "",
-    "postTooltip": "",
 
-    "restoreWndw": "browserRestore",
-    "minimizeWndw": "browserMin",
+    ; "restore": "chromeRestore",
+    ; "minimize": "chromeMinimize",
     "exit": "",
 
-    "tooltip": [
-        "Press %assets\\xbox\\home.png% for Menu",
-        "Press %assets\\xbox\\select.png% + %assets\\xbox\\start.png% to Exit"
-    ],
     "hotkeys": {
-        "SELECT": "browserOSK",
-        "START": "browserNewTab",
+        "SELECT": "chromeOSK",
+        "START": "chromeNewTab",
         "Y&RT>=0.4": "Exit",
         "START&SELECT": "Exit"
     },
 
     "pauseOptions": {
-        "Show Controls": "browserControls",
-        "Enable Picture-in-Picture": "browserPiP"
+        "Show Controls": "chromeControls",
+        "Enable Picture-in-Picture": "chromePIP"
     },
     "pauseOrder": ["Show Controls", "Enable Picture-in-Picture"]
 }

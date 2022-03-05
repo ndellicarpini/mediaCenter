@@ -9,20 +9,15 @@ class Program {
     wndw    := ""
     time    := 0
 
-    background := false
-
-    enablePause   := true
-    enableTooltip := true
+    background  := false
+    enablePause := true
 
     pauseOrder   := []
     pauseOptions := Map()
     hotkeys      := Map()
 
-    tooltipInner := ""
-
     ; functions
     customLaunch      := ""
-    customPostTooltip := ""
 
     customPause  := ""
     customResume := ""
@@ -44,7 +39,6 @@ class Program {
 
         ; set custom functions
         this.customLaunch      := (exeConfig.Has("launch"))       ? exeConfig["launch"]       : this.customLaunch
-        this.customPostTooltip := (exeConfig.Has("postTooltip"))  ? exeConfig["postTooltip"]  : this.customPostTooltip
   
         this.customPause       := (exeConfig.Has("pause"))        ? exeConfig["pause"]        : this.customPause
         this.customResume      := (exeConfig.Has("resume"))       ? exeConfig["resume"]       : this.customResume
@@ -55,25 +49,18 @@ class Program {
 
         this.hotkeys := (exeConfig.Has("hotkeys")) ? exeConfig["hotkeys"] : this.hotkeys
 
-        ; set pause/tooltip/hotkey attributes
         this.enablePause := (exeConfig.Has("enablePause")) ? exeConfig["enablePause"] : this.enablePause
-        this.enableTooltip := (exeConfig.Has("enableTooltip")) ? exeConfig["enableTooltip"] : this.enableTooltip
 
-        ; set pause & tooltip contents if appropriate
+        ; set pause contents if appropriate
         if (this.enablePause) {
             this.pauseOptions := (exeConfig.Has("pauseOptions")) ? exeConfig["pauseOptions"]        : this.pauseOptions
             this.pauseOrder   := (exeConfig.Has("pauseOrder"))   ? toArray(exeConfig["pauseOrder"]) : this.pauseOrder
-        }
-
-        if (this.enableTooltip) {
-            this.tooltipInner := (exeConfig.Has("tooltip")) ? toArray(exeConfig["tooltip"]) : this.tooltipInner
         }
     }
 
     launch(args) {
         ; TODO
         ; take args from externalMessage
-        ; set currEXE -> then tooltip -> then postTooltip
         if (this.customLaunch != "") {
             runFunction(this.customLaunch, args)
         }
@@ -84,25 +71,6 @@ class Program {
             ErrorMsg(this.name . "does not have an exe defined, it cannot be launched with default settings")
             return
         }
-
-        if (this.enableTooltip) {
-            Sleep(2000)
-
-            this.tooltip()
-            this.postTooltip()
-        }
-    }
-
-    tooltip() {
-        ; TODO
-    }
-
-    postTooltip() {
-        if (this.customPostTooltip != "") {
-            runFunction(this.customPostTooltip)
-        }
-        
-        this.restore()
     }
     
     pause() {
@@ -229,9 +197,8 @@ createProgram(params, launchProgram := true, setCurrent := true, customTime := "
     global globalRunning
     global globalPrograms
 
-    newProgram := IsObject(params) ? params : toArray(StrSplit(params, A_Space))
-
-    newName := newProgram.RemoveAt(1)
+    newProgram := toArray(StrSplit(params, A_Space))
+    newName    := newProgram.RemoveAt(1)
 
     for key, value in globalPrograms {
         if (key = newName) {
@@ -247,10 +214,6 @@ createProgram(params, launchProgram := true, setCurrent := true, customTime := "
 
             if (customTime != "") {
                 globalRunning[newName].time := customTime
-            }
-
-            if (globalRunning[newName].hotkeys.Count > 0) {
-                setStatusParam("currHotkeys", addHotkeys(getStatusParam("currHotkeys"), globalRunning[newName].hotkeys))
             }
         
             return
@@ -391,7 +354,7 @@ checkAllPrograms() {
             ErrorMsg("Default Program" . globalConfig["Programs"]["Default"] . " has no config", true)
         }
 
-        createProgram(globalConfig["Programs"]["Default"], true, false)
+        createProgram(globalConfig["Programs"]["Default"], true, true)
     }
 
     if (globalConfig["Programs"].Has("Required") && globalConfig["Programs"]["Required"] != "") {
