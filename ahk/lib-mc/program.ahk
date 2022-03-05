@@ -1,4 +1,4 @@
-; creates an executable generic object that gets added to mainRunning
+; creates an executable generic object that gets added to globalRunning
 ; this executable object will contain a lot of the generic features taken from executable json files
 ; each function & more in json files has default version as well
 class Program {
@@ -218,37 +218,39 @@ class Program {
 
 }
 
-; creates a program that gets added to mainRunning
+; creates a program that gets added to globalRunning
 ;  params - params to pass to Program(), first element of params must be program name
-;  programs - list of programs parsed at start of main
 ;  launchProgram - if program.launch() should be called
 ;  setCurrent - if currProgram should be updated
 ;  customTime - manual time value to set (useful for backup)
 ;
 ; returns null
-createProgram(params, running, programs, launchProgram := true, setCurrent := true, customTime := "") {   
+createProgram(params, launchProgram := true, setCurrent := true, customTime := "") {   
+    global globalRunning
+    global globalPrograms
+
     newProgram := IsObject(params) ? params : toArray(StrSplit(params, A_Space))
 
     newName := newProgram.RemoveAt(1)
 
-    for key, value in programs {
+    for key, value in globalPrograms {
         if (key = newName) {
-            running[newName] := Program(value)
+            globalRunning[newName] := Program(value)
 
             if (setCurrent) {
                 setStatusParam("currProgram", newName)
             }
 
             if (launchProgram) {
-                running[newName].launch(newProgram)
+                globalRunning[newName].launch(newProgram)
             }
 
             if (customTime != "") {
-                running[newName].time := customTime
+                globalRunning[newName].time := customTime
             }
 
-            if (running[newName].hotkeys.Count > 0) {
-                setStatusParam("currHotkeys", addHotkeys(getStatusParam("currHotkeys"), running[newName].hotkeys))
+            if (globalRunning[newName].hotkeys.Count > 0) {
+                setStatusParam("currHotkeys", addHotkeys(getStatusParam("currHotkeys"), globalRunning[newName].hotkeys))
             }
         
             return
@@ -337,14 +339,15 @@ checkWNDW(wndw, retName := false) {
 }
 
 ; get the most recently opened program if it exists, otherwise return blank
-;  running - currently running programs in mainRunning
 ;  checkBackground - boolean if to check background apps as well
 ;
 ; returns either name of recently opened program or empty string
-getMostRecentProgram(running, checkBackground := false) {
+getMostRecentProgram(checkBackground := false) {
+    global globalRunning
+
     prevTime := 0
     prevProgram := ""
-    for key, value in running {
+    for key, value in globalRunning {
         if (!checkBackground && value.background) {
             continue
         }
@@ -360,21 +363,23 @@ getMostRecentProgram(running, checkBackground := false) {
 
 ; checks & updates the running list of programs
 ; launches missing background programs
-;  running - currently running program map
-;  programs - list of program configs
 ;
 ; returns null
-checkAllPrograms(running, programs) {
-    for key, value in programs {
-        if (!running.Has(key) && ((value.Has("exe") && checkEXE(value["exe"])) || (value.Has("wndw") && checkWNDW(value["wndw"])))) {
-            createProgram(key, running, programs, false, false)
+checkAllPrograms() {
+    global globalConfig
+    global globalRunning
+    global globalPrograms
+
+    for key, value in globalPrograms {
+        if (!globalRunning.Has(key) && ((value.Has("exe") && checkEXE(value["exe"])) || (value.Has("wndw") && checkWNDW(value["wndw"])))) {
+            createProgram(key, false, false)
         }
     }
 
     numForeground := 0
-    for key, value in running {
+    for key, value in globalRunning {
         if (!value.exists()) {
-            running.Delete(key)
+            globalRunning.Delete(key)
         }
         else if (!value.background) {
             numForeground += 1
@@ -382,35 +387,37 @@ checkAllPrograms(running, programs) {
     }
 
     if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "" && numForeground = 0) {
-        if (!programs.Has(globalConfig["Programs"]["Default"])) {
+        if (!globalPrograms.Has(globalConfig["Programs"]["Default"])) {
             ErrorMsg("Default Program" . globalConfig["Programs"]["Default"] . " has no config", true)
         }
 
-        createProgram(globalConfig["Programs"]["Default"], running, programs, true, false)
+        createProgram(globalConfig["Programs"]["Default"], true, false)
     }
 
     if (globalConfig["Programs"].Has("Required") && globalConfig["Programs"]["Required"] != "") {
-        checkRequiredPrograms(running, programs)
+        checkRequiredPrograms()
     }
 }
 
 ; checks & updates the running list of programs specifically for required programs
-;  running - currently running program map
-;  programs - list of program configs
 ;
 ; returns null
-checkRequiredPrograms(running, programs) {
+checkRequiredPrograms() {
+    global globalConfig
+    global globalRunning
+    global globalPrograms
+
     for item in toArray(globalConfig["Programs"]["Required"]) {
-        if (!programs.Has(item)) {
+        if (!globalPrograms.Has(item)) {
             ErrorMsg("Required Program " . item . "has no config", true)
         }
 
-        if (!running.Has(item)) {
-            if ((programs[item].Has("exe") && checkEXE(programs[item]["exe"])) || (programs[item].Has("wndw") && checkWNDW(programs[item]["wndw"]))) {
-                createProgram(item, running, programs, false, false)
+        if (!globalRunning.Has(item)) {
+            if ((globalPrograms[item].Has("exe") && checkEXE(globalPrograms[item]["exe"])) || (globalPrograms[item].Has("wndw") && checkWNDW(globalPrograms[item]["wndw"]))) {
+                createProgram(item, false, false)
             }
             else {
-                createProgram(item, running, programs, true, false)
+                createProgram(item, true, false)
             }
         }
     }

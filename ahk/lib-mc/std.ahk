@@ -491,9 +491,10 @@ expandDir(directory) {
 
 ; gets an asset's path based on the name of the asset & the current AssetDir
 ;  asset - asset name / path to get (path=subfolders in assets folder)
+;  globalConfig - global config (globalConfig)
 ;
 ; returns asset's full path 
-getAssetPath(asset) {
+getAssetPath(asset, globalConfig) {
 	if (!globalConfig["General"].Has("AssetDir") || globalConfig["General"]["AssetDir"] = "") {
 		ErrorMsg("Cannot get AssetDir when it does not exist in in global.cfg")
 		return
@@ -581,7 +582,7 @@ runFunction(text, params := "") {
 
 	; this is kinda annoying, TODO - maybe figure out how to deconstruct array
 	if (funcArr.Length > 0) {
-		return %func%(funcArr)
+		return %func%(funcArr*)
 	}
 	else {
 		return %func%()

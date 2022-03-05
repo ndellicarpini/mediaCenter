@@ -113,9 +113,9 @@ mainControllers  := xInitBuffer(mainConfig["General"]["MaxXInputControllers"])
 
 
 ; ----- INITIALIZE PROGRAM CONFIGS -----
-mainRunning  := Map()
-mainPrograms := Map()
-mainGuis     := Map()
+global globalRunning  := Map()
+global globalPrograms := Map()
+global globalGuis     := Map()
 
 ; read program configs from ConfigDir
 if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
@@ -131,7 +131,7 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
                 }
             }
             
-            mainPrograms[tempConfig.items["name"]] := tempConfig.toMap()
+            globalPrograms[tempConfig.items["name"]] := tempConfig.toMap()
         }
         else {
             ErrorMsg(A_LoopFileFullPath . " does not have required 'name' parameter")
@@ -154,7 +154,7 @@ global externalMessage := []
 ; ----- PARSE START ARGS -----
 for key, value in globalConfig["StartArgs"] {
     if (value = "-backup") {
-        statusRestore(mainRunning, mainPrograms)
+        statusRestore()
     }
     else if (value = "-quiet") {
         globalConfig["Boot"]["EnableBoot"] := false
@@ -212,7 +212,7 @@ loop {
     if (externalMessage.Length > 0) {
         if (StrLower(externalMessage[1]) = "run") {
             externalMessage.RemoveAt(1)
-            createProgram(externalMessage, mainRunning, mainPrograms)
+            createProgram(externalMessage, globalRunning, globalPrograms)
         }
         else {
             runFunction(externalMessage)
@@ -232,11 +232,11 @@ loop {
         if (StrLower(internalMessage) = "pause") {
             if (!WinShown(GUIPAUSETITLE)) {
                 setStatusParam("pause", true)
-                createPauseMenu((currProgram != "") ? mainRunning[currProgram] : "", mainGuis)
+                createPauseMenu()
             }
             else {
                 setStatusParam("pause", false)
-                destroyPauseMenu(mainGuis)
+                destroyPauseMenu()
             }
         }
         else if (StrLower(internalMessage) = "exit") {
@@ -253,7 +253,7 @@ loop {
             }
 
             else if (currProgram != "") {
-                mainRunning[currProgram].exit()
+                globalRunning[currProgram].exit()
             }
         }
         else if (StrLower(internalMessage) = "nuclear") {
@@ -268,7 +268,7 @@ loop {
             }
 
             if (!killed && currProgram != "") {
-                ProcessKill(mainRunning[currProgram].getPID())
+                ProcessKill(globalRunning[currProgram].getPID())
                 killed := true
             }
 
@@ -279,13 +279,17 @@ loop {
             }
         }
         else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
-            mainGuis[currGui].%StrReplace(internalMessage, "gui.", "")%()
+            globalGuis[currGui].%StrReplace(internalMessage, "gui.", "")%()
         }
         else if (StrLower(SubStr(internalMessage, 1, 4)) = "program.") {
-            mainRunning[currProgram].%StrReplace(internalMessage, "program.", "")%()
+            globalRunning[currProgram].%StrReplace(internalMessage, "program.", "")%()
         }
         else {
             runFunction(internalMessage)
+        }
+
+        if (getStatusParam("internalMessage") != internalMessage) {
+            continue
         }
 
         ; reset message after processing
@@ -352,16 +356,16 @@ loop {
     currGui     := getStatusParam("currGui")
 
     if (checkAllCount > 10 || (currProgram = "" && currGui = "")) {
-        checkAllGuis(mainGuis)
+        checkAllGuis()
 
-        mostRecentGui := getMostRecentGui(mainGuis)
+        mostRecentGui := getMostRecentGui()
         if (mostRecentGui != currGui) {
             setStatusParam("currGui", mostRecentGui)
         }
 
-        checkAllPrograms(mainRunning, mainPrograms)
+        checkAllPrograms()
 
-        mostRecentProgram := getMostRecentProgram(mainRunning)
+        mostRecentProgram := getMostRecentProgram()
         if (mostRecentProgram != currProgram) {
             setStatusParam("currProgram", mostRecentProgram)
         }
@@ -371,14 +375,14 @@ loop {
 
     ; --- CHECK OPEN GUIS ---
     if (currGui != "") {
-        if (mainGuis.Has(currGui) && WinShown(currGui)) {
+        if (globalGuis.Has(currGui) && WinShown(currGui)) {
             if (!activeSet) {
                 if (forceActivate) {
                     try WinActivate(currGui)
                 }
 
-                if (mainGuis[currGui].hotkeys.Count > 0) {
-                    currHotkeys := addHotkeys(currHotkeys, mainGuis[currGui].hotkeys)
+                if (globalGuis[currGui].hotkeys.Count > 0) {
+                    currHotkeys := addHotkeys(currHotkeys, globalGuis[currGui].hotkeys)
                 }
 
                 setStatusParam("buttonTime", 25)
@@ -386,9 +390,9 @@ loop {
             }
         } 
         else {
-            if (mainGuis.Has(currGui)) {
-                mainGuis[currGui].Destroy()
-                mainGuis.Delete(currGui)
+            if (globalGuis.Has(currGui)) {
+                globalGuis[currGui].Destroy()
+                globalGuis.Delete(currGui)
             }
 
             setStatusParam("currGui", "")
@@ -397,15 +401,15 @@ loop {
 
     ; --- CHECK OPEN PROGRAMS ---
     if (currProgram != "") {
-        if (mainRunning.Has(currProgram)) {
-            if (mainRunning[currProgram].exists()) {
+        if (globalRunning.Has(currProgram)) {
+            if (globalRunning[currProgram].exists()) {
                 if (!activeSet) {
                     if (forceActivate) {
-                        try mainRunning[currProgram].restore()
+                        try globalRunning[currProgram].restore()
                     }
 
-                    if (mainRunning[currProgram].hotkeys.Count > 0) {
-                        currHotkeys := addHotkeys(currHotkeys, mainRunning[currProgram].hotkeys)
+                    if (globalRunning[currProgram].hotkeys.Count > 0) {
+                        currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys)
                     }
 
                     setStatusParam("buttonTime", 70)
@@ -417,7 +421,7 @@ loop {
             }
         } 
         else {
-            createProgram(currProgram, mainRunning, mainPrograms, false, false)
+            createProgram(currProgram, false, false)
         }
     }
 
@@ -480,6 +484,6 @@ ExitApp()
 ; write globalStatus/globalRunning to file as backup cache?
 ; maybe only do it like every 10ish secs?
 BackupTimer() {    
-    try statusBackup(mainRunning)
+    try statusBackup()
     return
 }

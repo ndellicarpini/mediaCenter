@@ -43,6 +43,8 @@ statusInitBuffer() {
 ;
 ; returns ptr offset
 calcStatusPtrOffset(param, ptr) {
+    global globalStatus
+
     ptrOffset := ptr
     if (ptr = "") {
         ptrOffset := globalStatus

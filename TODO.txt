@@ -1,10 +1,7 @@
 CODE
-- Fix ~4MB/hr memory leak
 - Fix runFunction being dogshit
 - BOOT
   - create check for internet
-- CONTROLLERS
-  - Read all buttons as digital inputs (aka remove analog reading from analog buttons)
 - CONFIG
   - Add XML & INDENT parsing to readConfig()
   - create writeConfig()
@@ -18,15 +15,6 @@ CODE
   - create background programs
 
 GUI
-- create abstract way to have controller interact with gui
-  - GuiPosObj (map)
-    - ID: name of guicontrol
-    - Index: iterator for when controls are added (used to parse x+/y+ values)
-    - Buttons: what the control should do if specific buttons are pressed
-    - L, R, U, D: ids for the left, right, up, & down controls (need to figure out how to properly update existing buttons)
-  - maybe if i figure out how to actually pass custom objects between threads
-    - use separate thread to create/manage guis
-    - share the gui hotkeys with hotkey script
 - create Keyboard
 - create PauseScreen
   - Home Button (default program)

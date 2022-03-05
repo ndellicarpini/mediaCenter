@@ -1,11 +1,15 @@
 ; creates the pause screen
 ;  currProgram - current program
-;  mainGuis - current guis
+;  globalGuis - current guis
 ;
 ; returns null
-createPauseMenu(currProgram, mainGuis) {
-    createInterface(mainGuis, GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true)
-    pauseInt := mainGuis[GUIPAUSETITLE]
+createPauseMenu() {
+    global globalConfig
+    global globalPrograms
+    global globalGuis
+
+    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true)
+    pauseInt := globalGuis[GUIPAUSETITLE]
 
     pauseInt.unselectColor := COLOR1
     pauseInt.selectColor := COLOR3
@@ -45,15 +49,17 @@ createPauseMenu(currProgram, mainGuis) {
     ; --- ADD TOP ROW BUTTONS ---
     buttonSpacing := percentWidth(0.0097)
 
-    pauseInt.Add("Picture", "vHome Section xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png"))
-    pauseInt.Add("Picture", "vVolume xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png"))
-    pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png"))
-    pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png"))
-    pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png"))
+    pauseInt.Add("Picture", "vHome Section xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png", globalConfig))
+    pauseInt.Add("Picture", "vVolume xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
+    pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+    pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+    pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
 
     ; --- ADD PAUSE OPTIONS ---
+    currProgram := getStatusParam("currProgram")
+
     defaultOptions := defaultPauseOptions()
-    programOptions := programPauseOptions(currProgram)
+    programOptions := programPauseOptions((currProgram != "") ? globalRunning[currProgram] : "")
 
     optionWidth := guiWidth - (2 * percentWidth(0.0095))
     optionHeight := percentHeight(0.045)
@@ -61,30 +67,15 @@ createPauseMenu(currProgram, mainGuis) {
     y_index := 1
 
     ; program options
-    if (programOptions.Count > 0) {
+    if (programOptions.items.Count > 0) {
         guiSetFont(pauseInt, "bold s30")
         pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . percentHeight(0.05) . " w" . optionWidth, getStatusParam("currProgram"))
     
         guiSetFont(pauseInt, "s25")
-
-        if (currProgram.pauseOrder.Length > 0) {
-            pauseOrderList := []
-            for item in currProgram.pauseOrder {
-                if (currProgram.pauseOptions.Has(item)) {
-                    pauseOrderList.Push(StrReplace(currProgram.pauseOptions[item], A_Space, ""))
-                }
-            }
         
-            for item in pauseOrderList {
-                if (programOptions.Has(item)) {
-                    pauseInt.Add("Text", "v" . item . " f(" . programOptions[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . programOptions[item].title)
-                    y_index += 1
-                }
-            }
-        }
-        else {
-            for key, value in programOptions {
-                pauseInt.Add("Text", "v" . key . " f(" . value.function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . value.title)
+        for item in programOptions.order {
+            if (programOptions.items.Has(item)) {
+                pauseInt.Add("Text", "v" . item . " f(" . programOptions.items[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . percentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . programOptions.items[item].title)
                 y_index += 1
             }
         }
@@ -113,13 +104,15 @@ createPauseMenu(currProgram, mainGuis) {
 }
 
 ; destroys the pause screen
-;  mainGuis - current guis 
+;  globalGuis - current guis 
 ;
 ; returns null
-destroyPauseMenu(mainGuis) {
+destroyPauseMenu() {
+    global globalGuis
+
     SetTimer(PauseSecondTimer, 0)
     
-    mainGuis[GUIPAUSETITLE].Destroy()
+    globalGuis[GUIPAUSETITLE].Destroy()
 }
 
 ; adds default to pause options based on selected options from global config
@@ -128,8 +121,9 @@ destroyPauseMenu(mainGuis) {
 ; 
 ; returns current options + default options
 defaultPauseOptions() {
+    global globalConfig
+
     defaultOptions := Map()
-    defaultOrder := ["KBMMode", "Suspend", "Settings", "WinSettings"]
     defaultOptions["WinSettings"] := {title: "Windows Settings", function: "runWinSettings"}
     defaultOptions["Settings"] := {title: "Script Settings", function: "createSettingsGui config\global.cfg"}
     
@@ -157,7 +151,7 @@ defaultPauseOptions() {
         }
     }
 
-    return {order: defaultOrder, items: defaultOptions}
+    return {order: globalOptions, items: defaultOptions}
 }
 
 ; adds program pause options
@@ -167,18 +161,55 @@ defaultPauseOptions() {
 programPauseOptions(currProgram) {   
     programOptions := Map()
 
+    if (currProgram = "") {
+        return {items: Map()}
+    }
+
     if (currProgram != "") {
         for key, value in currProgram.pauseOptions {
-            programOptions[StrReplace(value, A_Space, "")] := {title: key, function: value}
+            programOptions[RegExReplace(value, "[^a-zA-Z\d]*", "")] := {title: key, function: value}
         }    
     }
 
-    return programOptions
+    programOrder := []
+    if (currProgram.pauseOrder.Length > 0) {
+        for item in currProgram.pauseOrder {
+            for key, value in programOptions {
+                if (item = value.title) {
+                    programOrder.Push(key)
+                    break
+                }
+            }
+        }
+    }
+    else {
+        for key, value in programOptions {
+            programOrder.Push(key)
+        }
+    }
+
+    ; add exit
+    programOptions["programPauseExit"] := {title: "Exit", function: "programPauseExit"}
+    programOrder.Push("programPauseExit")
+
+    return {order: programOrder, items: programOptions}
+}
+
+; exits the current program & closes the pause menu
+;
+; returns null
+programPauseExit() {
+    global globalRunning
+
+    globalRunning[getStatusParam("currProgram")].exit()
+    destroyPauseMenu()
 }
 
 ; timer triggered each second while pause menu is open
 ; updates the time & monitors
 PauseSecondTimer() {
+    global globalConfig
+
     pauseObj := getGUI(GUIPAUSETITLE)
 
     if (pauseObj) {

@@ -4,6 +4,8 @@
 ;
 ; returns null
 createLoadScreen() {
+    global globalConfig
+
     guiObj := Gui(GUIOPTIONS, GUILOADTITLE)
 
     if (globalConfig["GUI"].Has("LoadScreenFunction") && globalConfig["GUI"]["LoadScreenFunction"] != "") {

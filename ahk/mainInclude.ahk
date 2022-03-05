@@ -7,7 +7,7 @@
 #Include lib-mc\std.ahk
 #Include lib-mc\confio.ahk
 
-global globalConfig := readConfig("config\global.cfg",,"brackets", "General")
+globalConfig := readConfig("config\global.cfg",,"brackets", "General")
 
 ; only run if customlibdir exists
 if (globalConfig.items.Has("CustomLibDir") && globalConfig.items["CustomLibDir"] != "") {

@@ -2,7 +2,8 @@
 ;  status - status obj to backup
 ;
 ; returns null
-statusBackup(running) {
+statusBackup() {
+    global globalRunning
     global globalStatus
 
     backup := Map()
@@ -11,9 +12,9 @@ statusBackup(running) {
         backup[key] := getStatusParam(key)
     }
     
-    backup["mainRunning"] := Map()
-    for key, value in running {
-        backup["mainRunning"][key] := value.time
+    backup["globalRunning"] := Map()
+    for key, value in globalRunning {
+        backup["globalRunning"][key] := value.time
     }
 
     backupFile := FileOpen("data\backup.bin", "w -rwd")
@@ -26,13 +27,13 @@ statusBackup(running) {
 ;  programs - program configs parsed in main
 ; 
 ; returns status updated with values from backup
-statusRestore(running, programs) {
+statusRestore() {
     backup := ObjLoad("data\backup.bin")
     
     for key, value in backup {
-        if (key = "mainRunning") {
-            for name, time in backup["mainRunning"] {
-                createProgram(name, running, programs, false, false, time)
+        if (key = "globalRunning") {
+            for name, time in backup["globalRunning"] {
+                createProgram(name, false, false, time)
             }
         }
         else {

@@ -3,9 +3,9 @@
 ;  args[0] - GUI object to append new styling to
 ;
 ; returns GUI obj with new load screen styling
-loadGUI(args) {
-    guiObj := args[1]
-    
+loadGUI(guiObj) {    
+    global globalConfig
+
     guiObj.BackColor := COLOR1
     
     guiSetFont(guiObj, "s35")
@@ -17,7 +17,7 @@ loadGUI(args) {
     imgHTML := (
         "<html>"
             "<body style='background-color: transparent' style='overflow:hidden' leftmargin='0' topmargin='0'>"
-                "<img src='" getAssetPath("loading.gif") "' width=" . imgSize . " height=" . imgSize . " border=0 padding=0>"
+                "<img src='" getAssetPath("loading.gif", globalConfig) "' width=" . imgSize . " height=" . imgSize . " border=0 padding=0>"
             "</body>"
         "</html>"
     )

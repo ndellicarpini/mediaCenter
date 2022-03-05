@@ -1,4 +1,4 @@
-; creates a wrapper object over a gui that gets added to mainGuis
+; creates a wrapper object over a gui that gets added to globalGuis
 ; this wrapper supports interactions with the controller using a grid that keeps track of interactable controls
 ; this obj is used like a gui, but 'Add' supports addition params for interaction settings
 class Interface {
@@ -280,7 +280,7 @@ class Interface {
     ; runs the function defined in the selected control's interactable data
     ;
     ; returns null
-    select() {    
+    select() {
         if (this.control2D[this.currentX][this.currentY].function != "") {
             runFunction(this.control2D[this.currentX][this.currentY].function)
         }
@@ -490,8 +490,7 @@ class Interface {
     }
 }
 
-; creates a gui that gets added to mainGuis
-;  guis - current list of open guis
+; creates a gui that gets added to globalGuis
 ;  title - passed to interface()
 ;  options - passed to interface() 
 ;  additionalHotkeys - passed to interface()
@@ -500,32 +499,35 @@ class Interface {
 ;  customTime - override the launch time
 ;
 ; returns null
-createInterface(guis, title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, setCurrent := true, customTime := "") {
-    guis[title] := Interface(title, options, eventObj, enableAnalog, additionalHotkeys)
+createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, setCurrent := true, customTime := "") {
+    global globalGuis
+    
+    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, additionalHotkeys)
 
     if (setCurrent) {
         setStatusParam("currGui", title)
     }
 
     if (customTime != "") {
-        guis[title].time := customTime
+        globalGuis[title].time := customTime
     }
 
-    if (guis[title].hotkeys.Count > 0) {
-        setStatusParam("currHotkeys", addHotkeys(getStatusParam("currHotkeys"), guis[title].hotkeys))
+    if (globalGuis[title].hotkeys.Count > 0) {
+        setStatusParam("currHotkeys", addHotkeys(getStatusParam("currHotkeys"), globalGuis[title].hotkeys))
     }
 
     return
 }
 
 ; get the most recently opened gui if it exists, otherwise return blank
-;  guis - currently open guis in mainGuis
 ;
 ; returns either name of recently opened gui or empty string
-getMostRecentGui(guis) {
+getMostRecentGui() {
+    global globalGuis
+
     prevTime := 0
     prevProgram := ""
-    for key, value in guis {
+    for key, value in globalGuis {
         if (value.time > prevTime) {
             prevTime := value.time
             prevProgram := key
@@ -535,16 +537,15 @@ getMostRecentGui(guis) {
     return prevProgram
 }
 
-; checks & updates the running list of programs
-; launches missing background programs
-;  running - currently running program map
-;  programs - list of program configs
+; checks & updates the running list of guis
 ;
 ; returns null
-checkAllGuis(guis) {
-    for key, value in guis {
+checkAllGuis() {
+    global globalGuis
+
+    for key, value in globalGuis {
         if (!WinShown(key)) {
-            guis.Delete(key)
+            globalGuis.Delete(key)
         }
     }
 }

@@ -27,8 +27,8 @@
     },
 
     "pauseOptions": {
-        "Controls": "browserControls",
-        "Enable PiP": "browserPiP"
+        "Show Controls": "browserControls",
+        "Enable Picture-in-Picture": "browserPiP"
     },
-    "pauseOrder": ["Controls", "Enable PiP"]
+    "pauseOrder": ["Show Controls", "Enable Picture-in-Picture"]
 }
