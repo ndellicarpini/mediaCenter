@@ -8,7 +8,7 @@ loadGUI(guiObj) {
 
     guiObj.BackColor := COLOR1
     
-    guiSetFont(guiObj, "s35")
+    guiSetFont(guiObj, "s26")
 
     imgSize := percentWidth(0.04)
     

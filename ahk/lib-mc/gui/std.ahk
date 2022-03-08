@@ -83,7 +83,7 @@ percentHeight(height, useSize := true) {
 ;  enableSizing - enable/disable size multiplier
 ;
 ; returns null
-guiSetFont(guiObj, options := "s20", enableSizing := true) {
+guiSetFont(guiObj, options := "s15", enableSizing := true) {
     if (Type(guiObj) = "Interface") {
         guiObj := guiObj.guiObj
     }
@@ -106,8 +106,9 @@ guiSetFont(guiObj, options := "s20", enableSizing := true) {
 
     ; update the font size if the size multiplier is enabled
     ; the font size is scaled based on the 96 / screen's dpi (96 = default windows dpi)
+    ; its also scaled by the monitor width compared to 1080p 
     if (enableSizing) {
-        optionsMap["s"] := toString(Round((96 / A_ScreenDPI) * Integer(optionsMap["s"]) * SIZE))
+        optionsMap["s"] := toString(Round((96 / A_ScreenDPI) * Float(optionsMap["s"]) * SIZE * (MONITORH / 1080)))
     }
 
     ; convert optionMap into properly formatted options string

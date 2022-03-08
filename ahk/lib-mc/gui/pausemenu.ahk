@@ -25,7 +25,7 @@ createPauseMenu() {
     currentTimeArr := StrSplit(FormatTime(, "h:mm tt`ndddd, MMM d yyy"), "`n")
 
     ; --- ADD TIME & DATE --- 
-    guiSetFont(pauseInt, "s50")
+    guiSetFont(pauseInt, "s38")
     pauseInt.Add("Text", "vTime Section Center xm0 ym10 w" . (guiWidth * 0.46), currentTimeArr[1])
 
     guiSetFont(pauseInt)
@@ -87,10 +87,10 @@ createPauseMenu() {
 
     ; program options
     if (programOptions.items.Count > 0) {
-        guiSetFont(pauseInt, "bold s30")
+        guiSetFont(pauseInt, "bold s23")
         pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . percentHeight(0.05) . " w" . optionWidth, getStatusParam("currProgram"))
     
-        guiSetFont(pauseInt, "s25")
+        guiSetFont(pauseInt, "s19")
         
         for item in programOptions.order {
             if (programOptions.items.Has(item)) {
@@ -102,10 +102,10 @@ createPauseMenu() {
 
     ; global options
     if (defaultOptions.items.Count > 0) {
-        guiSetFont(pauseInt, "bold s30")
+        guiSetFont(pauseInt, "bold s23")
         pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . percentHeight(0.05) . " w" . optionWidth, "Options")
     
-        guiSetFont(pauseInt, "s25")
+        guiSetFont(pauseInt, "s19")
 
         for item in defaultOptions.order {
             if (defaultOptions.items.Has(item)) {

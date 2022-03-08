@@ -13,7 +13,7 @@ createLoadScreen() {
     }
     else {
         guiObj.BackColor := COLOR1
-        guiSetFont(guiObj, "italic s40")
+        guiSetFont(guiObj, "italic s30")
 
         guiObj.Add("Text", "vLoadText Right x0 y" . percentHeight(0.92, false) " w" . percentWidth(0.985, false), getStatusParam("loadText"))
     }
