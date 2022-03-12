@@ -17,7 +17,7 @@ class Program {
     hotkeys      := Map()
 
     ; functions
-    customLaunch      := ""
+    customLaunch := ""
 
     customPause  := ""
     customResume := ""
@@ -25,6 +25,10 @@ class Program {
     customExit     := ""
     customRestore  := ""
     customMinimize := ""
+
+    ; used when exe/wndw are lists - keep current active
+    currEXE  := ""
+    currWNDW := ""
 
     __New(exeConfig) {
         ; set basic attributes
@@ -64,7 +68,7 @@ class Program {
         if (this.customLaunch != "") {
             runFunction(this.customLaunch, args)
         }
-        else if (this.exe != "") {
+        else if (!IsObject(this.exe) && this.exe != "") {
             Run validateDir(this.dir) . this.exe . ((args != "" || (args && args.Length > 0)) ? joinArray(args) : ""), validateDir(this.dir), ((this.background) ? "Hide" : "Max")
         }
         else {
@@ -82,7 +86,10 @@ class Program {
     }
 
     restore() {
-        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
+        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
+
+        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
         if (!WinHidden(window)) {
             return
         }
@@ -96,7 +103,7 @@ class Program {
 
         ; TODO - think about removing borders & making fullscreen
         ; for now just gonna restore & activate
-        if (!WinActive(window) || WinGetMinMax(window) = -1) {
+        if (!WinActive(window) || WinGetMinMax(window) != 1) {
             WinActivate(window)
             Sleep(100)
             WinMaximize(window)
@@ -106,34 +113,39 @@ class Program {
     }
 
     minimize() {
+        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
+        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
+
         if (this.customMinimize != "") {
             runFunction(this.customMinimize)
             return
         }
 
-        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
 
         WinMinimize(window)
     }
 
     exit() {
         ; TODO - think about if this.wndw -> don't wait for exe to close
+        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
+        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
 
         if (this.customExit != "") {
             runFunction(this.customExit)
             return
         }
 
-        window := (this.wndw != "") ? this.wndw : "ahk_exe " . this.exe
+        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
         count := 0
         maxCount := 32
 
         WinClose(window)
 
-        exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
+        exeExists := (activeEXE != "") ? ProcessExist(activeEXE) : WinHidden(window)
         while (exeExists && count < maxCount) {
             count += 1
-            exeExists := (this.exe != "") ? ProcessExist(this.exe) : WinHidden(window)
+            exeExists := (activeWNDW != "") ? ProcessExist(activeWNDW) : WinHidden(window)
 
             Sleep(250)
         }
@@ -144,23 +156,77 @@ class Program {
     }
 
     exists() {
-        ; TODO - think about maybe only checking wndw if this.wndw exists
+        ; check if wndw exists
+        wndwStatus := false
 
-        ; TODO - think about this
-        ; exeStatus := checkEXE(this.exe, (IsObject(this.exe)) ? true : false)
-        ; wndwStatus := checkEXE(this.wndw, (IsObject(this.wndw)) ? true : false)
+        if (IsObject(this.wndw)) {
+            if (this.currWNDW = "") {
+                this.currWNDW := checkWNDW(this.wndw, true)
+            }
 
-        ; if (Type(exeStatus) = "String") {
-        ;     this.exe := exeStatus
-        ; }
-        
-        ; if (Type(wndwStatus) = "String") {
-        ;     this.wndw := wndwStatus
-        ; }
+            if (this.currWNDW != "") {
+                wndwStatus := true
 
-        ; return (exeStatus || wndwStatus)
+                if (!checkWNDW(this.currWNDW)) {
+                    SetTimer(DelayCheckWNDW, -1000)
+                }
+            }
+        }
+        else {
+            wndwStatus := checkWNDW(this.wndw)
+        }
 
-        return (checkEXE(this.exe) || checkWNDW(this.wndw))
+        if (wndwStatus) {
+            return true
+        }
+
+        ; check if exe exists
+        exeStatus := false
+
+        if (IsObject(this.exe)) {
+            if (this.currEXE = "") {
+                this.currEXE := checkEXE(this.exe, true)
+            }
+
+            if (this.currEXE != "") {
+                exeStatus := true
+
+                if (!checkEXE(this.currEXE)) {
+                    SetTimer(DelayCheckEXE, -1000)
+                }
+            }
+        }
+        else {
+            exeStatus := checkEXE(this.exe)
+        }
+
+        return exeStatus
+
+        DelayCheckEXE() {
+            if (this.exe = "") {
+                return
+            }
+
+            this.currEXE := checkEXE(this.exe, true)
+            if (this.currEXE = "") {
+                this.exe := ""
+            }
+
+            return
+        }
+
+        DelayCheckWNDW() {
+            if (this.wndw = "") {
+                return
+            }
+
+            this.currWNDW := checkWNDW(this.wndw, true)
+            if (this.currWNDW = "") {
+                this.wndw := ""
+            }
+
+            return
+        }
     }
 
     getPID() {
@@ -254,22 +320,42 @@ checkEXE(exe, retName := false) {
     }
 
     if (IsObject(exe)) {
-        for process in ComObjGet("winmgmts:").ExecQuery("Select * from Win32_Process") {
-            if (exe.Has(process.Name)) {
-                if (retName) {
-                    return process.Name
-                }
-                else {
-                    return true
-                }
+        size  := 4096
+        bytes := 0
+
+        processBuff := Buffer(size, 0)
+        DllCall("psapi.dll\EnumProcesses", "Ptr", processBuff.Ptr, "UInt", size, "UIntP", &bytes)
+
+        loop (bytes // 4) {
+            processPtr := DllCall("OpenProcess", "UInt", 0x0010 | 0x0400, "Int", 0, "UInt", NumGet(processBuff, A_Index * 4, "UInt"), "Ptr")
+            if (!processPtr) {
+                continue
+            }
+
+            processNameBuff := Buffer(size, 0)
+            processNamePtr  := DllCall("psapi.dll\GetModuleBaseName", "Ptr", processPtr, "Ptr", 0, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
+            if (!processNamePtr) {
+                processNamePtr := DllCall("psapi.dll\GetProcessImageFileName", "Ptr", processPtr, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
+            }
+
+            DllCall("CloseHandle", "Ptr", processPtr)
+
+            processName := StrGet(processNameBuff)
+            if (processName != "" && exe.Has(processName)) {
+                return (retName) ? processName : true
             }
         }
     }
     else {
-        return ProcessExist(exe) ? true : false
+        if (retName) {
+            return ProcessExist(exe) ? exe : ""
+        }
+        else {
+            return ProcessExist(exe) ? true : false
+        }
     }
 
-    return false
+    return (retName) ? "" : false
 }
 
 ; takes a variable of window maps (key=window) and returns true if any of the functions return
@@ -285,20 +371,20 @@ checkWNDW(wndw, retName := false) {
     if (IsObject(wndw)) {
         for key, empty in wndw {
             if (WinShown(key)) {
-                if (retName) {
-                    return key
-                }
-                else {
-                    return true
-                }
+                return (retName) ? key : true
             }
         }
 	}
     else {
-        return WinShown(wndw) ? true : false
+        if (retName) {
+            return WinShown(wndw) ? wndw : ""
+        }
+        else {
+            return WinShown(wndw) ? true : false
+        }
     }
 
-	return false
+    return (retName) ? "" : false
 }
 
 ; get the most recently opened program if it exists, otherwise return blank

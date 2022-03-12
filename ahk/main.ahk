@@ -1,4 +1,4 @@
-#SingleInstance Force
+﻿#SingleInstance Force
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include lib-custom\boot.ahk
@@ -76,6 +76,9 @@ for value in requiredFolders {
     }
 }
 
+; load process monitoring dll for checking process lists
+processLib := dllLoadLib("psapi.dll")
+
 ; load nvidia library for gpu monitoring
 if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) { 
     try {
@@ -136,6 +139,28 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
                 for key, value in tempConfig.items {
                     tempConfig.items[key] := cleanSetting(value, mainConfig["Programs"]["SettingListDir"])
                 }
+            }
+
+            ; convert array of exe to map for efficient lookup
+            if (tempConfig.items.Has("exe") && Type(tempConfig.items["exe"]) = "Array") {
+                tempMap := Map()
+
+                for item in tempConfig.items["exe"] {
+                    tempMap[item] := ""
+                }
+
+                tempConfig.items["exe"] := tempMap
+            }
+
+            ; convert array of wndw to map for efficient lookup
+            if (tempConfig.items.Has("wndw") && Type(tempConfig.items["wndw"]) = "Array") {
+                tempMap := Map()
+
+                for item in tempConfig.items["wndw"] {
+                    tempMap[item] := ""
+                }
+
+                tempConfig.items["wndw"] := tempMap
             }
             
             globalPrograms[tempConfig.items["name"]] := tempConfig.toMap()
@@ -303,16 +328,20 @@ loop {
     currHotkeys := defaultHotkeys(globalConfig)
 
     ; --- CHECK OVERRIDE ---
-    ; focus error window
+    currError := getStatusParam("errorShow")
 
     ; if errors should be detected, set error here
-    if (checkErrors) {
+    if (!currError && checkErrors) {
         resetTMM := A_TitleMatchMode
 
         SetTitleMatchMode 2
         for key, value in globalConfig["Programs"]["ErrorList"] {
 
             wndwHWND := WinShown(value)
+            if (!wndwHWND) {
+                wndwHWND := WinShown(StrLower(value))
+            }
+
             if (wndwHWND > 0) {
                 setStatusParam("errorShow", true)
                 setStatusParam("errorHwnd", wndwHWND)
@@ -323,7 +352,7 @@ loop {
         SetTitleMatchMode resetTMM
     }
 
-    if (getStatusParam("errorShow")) {
+    if (currError) {
         errorHwnd := getStatusParam("errorHwnd")
 
         if (WinShown("ahk_id " errorHwnd)) {
@@ -375,16 +404,18 @@ loop {
     ; --- CHECK OPEN GUIS ---
     if (getStatusParam("pause") && !WinShown(GUIPAUSETITLE)) {
         createPauseMenu()
+        continue
     }
 
     if (!getStatusParam("pause") && WinShown(GUIPAUSETITLE)) {
         destroyPauseMenu()
+        continue
     }
 
     if (currGui != "") {
         if (globalGuis.Has(currGui) && WinShown(currGui)) {
             if (!activeSet) {
-                if (forceActivate) {
+                if (forceActivate && !WinActive(currGui)) {
                     try WinActivate(currGui)
                 }
 
@@ -480,6 +511,8 @@ disableMainMessageListener()
 
 try controllerThreadRef.ExitApp()
 try hotkeyThreadRef.ExitApp()
+
+dllFreeLib(processLib)
 
 if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
     dllFreeLib(nvLib)

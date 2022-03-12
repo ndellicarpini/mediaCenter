@@ -57,7 +57,7 @@ createPauseMenu() {
     if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "") {
         buttonSpacing := percentWidth(0.0097)
 
-        pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png", globalConfig))
+        pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png", globalConfig))
         pauseInt.Add("Picture", "vVolume xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
@@ -67,7 +67,7 @@ createPauseMenu() {
     else {
         buttonSpacing := percentWidth(0.0257)
 
-        pauseInt.Add("Picture", "vVolume Section xpos1 ypos1 xm0 y+" . percentHeight(0.03) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\volume.png", globalConfig))
+        pauseInt.Add("Picture", "vVolume Section xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
@@ -88,7 +88,7 @@ createPauseMenu() {
     ; program options
     if (programOptions.items.Count > 0) {
         guiSetFont(pauseInt, "bold s23")
-        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . percentHeight(0.05) . " w" . optionWidth, getStatusParam("currProgram"))
+        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, getStatusParam("currProgram"))
     
         guiSetFont(pauseInt, "s19")
         
@@ -103,7 +103,7 @@ createPauseMenu() {
     ; global options
     if (defaultOptions.items.Count > 0) {
         guiSetFont(pauseInt, "bold s23")
-        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.03) . " h" . percentHeight(0.05) . " w" . optionWidth, "Options")
+        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, "Options")
     
         guiSetFont(pauseInt, "s19")
 

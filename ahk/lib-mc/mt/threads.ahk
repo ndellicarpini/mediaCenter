@@ -180,7 +180,8 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
             ; TODO - think about if hard-coded disable pause when loading is good
             ;      - now also exit is hard-coded off when paused
-            if ((hotkeyData.function = 'Pause' && currLoad) || (hotkeyData.function = 'Exit' && getStatusParam('pause'))) {
+            if ((hotkeyData.function = 'Pause' && currLoad) 
+                || ((hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) && getStatusParam('pause') && !getStatusParam('errorShow'))) {
                 currController := -1
                 currButton := ''
 
@@ -196,7 +197,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             ; if user holds button for a long time, kill everything
-            if (hotkeyData.function = 'Exit') {
+            if (hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) {
                 SetTimer(NuclearTimer, -3000)
                 while ((currProgram = getStatusParam('currProgram') || currGui = getStatusParam('currGui')
                     || currError = getStatusParam('errorHwnd' || currLoad = getStatusParam('loadShow')))
