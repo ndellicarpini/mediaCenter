@@ -7,8 +7,11 @@ class Program {
     dir     := ""
     exe     := ""
     wndw    := ""
+
+    volume  := 0
     time    := 0
 
+    muted       := false
     background  := false
     enablePause := true
 
@@ -230,26 +233,127 @@ class Program {
     }
 
     getPID() {
-        PID := ProcessExist(this.exe)
+        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
+        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
 
-        if (PID > 0 && this.exe != "") {
-            return PID
-        }
+        PID := 0
 
-        if (WinHidden(this.wndw) && this.wndw != "") {
+        if (activeWNDW != "" && WinHidden(activeWNDW)) {
             resetDHW := A_DetectHiddenWindows
 
             DetectHiddenWindows(false)
-            PID := WinGetPID(this.wndw)
+            PID := WinGetPID(activeWNDW)
             DetectHiddenWindows(resetDHW)
-
-            return PID
+        }
+        else if (activeEXE != "") {
+            PID := ProcessExist(activeEXE)
         }
 
-        ErrorMsg(this.name . ".getPID() failed")
-        return -1
+        if (PID <= 0) {
+            ErrorMsg(this.name . ".getPID() failed")
+            return -1
+        }
+
+        return PID
     }
 
+    updateVolume() {
+        volumeInterface := this.getVolumeInterfacePtrs()
+        if (volumeInterface.Length = 0) {
+            this.volume := -1
+            return
+        }
+
+        for ptr in volumeInterface {
+            currVal := 0
+            DllCall(NumGet(NumGet(ptr, 0, "UPtr") + 4 * A_PtrSize, 0, "UPtr"), "Ptr", ptr, "Float*", &currVal)
+
+            this.volume := Round(currVal * 100)
+            return
+        }
+    }
+
+    setVolume(newVal) {
+        volumeInterface := this.getVolumeInterfacePtrs()
+        if (volumeInterface.Length = 0) {
+            return
+        }
+
+        for ptr in volumeInterface {
+            programGUID := Buffer(16, 0)
+            DllCall("ole32\CLSIDFromString", "WStr", "", "Ptr", programGUID.Ptr)
+            DllCall(NumGet(NumGet(ptr, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", ptr, "Float", newVal / 100, "Ptr", programGUID.Ptr)
+        }
+
+        this.volume := newVal
+    }
+
+    muteVolume() {
+        volumeInterface := this.getVolumeInterfacePtrs()
+        if (volumeInterface.Length = 0) {
+            this.volume := -1
+            this.muted  := false
+            return
+        }
+
+        for ptr in volumeInterface {
+            programGUID := Buffer(16, 0)
+            DllCall("ole32\CLSIDFromString", "WStr", "", "Ptr", programGUID.Ptr)
+            DllCall(NumGet(NumGet(ptr, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", ptr, "Float", ((this.muted) ? (this.volume / 100) : 0), "Ptr", programGUID.Ptr)
+        }
+
+        this.muted := !this.muted
+    }
+
+    getVolumeInterfacePtrs() {
+        iasm2 := "{77AA99A0-1BD6-484F-8BC7-2C654C9A9B6F}"
+        iasc2 := "{BFB7FF88-7239-4FC9-8FA2-07C950BE9C6D}"
+        isav  := "{87CE5498-68D6-44E5-9215-6DA47EF883D8}"
+
+        deviceEnum := ComObject("{BCDE0395-E52F-467C-8E3D-C4579291692E}", "{A95664D2-9614-4F35-A746-DE8DB63617E6}")
+        if (!deviceEnum) {
+            ErrorMsg("Could not get audio device enumerator")
+            return
+        }
+
+        device := 0
+        if (DllCall(NumGet(NumGet(deviceEnum.Ptr, 0, "UPtr") + 5 * A_PtrSize, 0, "UPtr"), "Ptr", deviceEnum.Ptr, "WStr", "playback", "Ptr*", &device) != 0) {
+            DllCall(NumGet(NumGet(deviceEnum.Ptr, 0, "UPtr") + 4 * A_PtrSize, 0, "UPtr"), "Ptr", deviceEnum.Ptr, "Int", 0, "Int", 0, "Ptr*", &device)
+        }
+
+        volGUID := Buffer(16, 0)
+        deviceInterface := 0
+        DllCall("ole32\CLSIDFromString", "WStr", iasm2, "Ptr", volGUID.Ptr)
+        DllCall(NumGet(NumGet(device, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", device, "Ptr", volGUID.Ptr, "UInt", 0, "UInt", 0, "Ptr*", &deviceInterface)
+        
+        sessionEnum := 0
+        DllCall(NumGet(NumGet(deviceInterface, 0, "UPtr") + 5 * A_PtrSize, 0, "UPtr"), "Ptr", deviceInterface, "Ptr*", &sessionEnum)
+        
+        sessionCount := 0
+        DllCall(NumGet(NumGet(sessionEnum, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", sessionEnum, "Ptr*", &sessionCount)
+        
+        interfacePtrs := []
+        loop sessionCount {
+            currSession := 0
+            DllCall(NumGet(NumGet(sessionEnum, 0, "UPtr") + 4 * A_PtrSize, 0, "UPtr"), "Ptr", sessionEnum, "Int", (A_Index - 1), "Ptr*", &currSession)
+            sessionInterface := ComObjQuery(currSession, iasc2)
+            
+            sessionPID := 0
+            DllCall(NumGet(NumGet(sessionInterface.Ptr, 0, "UPtr") + 14 * A_PtrSize, 0, "UPtr"), "Ptr", sessionInterface.Ptr, "UInt*", &sessionPID)
+            
+            exeNameBuff := Buffer(512, 0)
+            processPtr := DllCall("OpenProcess", "UInt", 0x1000, "UInt", 0, "UInt", sessionPID, "UPtr")
+            DllCall("QueryFullProcessImageName", "UPtr", processPtr, "UInt", 0, "Str", exeNameBuff.Ptr, "UInt*", 512, "UInt")
+            DllCall("CloseHandle", "UPtr", processPtr, "UInt")
+            
+            exeNameArr := StrSplit(StrGet(exeNameBuff), "\")
+            if (sessionPID != 0 && (sessionPID = this.getPID() || (exeNameArr.Length > 0 && exeNameArr[exeNameArr.Length] = ((this.currEXE != "")  ? this.currEXE  : this.exe)))) {
+                interfacePtrs.Push(ComObjQuery(sessionInterface.Ptr, isav).Ptr)
+            }
+        }
+
+        return interfacePtrs
+    }
 }
 
 ; creates a program that gets added to globalRunning

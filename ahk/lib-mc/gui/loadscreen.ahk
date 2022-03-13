@@ -1,4 +1,4 @@
-#Include std.ahk
+global GUILOADTITLE := "AHKGUILOAD"
 
 ; creates & shows the load screen
 ;

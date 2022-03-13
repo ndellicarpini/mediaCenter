@@ -1,4 +1,4 @@
-﻿#SingleInstance Force
+#SingleInstance Force
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include lib-custom\boot.ahk
@@ -19,6 +19,7 @@
 #Include lib-mc\gui\interface.ahk
 #Include lib-mc\gui\loadscreen.ahk
 #Include lib-mc\gui\pausemenu.ahk
+#Include lib-mc\gui\volume.ahk
 
 #Include lib-mc\mt\status.ahk
 #Include lib-mc\mt\threads.ahk
@@ -230,12 +231,6 @@ loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"])
 
 checkAllCount := 0
 loop {
-    ; infinite loop during suspention
-    if (getStatusParam("suspendScript")) {
-        Sleep(loopSleep)
-        continue
-    }
-
     ; --- CHECK MESSAGES ---
 
     ; do something based on external message (like launching app)
@@ -383,7 +378,7 @@ loop {
     currProgram := getStatusParam("currProgram")
     currGui     := getStatusParam("currGui")
 
-    if (checkAllCount > 10 || (currProgram = "" && currGui = "")) {
+    if (checkAllCount > 20 || (currProgram = "" && currGui = "")) {
         checkAllGuis()
 
         mostRecentGui := getMostRecentGui()
@@ -401,7 +396,7 @@ loop {
         checkAllCount := 0
     }
 
-    ; --- CHECK OPEN GUIS ---
+    ; --- CHECK PAUSE ---
     if (getStatusParam("pause") && !WinShown(GUIPAUSETITLE)) {
         createPauseMenu()
         continue
@@ -412,6 +407,7 @@ loop {
         continue
     }
 
+    ; --- CHECK OPEN GUIS ---
     if (currGui != "") {
         if (globalGuis.Has(currGui) && WinShown(currGui)) {
             if (!activeSet) {
@@ -433,12 +429,20 @@ loop {
                 globalGuis.Delete(currGui)
             }
 
-            setStatusParam("currGui", "")
+            checkAllGuis()
+
+            mostRecentGui := getMostRecentGui()
+            if (mostRecentGui != currGui) {
+                setStatusParam("currGui", mostRecentGui)
+            }
+            else {
+                setStatusParam("currGui", "")
+            }
         }
     }
 
     ; --- CHECK OPEN PROGRAMS ---
-    if (currProgram != "") {
+    if (currProgram != "" && !getStatusParam("suspendScript")) {
         if (globalRunning.Has(currProgram)) {
             if (globalRunning[currProgram].exists()) {
                 if (!activeSet) {
@@ -455,7 +459,15 @@ loop {
                 }
             }
             else {
-                setStatusParam("currProgram", "")
+                checkAllPrograms()
+
+                mostRecentProgram := getMostRecentProgram()
+                if (mostRecentProgram != currProgram) {
+                    setStatusParam("currProgram", mostRecentProgram)
+                }
+                else {
+                    setStatusParam("currProgram", "")
+                }
             }
         } 
         else {

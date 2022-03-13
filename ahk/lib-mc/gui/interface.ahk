@@ -317,13 +317,13 @@ class Interface {
             runFunction(this.control2D[this.currentX][this.currentY].function)
         }
 
-        if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount <= globalGuis.Count)) {
+        if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount >= globalGuis.Count)) {
             for key, value in globalGuis {
                 value.Destroy()
                 globalGuis.Delete(key)
             }
         }
-        else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount <= globalGuis.Count)) {
+        else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount >= globalGuis.Count)) {
             this.Destroy()
         }
     }
@@ -339,6 +339,7 @@ class Interface {
         h := 0
         
         ControlGetPos(, &y,, &h, selectedControl)
+        y += this.guiY
 
         if (this.currentY = 1) {
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", (-1 * this.scrollVOffset), "Ptr", 0, "Ptr", 0)
@@ -362,6 +363,7 @@ class Interface {
         w := 0
         
         ControlGetPos(&x,, &w,, selectedControl)
+        x += this.guiX
 
         if (this.currentX = 1) {
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", (-1 * this.scrollHOffset), "Int", 0, "Ptr", 0, "Ptr", 0)
@@ -383,17 +385,21 @@ class Interface {
         nextY := 0
         attemptedY := this.currentY - 1
         while (nextY = 0) {
+            if (attemptedY = this.currentY) {
+                return
+            }
+            
             if (attemptedY < 1) {
+                if (this.control2D[this.currentX].Length = 0) {
+                    return
+                }
+
                 attemptedY := this.control2D[this.currentX].Length
                 continue
             }
     
             if (this.control2D[this.currentX][attemptedY].control != "") {
                 nextY := attemptedY
-            }
-    
-            if (attemptedY = this.currentY) {
-                return
             }
     
             attemptedY -= 1
@@ -418,17 +424,21 @@ class Interface {
         attemptedY := this.currentY + 1
         currentX := this.currentX
         while (nextY = 0) {
+            if (attemptedY = this.currentY) {
+                return
+            }
+
             if (attemptedY > this.control2D[this.currentX].Length) {
+                if (this.control2D[this.currentX].Length = 0) {
+                    return
+                }
+
                 attemptedY := 1
                 continue
             }
 
             if (this.control2D[this.currentX][attemptedY].control != "") {
                 nextY := attemptedY
-            }
-    
-            if (attemptedY = this.currentY) {
-                return
             }
     
             attemptedY += 1
@@ -453,21 +463,25 @@ class Interface {
         nextY := this.currentY
         attemptedX := this.currentX - 1
         while (nextX = 0) {
+            if (attemptedX = this.currentX) {
+                return
+            }
+
             if (attemptedX < 1) {
                 attemptedX := this.control2D.Length
                 continue
             }
 
             if (this.control2D[attemptedX].Length < this.currentY) {
+                if (this.control2D[attemptedX].Length) {
+                    return
+                }
+
                 nextY := this.control2D[attemptedX].Length
             }
     
             if (this.control2D[attemptedX][nextY].control != "") {
                 nextX := attemptedX
-            }
-    
-            if (attemptedX = this.currentX) {
-                return
             }
     
             attemptedX -= 1
@@ -493,21 +507,25 @@ class Interface {
         nextY := this.currentY
         attemptedX := this.currentX + 1
         while (nextX = 0) {
+            if (attemptedX = this.currentX) {
+                return
+            }
+
             if (attemptedX > this.control2D.Length) {
                 attemptedX := 1
                 continue
             }
 
             if (this.control2D[attemptedX].Length < this.currentY) {
+                if (this.control2D[attemptedX].Length) {
+                    return
+                }
+
                 nextY := this.control2D[attemptedX].Length
             }
     
             if (this.control2D[attemptedX][nextY].control != "") {
                 nextX := attemptedX
-            }
-    
-            if (attemptedX = this.currentX) {
-                return
             }
     
             attemptedX += 1

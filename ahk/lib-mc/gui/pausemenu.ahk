@@ -1,3 +1,5 @@
+global GUIPAUSETITLE := "AHKGUIPAUSE"
+
 ; creates the pause screen
 ;  currProgram - current program
 ;  globalGuis - current guis
@@ -26,7 +28,7 @@ createPauseMenu() {
 
     ; --- ADD TIME & DATE --- 
     guiSetFont(pauseInt, "s38")
-    pauseInt.Add("Text", "vTime Section Center xm0 ym10 w" . (guiWidth * 0.46), currentTimeArr[1])
+    pauseInt.Add("Text", "vTime Section Center xm0 ym0 w" . (guiWidth * 0.46), currentTimeArr[1])
 
     guiSetFont(pauseInt)
     pauseInt.Add("Text", "vDate Center wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
@@ -39,7 +41,7 @@ createPauseMenu() {
         pauseInt.Add("Text", "xs0 y+" . monitorSpacing, "RAM")
         pauseInt.Add("Text", "xs0 y+" . monitorSpacing, "GPU")
 
-        pauseInt.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . percentWidth(0.078) " ys0 x+" . percentWidth(0.006), 0)
+        pauseInt.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . percentWidth(0.078) . " ys0 x+" . percentWidth(0.006), 0)
         pauseInt.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
         pauseInt.Add("Progress", "vGPU Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
     }
@@ -58,7 +60,7 @@ createPauseMenu() {
         buttonSpacing := percentWidth(0.0097)
 
         pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png", globalConfig))
-        pauseInt.Add("Picture", "vVolume xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
+        pauseInt.Add("Picture", "vVolume f(createVolumeMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
@@ -67,7 +69,7 @@ createPauseMenu() {
     else {
         buttonSpacing := percentWidth(0.0257)
 
-        pauseInt.Add("Picture", "vVolume Section xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\volume.png", globalConfig))
+        pauseInt.Add("Picture", "vVolume Section f(createVolumeMenu) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
@@ -87,10 +89,10 @@ createPauseMenu() {
 
     ; program options
     if (programOptions.items.Count > 0) {
-        guiSetFont(pauseInt, "bold s23")
+        guiSetFont(pauseInt, "bold s24")
         pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, getStatusParam("currProgram"))
     
-        guiSetFont(pauseInt, "s19")
+        guiSetFont(pauseInt, "norm s20")
         
         for item in programOptions.order {
             if (programOptions.items.Has(item)) {
@@ -105,7 +107,7 @@ createPauseMenu() {
         guiSetFont(pauseInt, "bold s23")
         pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, "Options")
     
-        guiSetFont(pauseInt, "s19")
+        guiSetFont(pauseInt, "norm s19")
 
         for item in defaultOptions.order {
             if (defaultOptions.items.Has(item)) {
@@ -146,18 +148,17 @@ defaultPauseOptions() {
     defaultOptions["WinSettings"] := {title: "Windows Settings", function: "runWinSettings"}
     defaultOptions["Settings"] := {title: "Script Settings", function: "createSettingsGui config\global.cfg"}
     
-    if (!getStatusParam("KBMMode")) {
-        defaultOptions["KBMMode"] := {title: "Enable KB && Mouse Mode", function: "updateKBMM"}
-    }
-    else {
-        defaultOptions["KBMMode"] := {title: "Disable KB && Mouse Mode", function: "updateKBMM"}
+    currKBMMode := getStatusParam("kbmmode")
+    currSuspend := getStatusParam("suspendScript")
+
+    defaultOptions["KBMMode"] := {
+        title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
+        function: "setStatusParam kbmmode " . !currKBMMode
     }
 
-    if (!getStatusParam("suspendScript")) {
-        defaultOptions["Suspend"] := {title: "Suspend All Scripts", function: "updateSuspendScript"}
-    }
-    else {
-        defaultOptions["Suspend"] := {title: "Resume All Scripts", function: "updateSuspendScript"}
+    defaultOptions["Suspend"] := {
+        title: (!currSuspend) ? "Suspend Program Scripts" : "Resume Program Scripts", 
+        function: "setStatusParam suspendScript " . !currSuspend
     }
 
     if (globalConfig["GUI"].Has("DefaultPauseOptions") && IsObject(globalConfig["GUI"]["DefaultPauseOptions"])) {

@@ -11,8 +11,6 @@ global COLOR2 := ""
 global COLOR3 := ""
 
 global GUIMESSAGETITLE := "AHKGUIMESSAGE"
-global GUILOADTITLE := "AHKGUILOAD"
-global GUIPAUSETITLE := "AHKGUIPAUSE"
 
 ; cleans up gui config & sets default theming values if not provided in the config
 ;  guiConfig - GUI config from global.cfg
@@ -38,7 +36,7 @@ parseGUIConfig(guiConfig) {
         ? StrReplace(guiConfig["SecondaryColor"], "#") : "1a1a1a"
 
     COLOR3 := (guiConfig.Has("SelectionColor") && RegExMatch(guiConfig["SelectionColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig["SelectionColor"], "#") : "ffffff"
+        ? StrReplace(guiConfig["SelectionColor"], "#") : "3399ff"
 }
 
 ; sets global monitor gui variables

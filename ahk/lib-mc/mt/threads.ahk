@@ -106,12 +106,6 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
         ; --- MAIN LOOP ---
         loop {
-            ; only check buttons if script not suspended
-            if (getStatusParam('suspendScript')) {
-                Sleep(loopSleep)
-                continue
-            }
-
             currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
             buttonTime  := getStatusParam('buttonTime')
 
