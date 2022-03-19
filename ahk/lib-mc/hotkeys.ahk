@@ -170,21 +170,45 @@ optimizeHotkeys(currHotkeys) {
 ; 
 ; returns array of button combo pressed & function from currHotkeys based on controller
 checkHotkeys(currButton, currHotkeys, port, ptr) {
+    ; creates the hotkeyData in the appropriate format
+    createHotkeyData(hotkey) {
+        downFunction := ""
+        upFunction   := ""
+
+        if (IsObject(currHotkeys["hotkeys"][hotkey])) {
+            for key, value in currHotkeys["hotkeys"][hotkey] {
+                if (StrLower(key) = "down") {
+                    downFunction := value
+                }
+                else if (StrLower(key) = "up") {
+                    upFunction := value
+                }
+            }
+        }
+        else {
+            downFunction := currHotkeys["hotkeys"][hotkey]
+        }
+
+        return {
+            hotkey: StrSplit(hotkey, ["&", "|"]), 
+            modifier: currHotkeys["modifiers"][hotkey],
+            function: downFunction, 
+            release: upFunction, 
+        }
+    }
+
     checkArr := []
 
     for key, value in currHotkeys["hotkeys"] {
-        if (InStr(key, currButton)) {
+        currArr := StrSplit(key, ["&", "|"])
+        if (inArray(currButton, currArr)) {
             checkArr.Push(key)
         }
     }
 
     ; if only 1 hotkeys references button & button is pressed -> return hotkey
     if (checkArr.Length = 1 && checkArr[1] = currButton) {
-        return {
-            hotkey: toArray(StrSplit(checkArr[1], "&")), 
-            function: currHotkeys["hotkeys"][checkArr[1]], 
-            modifier: currHotkeys["modifiers"][checkArr[1]]
-        }
+        return createHotkeyData(checkArr[1])
     }
 
     maxValidAmp := 0
@@ -194,7 +218,7 @@ checkHotkeys(currButton, currHotkeys, port, ptr) {
             continue
         }
 
-        hotkeyList := StrSplit(item, "&")
+        hotkeyList := StrSplit(item, ["&", "|"])
 
         if (xCheckStatus(hotKeyList, port, ptr)) {
             maxValidAmp := hotkeyList.Length
@@ -206,9 +230,5 @@ checkHotkeys(currButton, currHotkeys, port, ptr) {
         return -1
     }
 
-    return {
-        hotkey: toArray(StrSplit(maxValidItem, "&")), 
-        function: currHotkeys["hotkeys"][maxValidItem], 
-        modifier: currHotkeys["modifiers"][maxValidItem]
-    }
+    return createHotkeyData(maxValidItem)
 }

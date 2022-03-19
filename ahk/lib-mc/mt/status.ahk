@@ -1,6 +1,6 @@
 global MT_CHR_SIZE := 1     ; used for boolean
 global MT_NUM_SIZE := 4     ; used for ints/floats
-global MT_KEY_SIZE := 128   ; used for keys/names
+global MT_KEY_SIZE := 256   ; used for keys/names
 global MT_STR_SIZE := 2048  ; used for strings
 
 ; keep info about the status as a global include so that multiple threads know
@@ -100,6 +100,14 @@ getStatusParam(param, ptr := "") {
                     break
                 }
 
+                if (InStr(val, "{|}")) {
+                    tempArr := StrSplit(val, "{|}")
+                    
+                    val := Map()
+                    val["down"] := tempArr[1]
+                    val["up"]   := tempArr[2]
+                }
+
                 retMap[key] := val
                 ptrOffset += MT_KEY_SIZE
             }
@@ -155,8 +163,27 @@ setStatusParam(param, newVal, ptr := "") {
                 }
                 else {
                     StrPut(keys[A_Index], ptrOffset, MT_KEY_SIZE)
-                    StrPut(vals[A_Index], ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
-                    ptrOffset += MT_KEY_SIZE
+
+                    if (IsObject(vals[A_Index])) {
+                        down := ""
+                        up   := ""
+                        
+                        for key, value in vals[A_Index] {
+                            if (StrLower(key) = "down") {
+                                down := value
+                            }
+                            else if (StrLower(key) = "up") {
+                                up := value
+                            }
+                        }
+
+                        StrPut(down . "{|}" . up, ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
+                        ptrOffset += MT_KEY_SIZE
+                    }
+                    else {
+                        StrPut(vals[A_Index], ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
+                        ptrOffset += MT_KEY_SIZE
+                    }
                 }
             }
     }

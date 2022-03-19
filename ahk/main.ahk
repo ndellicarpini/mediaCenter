@@ -5,7 +5,7 @@
 #Include lib-custom\chrome.ahk
 #Include lib-custom\games.ahk
 #Include lib-custom\load.ahk
-; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----
+; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
 #Include lib-mc\std.ahk
@@ -19,7 +19,8 @@
 #Include lib-mc\gui\interface.ahk
 #Include lib-mc\gui\loadscreen.ahk
 #Include lib-mc\gui\pausemenu.ahk
-#Include lib-mc\gui\volume.ahk
+#Include lib-mc\gui\volumemenu.ahk
+#Include lib-mc\gui\controllermenu.ahk
 
 #Include lib-mc\mt\status.ahk
 #Include lib-mc\mt\threads.ahk
@@ -77,7 +78,7 @@ for value in requiredFolders {
     }
 }
 
-; load process monitoring dll for checking process lists
+; load process monitoring library for checking process lists
 processLib := dllLoadLib("psapi.dll")
 
 ; load nvidia library for gpu monitoring
@@ -272,7 +273,7 @@ loop {
             }
 
             else if (currProgram != "") {
-                globalRunning[currProgram].exit()
+                try globalRunning[currProgram].exit()
             }
         }
         else if (StrLower(internalMessage) = "nuclear") {
@@ -298,10 +299,16 @@ loop {
             }
         }
         else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
-            globalGuis[currGui].%StrReplace(internalMessage, "gui.", "")%()
+            tempArr  := StrSplit(internalMessage, A_Space)
+            tempFunc := tempArr.RemoveAt(1)
+            
+            globalGuis[currGui].%StrReplace(tempFunc, "gui.", "")%(tempArr*)
         }
-        else if (StrLower(SubStr(internalMessage, 1, 4)) = "program.") {
-            globalRunning[currProgram].%StrReplace(internalMessage, "program.", "")%()
+        else if (StrLower(SubStr(internalMessage, 1, 8)) = "program.") {
+            tempArr  := StrSplit(internalMessage, A_Space)
+            tempFunc := tempArr.RemoveAt(1)
+
+            globalRunning[currProgram].%StrReplace(tempFunc, "program.", "")%(tempArr*)
         }
         else {
             runFunction(internalMessage)

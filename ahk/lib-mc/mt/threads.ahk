@@ -101,6 +101,26 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         global hotkeyData := {}
         global hotkeyBuffer := []
 
+        ; either adds a hotkey to the buffer or internalStatus
+        ;  hotkeyFunction - function string to send to main
+        ;
+        ; returns null
+        sendHotkey(hotkeyFunction) {
+            global hotkeyBuffer
+
+            if (hotkeyFunction = '') {
+                return
+            }
+
+            ; check if can just send input or need to buffer
+            if (getStatusParam('internalMessage') != '') {
+                hotkeyBuffer.Push(hotkeyFunction)
+            }
+            else {
+                setStatusParam('internalMessage', hotkeyFunction)
+            }
+        }
+
         maxControllers := globalConfig['General']['MaxXInputControllers']
         loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 4)
 
@@ -183,12 +203,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             ; check if can just send input or need to buffer
-            if (getStatusParam('internalMessage') != '') {
-                hotkeyBuffer.Push(hotkeyData.function)
-            }
-            else {
-                setStatusParam('internalMessage', hotkeyData.function)
-            }
+            sendHotkey(hotkeyData.function)
 
             ; if user holds button for a long time, kill everything
             if (hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) {
@@ -202,7 +217,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                 SetTimer(NuclearTimer, 0)
             }
 
-            ; forces internalMessage = function while hotkey is held 
+            ; forces internalMessage = function while hotkey is held
             if (hotkeyData.modifier = 'hold') {
                 while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
                     if (getStatusParam('internalMessage') = '') {
@@ -234,6 +249,9 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                 }
             }
 
+            ; trigger release function if it exists
+            sendHotkey(hotkeyData.release)
+
             currController := -1
             currButton := ''
 
@@ -246,13 +264,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             global hotkeyData
             global hotkeyBuffer
 
-            ; check if can just send input or need to buffer
-            if (getStatusParam('internalMessage') != '') {
-                hotkeyBuffer.Push(hotkeyData.function)
-            }
-            else {
-                setStatusParam('internalMessage', hotkeyData.function)
-            }
+            sendHotkey(hotkeyData.function)
 
             SetTimer(RepeatFastTimer, 40)
             return
@@ -263,13 +275,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             global hotkeyData
             global hotkeyBuffer
 
-            ; check if can just send input or need to buffer
-            if (getStatusParam('internalMessage') != '') {
-                hotkeyBuffer.Push(hotkeyData.function)
-            }
-            else {
-                setStatusParam('internalMessage', hotkeyData.function)
-            }
+            sendHotkey(hotkeyData.function)
 
             return
         }

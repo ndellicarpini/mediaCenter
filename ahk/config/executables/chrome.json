@@ -17,8 +17,11 @@
     "hotkeys": {
         "SELECT": "chromeOSK",
         "START": "chromeNewTab",
-        "Y&RT>=0.4": "Exit",
-        "START&SELECT": "Exit"
+        "START&SELECT": "Exit",
+        "Y&RT>=0.4": {
+            "down": "MsgBox bruh",
+            "up": "Exit"
+        },
     },
 
     "pauseOptions": {

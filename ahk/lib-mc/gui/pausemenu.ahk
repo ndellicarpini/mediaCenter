@@ -27,13 +27,15 @@ createPauseMenu() {
     currentTimeArr := StrSplit(FormatTime(, "h:mm tt`ndddd, MMM d yyy"), "`n")
 
     ; --- ADD TIME & DATE --- 
-    guiSetFont(pauseInt, "s38")
+    guiSetFont(pauseInt, "s39")
     pauseInt.Add("Text", "vTime Section Center xm0 ym0 w" . (guiWidth * 0.46), currentTimeArr[1])
 
-    guiSetFont(pauseInt)
+    guiSetFont(pauseInt, "s14")
     pauseInt.Add("Text", "vDate Center wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
 
     ; --- ADD MONITORS ---
+    guiSetFont(pauseInt)
+
     if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
         monitorSpacing := percentHeight(0.008)
 
@@ -61,7 +63,7 @@ createPauseMenu() {
 
         pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\home.png", globalConfig))
         pauseInt.Add("Picture", "vVolume f(createVolumeMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
-        pauseInt.Add("Picture", "vControllers xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     
@@ -70,7 +72,7 @@ createPauseMenu() {
         buttonSpacing := percentWidth(0.0257)
 
         pauseInt.Add("Picture", "vVolume Section f(createVolumeMenu) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentHeight(0.07), getAssetPath("icons\gui\volume.png", globalConfig))
-        pauseInt.Add("Picture", "vControllers xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     }

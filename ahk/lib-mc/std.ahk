@@ -3,7 +3,7 @@ global MAINNAME := "MediaCenterMain"
 global MAINLOOP := "MediaCenterLoop"
 
 global DYNASTART := "; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----"
-global DYNAEND   := "; ----- DO NOT EDIT: DYNAMIC INCLUDE END   -----"
+global DYNAEND   := "; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----"
 
 ; ----- FUNCTIONS -----
 
@@ -256,7 +256,7 @@ inArray(value, arr, mode := "and", perfectMatch := true) {
 			if ((perfectMatch) ? (item = arrItem) : (InStr(arrItem, item) || InStr(item, arrItem))) {
 				inCount += 1
 
-				if (mode != "and" || inCount = arr.Length) {
+				if (mode != "and" || inCount = value.Length) {
 					return true
 				}
 			}
