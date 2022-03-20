@@ -37,14 +37,40 @@ controllerThread(globalConfig, globalControllers) {
         }
 
         loop {
-            controllerStatus := xGetStatus(maxControllers, xGetStatusPtr)
-            batteryStatus    := xGetBattery(maxControllers, xGetBatteryPtr)
-            currVibration    := xSetVibration(maxControllers, xSetVibrationPtr, currVibration, globalControllers)
+            ; --- CONTROLLER BUFFER ---
+            ; UChar - connected status (0/1)
+            ; UChar - battery type (0/1/2/3/FF)
+            ; UChar - battery status (0/1/2/3)
+            ; UChar - vibration status (0/1)
+            ; 16bytes - controller status data
+
             loop maxControllers {
                 port := A_Index - 1
 
-                NumPut('UChar', batteryStatus[A_Index], globalControllers + (port * 18) + 1, 0)
-                copyBufferData(controllerStatus[A_Index].Ptr, globalControllers + (port * 18) + 2, 16)
+                ; gets connected & button status of controller
+                controllerStatus := xGetStatus(port, xGetStatusPtr)
+
+                ; controller not connected
+                if (controllerStatus = -1) {
+                    NumPut('UChar', 0, globalControllers + (port * 20), 0)
+                    continue
+                }
+
+                ; copy connected status to buffer
+                NumPut('UChar', 1, globalControllers + (port * 20), 0)
+
+                ; copy battery type & level to buffer
+                batteryStatus := xGetBattery(port, xGetBatteryPtr)
+                copyBufferData(batteryStatus.Ptr, globalControllers + (port * 20) + 1, 2)
+
+                ; gets vibration setting & activates/deactivates if needed
+                newVibration := NumGet(globalControllers + (port * 20) + 3, 0, 'UChar')
+                if (currVibration[A_Index] != newVibration) {
+                    currVibration[A_Index] := xSetVibration(port, xSetVibrationPtr, newVibration)
+                }
+
+                ; copy button status to buffer
+                copyBufferData(controllerStatus.Ptr, globalControllers + (port * 20) + 4, 16)
             }
 
             ; close if main is no running
@@ -231,7 +257,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             ; after a delay, repeatedly adds new function call to hotkey buffer while hotkey is held
             else if (hotkeyData.modifier = 'repeat') {
                 SetTimer(RepeatTimer, -400)
-
+                
                 while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
                     Sleep(5)
                 }

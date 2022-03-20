@@ -1,10 +1,5 @@
 global GUIPAUSETITLE := "AHKGUIPAUSE"
 
-; creates the pause screen
-;  currProgram - current program
-;  globalGuis - current guis
-;
-; returns null
 createPauseMenu() {
     global globalConfig
     global globalPrograms
@@ -127,7 +122,6 @@ createPauseMenu() {
 }
 
 ; destroys the pause screen
-;  globalGuis - current guis 
 ;
 ; returns null
 destroyPauseMenu() {

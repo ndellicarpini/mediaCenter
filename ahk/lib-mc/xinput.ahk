@@ -66,74 +66,51 @@ xAxis := {
 ;
 ; returns Buffer
 xInitBuffer(maxControllers) {
-    return Buffer(18 * maxControllers, 0)
+    return Buffer(20 * maxControllers, 0)
 }
 
 ; gets the controller button status
-;  maxControllers - max number of controllers supported
+;  port - current controller to check
 ;  getStatusPtr - ptr to dll function get button status
 ;
 ; returns buffer w/ status data
-xGetStatus(maxControllers, getStatusPtr) {
-    retData := []
+xGetStatus(port, getStatusPtr) {
+    xBuf := Buffer(16, 0)
+    xResult := DllCall(getStatusPtr, "UInt", port, "Ptr", xBuf.Ptr)
 
-    loop maxControllers {
-        xBuf := Buffer(16, 0)
-        xResult := DllCall(getStatusPtr, "UInt", (A_Index - 1), "Ptr", xBuf.Ptr)
-
-        if (xResult = 1167) {
-            retData.Push(Buffer(16, 0))
-        }
-        else {
-            retData.Push(xBuf)
-        }
+    if (xResult = 1167) {
+        return -1
     }
-
-    return retData
+       
+    return xBuf
 }
 
 ; gets the controller battery status
-;  maxControllers - max number of controllers supported
+;  port - current controller to check
 ;  getBatteryPtr - ptr to dll function get button status
 ;
 ; returns battery status
-xGetBattery(maxControllers, getBatteryPtr) {
-    retData := []
+xGetBattery(port, getBatteryPtr) {
+    xBuf := Buffer(2, 0)
+    xResult := DllCall(getBatteryPtr, "UInt", port, "UChar", 0, "UInt", xBuf.Ptr)
 
-    loop maxControllers {
-        xBuf := Buffer(8, 0)
-        xResult := DllCall(getBatteryPtr, "UInt", (A_Index - 1), "UChar", 0, "UInt", xBuf.Ptr)
-
-        if (xResult = 1167) {
-            retData.Push(255)
-        }
-        else {
-            retData.Push(NumGet(xBuf.Ptr, 1, "UChar"))
-        }
+    if (xResult = 1167) {
+        return -1
     }
 
-    return retData
+    return xBuf
 }
 
 ; enables the full vibration force on the controller
-;  maxControllers - max number of controllers supported
+;  port - current controller to check
 ;  setVibePtr - ptr to dll function set vibration status
-;  currVibe - array of length maxControllers that has prev vibration status
-;  ptr - ptr to controller data to check
+;  controllerVibe - new requested vibration status
 ;
 ; returns array of new vibration status
-xSetVibration(maxControllers, setVibePtr, currVibe, ptr) {
-    newVibe := []
-    loop maxControllers {
-        controllerVibe := NumGet(ptr + ((A_Index - 1) * 18), 0, "UChar")
-        if (controllerVibe != currVibe[A_Index]) {
-            DllCall(setVibePtr, "UInt", (A_Index - 1), "UInt*", (controllerVibe) ? 65535|65535<<16 : 0)
-        }
+xSetVibration(port, setVibePtr, controllerVibe) {
+    DllCall(setVibePtr, "UInt", port, "UInt*", (controllerVibe) ? 65535|65535<<16 : 0)
 
-        newVibe.Push(controllerVibe)
-    }
-
-    return newVibe
+    return controllerVibe
 }
 
 ; sets the appropriate value in globalControllers to enable the vibration
@@ -142,7 +119,7 @@ xSetVibration(maxControllers, setVibePtr, currVibe, ptr) {
 ;
 ; returns null
 xEnableVibration(port, ptr) {
-    NumPut("UChar", 1, ptr + (port * 18), 0)
+    NumPut("UChar", 1, ptr + (port * 20) + 3, 0)
 }
 
 ; sets the appropriate value in globalControllers to disable the vibration
@@ -151,7 +128,7 @@ xEnableVibration(port, ptr) {
 ;
 ; returns null
 xDisableVibration(port, ptr) {
-    NumPut("UChar", 0, ptr + (port * 18), 0)
+    NumPut("UChar", 0, ptr + (port * 20) + 3, 0)
 }
 
 ; checks the buttons & axis of a specific controller, comparing them with current hotkeys
@@ -161,12 +138,12 @@ xDisableVibration(port, ptr) {
 ; 
 ; returns boolean if hotkey status is fulfilled by controller status, or axis value
 xCheckStatus(toCheck, port, ptr) {
-    statusData := Buffer(16)
-    copyBufferData(ptr + (port * 18) + 2, statusData.Ptr, 16)
-
-    if (toCheck = "" || StrGet(ptr + (port * 18) + 2, 16) = "") {
+    if (toCheck = "" || NumGet(ptr + (port * 20), 0, "UChar") = 0) {
         return false
     }
+
+    statusData := Buffer(16)
+    copyBufferData(ptr + (port * 20) + 4, statusData.Ptr, 16)
 
     retVal := true
 

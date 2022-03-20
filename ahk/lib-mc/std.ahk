@@ -139,41 +139,53 @@ Sum(lists*) {
 ; returns string containing value
 toString(value, prefix := "") {
 	retString := ""
-
-	if (Type(value) = "Array") {
-		retString .= "["
-		for item in value {
-			if (IsObject(item)) {
-				retString .= toString(item, prefix)
+	if (IsObject(value)) {
+		if (Type(value) = "Array") {
+			retString .= "["
+			for item in value {
+				if (IsObject(item)) {
+					retString .= toString(item, prefix)
+				}
+				else {
+					retString .= item . ", "
+				}
 			}
-			else {
-				retString .= item . ", "
-			}
+	
+			retString := RegExReplace(retString, "U), $")
+	
+			return retString . "]"
 		}
-
-		retString := RegExReplace(retString, "U), $")
-
-		return retString . "]"
-	}
-
-	else if (Type(value) = "Map") {
-		for key, item in value {
-			if (Type(item) = "Map") {
-				retString .= prefix . key . " : {`n" . toString(item, (prefix . "  ")) . prefix . "}`n"
+		else if (Type(value) = "Map") {
+			for key, item in value {
+				if (IsObject(item) && Type(item) != "Array") {
+					retString .= prefix . key . " : {`n" . toString(item, (prefix . "  ")) . prefix . "}`n"
+				}
+				else {
+					retString .= prefix . key . " : " . toString(item, prefix) . "`n"
+				}
 			}
-			else {
-				retString .= prefix . key . " : " . toString(item, prefix) . "`n"
-			}
+	
+			return retString
 		}
-
-		return retString
-	}
-	else if (Type(value) = "Config") {
-		retString .= "`n" . prefix . "INDENT[" . toString(StrLen(value.indent)) . "]`n"
-		retString .= RTrim(toString(value.items, prefix . "  "), " `t`r`n") . "`n`n"
-		retString .= prefix . RTrim(toString(value.subConfigs, prefix . "  "), " `t`r`n") . "`n"
-
-		return RTrim(retString, " `t`r`n") . "`n"
+		else if (Type(value) = "Config") {
+			retString .= "`n" . prefix . "INDENT[" . toString(StrLen(value.indent)) . "]`n"
+			retString .= RTrim(toString(value.items, prefix . "  "), " `t`r`n") . "`n`n"
+			retString .= prefix . RTrim(toString(value.subConfigs, prefix . "  "), " `t`r`n") . "`n"
+	
+			return RTrim(retString, " `t`r`n") . "`n"
+		}
+		else {
+			for key, item in value.OwnProps() {
+				if (IsObject(item) && Type(item) != "Array") {
+					retString .= prefix . key . " : {`n" . toString(item, (prefix . "  ")) . prefix . "}`n"
+				}
+				else {
+					retString .= prefix . key . " : " . toString(item, prefix) . "`n"
+				}
+			}
+	
+			return retString
+		}
 	}
 	else {
 		return (prefix = "") ? Trim(retString . value, " `t`r`n") : RTrim(retString . value, " `t`r`n")
