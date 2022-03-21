@@ -1,4 +1,5 @@
 global GUICONTROLLERTITLE := "AHKGUICONTROLLER"
+global GUIPREVCONTROLLERINSTANCE
 
 createControllerMenu() {
     global globalConfig
@@ -33,15 +34,16 @@ createControllerGui(controllerInt) {
     guiSetFont(controllerInt, "norm s20")
     loop globalConfig["General"]["MaxXInputControllers"] {
         port := A_Index - 1
+		ypos := percentHeight(0.08 + (0.05 * port))
 
         guiHeight += percentHeight(0.05)
 
-        controllerInt.Add("Text", "0x200 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.05) . " h" . percentHeight(0.03), "Port " . A_Index)
+        controllerInt.Add("Text", "0x200 xm0 y" . ypos . " w" . percentWidth(0.05) . " h" . percentHeight(0.03), "Port " . A_Index)
 
         if (NumGet(globalControllers + (port * 20), 0, "UChar")) {
             batteryType := NumGet(globalControllers + (port * 20) + 1, 0, "UChar")
             if (batteryType = 1) {
-                controllerInt.Add("Text", "vPort" . A_Index . "Text Section Center 0x200 yp0 hp0 x+" . percentWidth(0.007) . " w" . percentWidth(0.085), "Wired")
+                controllerInt.Add("Text", "Section Center 0x200 yp0 hp0 x+" . percentWidth(0.007) . " w" . percentWidth(0.085), "Wired")
             }
             else if (batteryType = 2 || batteryType = 3) {
                 batteryLevel := NumGet(globalControllers + (port * 20) + 2, 0, "UChar")
@@ -61,16 +63,17 @@ createControllerGui(controllerInt) {
                     batteryProgress := 70
                 }
 
-                borderWidth := percentHeight(0.01)
+                borderWidth := percentHeight(0.005)
 
-                controllerInt.Add("Text", "vPort" . A_Index . "Text Section Background" . FONTCOLOR . "yp0 hp0 x+" . percentWidth(0.007) . " w" . percentWidth(0.085), "")
-                controllerInt.Add("Progress", "vPort" . A_Index . "Progress Background" . COLOR1 . " c" . batteryColor . " y+" . borderWidth . " x+" . borderWidth . " wp-" . borderWidth . " hp-" . borderWidth, batteryProgress)
+                controllerInt.Add("Text", "Section Background" . FONTCOLOR . " hp0 x+" . percentWidth(0.007) . " y" . ypos . " w" . percentWidth(0.075), "")
+                controllerInt.Add("Progress", "vPort" . A_Index . "Progress Background" . COLOR1 . " c" . batteryColor . " yp+" . (borderWidth / 2) . " xp+" . (borderWidth / 2) . " wp-" . borderWidth . " hp-" . borderWidth, batteryProgress)
+                controllerInt.Add("Text", "Background" . FONTCOLOR . " x+" . (borderWidth - percentWidth(0.002)) . " y" . (ypos + percentHeight((0.03 - 0.01) / 2)) . " w" . percentWidth(0.004) . " h" . percentHeight(0.01), "")
             }
 
-            controllerInt.Add("Text", "vPort" . A_Index . "Vibe Center 0x200 Background" . COLOR2 . " yp0 hp0 xpos1 ypos" . A_Index . " xs+" . percentWidth(0.0925) . " w" . percentWidth(0.04), "Vibe")
+            controllerInt.Add("Text", "vPort" . A_Index . "Vibe Center 0x200 Background" . COLOR2 . " xpos1 ypos" . A_Index . " xs+" . percentWidth(0.092) . " y" . ypos . " w" . percentWidth(0.04) . " h" . percentHeight(0.03), "Vibe")
         }
         else {
-            controllerInt.Add("Text", "vPort" . A_Index . "Text Center 0x200 yp0 hp0 x+" . percentWidth(0.007) . " w" . percentWidth(0.085), "Disconnected")
+            controllerInt.Add("Text", "Center 0x200 hp0 x+" . percentWidth(0.007) . " y" . ypos . " w" . percentWidth(0.085), "Disconnected")
         }
     }
 
@@ -112,6 +115,7 @@ destroyControllerMenu() {
 ; timer triggered each second to update the controller info
 ; in order to update the controller info need to redraw the whole gui
 ControllerSecondTimer() {
+	global GUIPREVCONTROLLERINSTANCE
     global globalGuis
 
     try {
@@ -120,12 +124,25 @@ ControllerSecondTimer() {
             return
         }
 
-        prevGui := currGui.guiObj
-        currGui.guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop", GUICONTROLLERTITLE)
+        GUIPREVCONTROLLERINSTANCE := currGui.guiObj.Hwnd
         currGui.control2D := [[]]
+		currGui.guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop", GUICONTROLLERTITLE)
 
         createControllerGui(currGui)
-        Sleep(100)
-        prevGui.Destroy()
+        SetTimer(ClearPrevInstance, -500)
     }
+	
+	return
+}
+
+ClearPrevInstance() {
+	global GUIPREVCONTROLLERINSTANCE
+	
+	prevGui := getGui(GUIPREVCONTROLLERINSTANCE)
+	
+	if (prevGui) {
+		prevGui.Destroy()
+	}
+	
+	return
 }

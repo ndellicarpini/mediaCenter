@@ -1,10 +1,10 @@
 #SingleInstance Force
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include lib-custom\boot.ahk
-#Include lib-custom\chrome.ahk
-#Include lib-custom\games.ahk
-#Include lib-custom\load.ahk
+#Include LIB-CU~1\boot.ahk
+#Include LIB-CU~1\chrome.ahk
+#Include LIB-CU~1\games.ahk
+#Include LIB-CU~1\load.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
