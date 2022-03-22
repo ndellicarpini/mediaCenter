@@ -113,6 +113,46 @@ xSetVibration(port, setVibePtr, controllerVibe) {
     return controllerVibe
 }
 
+; gets the controller connected status
+;  port - current controller to check
+;  ptr - ptr to controller data to check
+;
+; returns connected status
+xGetConnected(port, ptr) {
+    return NumGet(ptr + (port * 20), 0, "UChar")
+}
+
+; gets the controller battery type
+;  port - current controller to check
+;  ptr - ptr to controller data to check
+;
+; returns battery type
+xGetBatteryType(port, ptr) {
+    return NumGet(ptr + (port * 20) + 1, 0, "UChar")
+}
+
+; gets the controller battery level
+;  port - current controller to check
+;  ptr - ptr to controller data to check
+;
+; returns battery level
+xGetBatteryLevel(port, ptr) {
+    level := NumGet(ptr + (port * 20) + 2, 0, "UChar")
+
+    switch (level) {
+        case 0:
+            return 0.1
+        case 1:
+            return 0.4
+        case 2:
+            return 0.7
+        case 3:
+            return 1
+    }
+    
+    return 0
+}
+
 ; sets the appropriate value in globalControllers to enable the vibration
 ;  port - controller port to enable vibration on
 ;  ptr - ptr to controller data to check

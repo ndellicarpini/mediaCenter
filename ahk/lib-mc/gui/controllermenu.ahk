@@ -1,5 +1,4 @@
 global GUICONTROLLERTITLE := "AHKGUICONTROLLER"
-global GUIPREVCONTROLLERINSTANCE
 
 createControllerMenu() {
     global globalConfig
@@ -12,15 +11,6 @@ createControllerMenu() {
     controllerInt.unselectColor := COLOR1
     controllerInt.selectColor := COLOR3
 
-    createControllerGui(controllerInt)
-    SetTimer(ControllerSecondTimer, 1000)
-}
-
-; creates the actual gui for the controller, need to rebuild on every update tick
-;  controllerInt - interface object of the controller menu
-;
-; returns null
-createControllerGui(controllerInt) {
     controllerInt.guiObj.BackColor := COLOR1
     controllerInt.guiObj.MarginX := percentHeight(0.01)
     controllerInt.guiObj.MarginY := percentHeight(0.01)
@@ -38,46 +28,42 @@ createControllerGui(controllerInt) {
 
         guiHeight += percentHeight(0.05)
 
+        ; add port text
         controllerInt.Add("Text", "0x200 xm0 y" . ypos . " w" . percentWidth(0.05) . " h" . percentHeight(0.03), "Port " . A_Index)
 
-        if (NumGet(globalControllers + (port * 20), 0, "UChar")) {
-            batteryType := NumGet(globalControllers + (port * 20) + 1, 0, "UChar")
-            if (batteryType = 1) {
-                controllerInt.Add("Text", "Section Center 0x200 yp0 hp0 x+" . percentWidth(0.007) . " w" . percentWidth(0.085), "Wired")
-            }
-            else if (batteryType = 2 || batteryType = 3) {
-                batteryLevel := NumGet(globalControllers + (port * 20) + 2, 0, "UChar")
-                
-                batteryColor := "00FF00"
-                batteryProgress := 100
+        connected    := xGetConnected(port, globalControllers)
+        batteryType  := xGetBatteryType(port, globalControllers)
+        batteryLevel := xGetBatteryLevel(port, globalControllers) * 100
 
-                if (batteryLevel = 0) {
-                    batteryColor := "FF0000"
-                    batteryProgress := 10
-                }
-                else if (batteryLevel = 1) {
-                    batteryColor := "FFFF00"
-                    batteryProgress := 40
-                }
-                else if (batteryLevel = 2) {
-                    batteryProgress := 70
-                }
-
-                borderWidth := percentHeight(0.005)
-
-                controllerInt.Add("Text", "Section Background" . FONTCOLOR . " hp0 x+" . percentWidth(0.007) . " y" . ypos . " w" . percentWidth(0.075), "")
-                controllerInt.Add("Progress", "vPort" . A_Index . "Progress Background" . COLOR1 . " c" . batteryColor . " yp+" . (borderWidth / 2) . " xp+" . (borderWidth / 2) . " wp-" . borderWidth . " hp-" . borderWidth, batteryProgress)
-                controllerInt.Add("Text", "Background" . FONTCOLOR . " x+" . (borderWidth - percentWidth(0.002)) . " y" . (ypos + percentHeight((0.03 - 0.01) / 2)) . " w" . percentWidth(0.004) . " h" . percentHeight(0.01), "")
-            }
-
-            controllerInt.Add("Text", "vPort" . A_Index . "Vibe Center 0x200 Background" . COLOR2 . " xpos1 ypos" . A_Index . " xs+" . percentWidth(0.092) . " y" . ypos . " w" . percentWidth(0.04) . " h" . percentHeight(0.03), "Vibe")
+        ; add disconnected text
+        controllerInt.Add("Text", "vPort" . port . "Text Center 0x200 hp0 x" . percentWidth(0.06) . " y" . ypos . " w" . percentWidth(0.085)
+            . (((batteryType = 2 || batteryType = 3) && !connected) ? " Hidden" : ""), (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected")
+        
+        batteryColor := "00FF00"
+        if (batteryLevel = 10) {
+            batteryColor := "FF0000"
         }
-        else {
-            controllerInt.Add("Text", "Center 0x200 hp0 x+" . percentWidth(0.007) . " y" . ypos . " w" . percentWidth(0.085), "Disconnected")
+        else if (batteryLevel = 40) {
+            batteryColor := "FFFF00"
         }
+
+        borderWidth := percentHeight(0.005)
+
+        ; add battery level display
+        controllerInt.Add("Text", "vPort" . port . "Outline Background" . FONTCOLOR . " hp0 x" . percentWidth(0.06) . " y" . ypos . " w" . percentWidth(0.075)
+            . ((batteryType != 2 && batteryType != 3) ? " Hidden" : ""), "")
+        controllerInt.Add("Progress", "vPort" . port . "Progress Background" . COLOR1 . " c" . batteryColor . " yp+" . (borderWidth / 2) . " xp+" . (borderWidth / 2) . " wp-" . borderWidth . " hp-" . borderWidth
+            . ((batteryType != 2 && batteryType != 3) ? " Hidden" : ""), batteryLevel)
+        controllerInt.Add("Text", "vPort" . port . "Nub Background" . FONTCOLOR . " x+" . (borderWidth - percentWidth(0.002)) . " y" . (ypos + percentHeight((0.03 - 0.01) / 2)) . " w" . percentWidth(0.004) . " h" . percentHeight(0.01)
+            . ((batteryType != 2 && batteryType != 3) ? " Hidden" : ""), "")
+
+        ; add vibe button
+        controllerInt.Add("Text", "vPort" . port . "Vibe Center 0x200 Background" . COLOR2 . " xpos1 ypos" . A_Index . " x" . percentWidth(0.154) . " y" . ypos . " w" . percentWidth(0.04) . " h" . percentHeight(0.03)
+            . ((!connected) ? " Hidden" : ""), "Vibe")
     }
 
     controllerInt.Show("y0 x" . percentWidth(0.25) . " w" . guiWidth . " h" . guiHeight)
+    SetTimer(ControllerSecondTimer, 1000)
 }
 
 ; causes the current controller to vibrate/stop
@@ -115,34 +101,43 @@ destroyControllerMenu() {
 ; timer triggered each second to update the controller info
 ; in order to update the controller info need to redraw the whole gui
 ControllerSecondTimer() {
-	global GUIPREVCONTROLLERINSTANCE
+    global globalConfig
+    global globalControllers
     global globalGuis
 
-    try {
-        currGui := globalGuis[GUICONTROLLERTITLE]    
-        if (!currGui) {
-            return
+    currGui := getGui(GUICONTROLLERTITLE)
+    if (!currGui) {
+        return
+    }
+
+    loop globalConfig["General"]["MaxXInputControllers"] {
+        port := A_Index - 1
+
+        connected    := xGetConnected(port, globalControllers)
+        batteryType  := xGetBatteryType(port, globalControllers)
+        batteryLevel := xGetBatteryLevel(port, globalControllers) * 100
+
+        ; update values
+        currGui["Port" . port . "Text"].Text := (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected"
+
+        batteryColor := "00FF00"
+        if (batteryLevel = 10) {
+            batteryColor := "FF0000"
+        }
+        else if (batteryLevel = 40) {
+            batteryColor := "FFFF00"
         }
 
-        GUIPREVCONTROLLERINSTANCE := currGui.guiObj.Hwnd
-        currGui.control2D := [[]]
-		currGui.guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop", GUICONTROLLERTITLE)
+        currGui["Port" . port . "Progress"].Value := batteryLevel
+        currGui["Port" . port . "Progress"].Opt("c" . batteryColor)
 
-        createControllerGui(currGui)
-        SetTimer(ClearPrevInstance, -500)
+        ; update visibility status
+        currGui["Port" . port . "Text"].Visible := (batteryType != 2 && batteryType != 3) || !connected
+        currGui["Port" . port . "Outline"].Visible := (batteryType = 2 || batteryType = 3) && connected
+        currGui["Port" . port . "Progress"].Visible := (batteryType = 2 || batteryType = 3) && connected
+        currGui["Port" . port . "Nub"].Visible := (batteryType = 2 || batteryType = 3) && connected
+        currGui["Port" . port . "Vibe"].Visible := connected
     }
-	
-	return
-}
-
-ClearPrevInstance() {
-	global GUIPREVCONTROLLERINSTANCE
-	
-	prevGui := getGui(GUIPREVCONTROLLERINSTANCE)
-	
-	if (prevGui) {
-		prevGui.Destroy()
-	}
 	
 	return
 }

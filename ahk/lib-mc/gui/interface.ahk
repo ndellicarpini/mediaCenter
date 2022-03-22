@@ -398,7 +398,8 @@ class Interface {
                 continue
             }
     
-            if (this.control2D[this.currentX][attemptedY].control != "") {
+            controlName := this.control2D[this.currentX][attemptedY].control
+            if (controlName != "" && this.guiObj[controlName].Visible) {
                 nextY := attemptedY
             }
     
@@ -437,7 +438,8 @@ class Interface {
                 continue
             }
 
-            if (this.control2D[this.currentX][attemptedY].control != "") {
+            controlName := this.control2D[this.currentX][attemptedY].control
+            if (controlName != "" && this.guiObj[controlName].Visible) {
                 nextY := attemptedY
             }
     
@@ -480,7 +482,8 @@ class Interface {
                 nextY := this.control2D[attemptedX].Length
             }
     
-            if (this.control2D[attemptedX][nextY].control != "") {
+            controlName := this.control2D[attemptedX][nextY].control
+            if (controlName != "" && this.guiObj[controlName].Visible) {
                 nextX := attemptedX
             }
     
@@ -524,7 +527,8 @@ class Interface {
                 nextY := this.control2D[attemptedX].Length
             }
     
-            if (this.control2D[attemptedX][nextY].control != "") {
+            controlName := this.control2D[attemptedX][nextY].control
+            if (controlName != "" && this.guiObj[controlName].Visible) {
                 nextX := attemptedX
             }
     
