@@ -36,8 +36,8 @@ createControllerMenu() {
         batteryLevel := xGetBatteryLevel(port, globalControllers) * 100
 
         ; add disconnected text
-        controllerInt.Add("Text", "vPort" . port . "Text Center 0x200 hp0 x" . percentWidth(0.06) . " y" . ypos . " w" . percentWidth(0.085)
-            . (((batteryType = 2 || batteryType = 3) && !connected) ? " Hidden" : ""), (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected")
+        controllerInt.Add("Text", "vPort" . port . "Text Center 0x200 hp0 x" . percentWidth(0.057) . " y" . ypos . " w" . percentWidth(0.085)
+            . (((batteryType = 2 || batteryType = 3) && connected) ? " Hidden" : ""), (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected")
         
         batteryColor := "00FF00"
         if (batteryLevel = 10) {
@@ -50,7 +50,7 @@ createControllerMenu() {
         borderWidth := percentHeight(0.005)
 
         ; add battery level display
-        controllerInt.Add("Text", "vPort" . port . "Outline Background" . FONTCOLOR . " hp0 x" . percentWidth(0.06) . " y" . ypos . " w" . percentWidth(0.075)
+        controllerInt.Add("Text", "vPort" . port . "Outline Background" . FONTCOLOR . " hp0 x" . percentWidth(0.061) . " y" . ypos . " w" . percentWidth(0.075)
             . ((batteryType != 2 && batteryType != 3) ? " Hidden" : ""), "")
         controllerInt.Add("Progress", "vPort" . port . "Progress Background" . COLOR1 . " c" . batteryColor . " yp+" . (borderWidth / 2) . " xp+" . (borderWidth / 2) . " wp-" . borderWidth . " hp-" . borderWidth
             . ((batteryType != 2 && batteryType != 3) ? " Hidden" : ""), batteryLevel)
