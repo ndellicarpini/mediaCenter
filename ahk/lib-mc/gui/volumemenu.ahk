@@ -9,7 +9,7 @@ createVolumeMenu() {
     global globalRunning
     global globalGuis
 
-    createInterface(GUIVOLUMETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy"), true)
+    createInterface(GUIVOLUMETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy"), true, false)
     volumeInt := globalGuis[GUIVOLUMETITLE]
 
     volumeInt.unselectColor := COLOR2

@@ -1,10 +1,10 @@
 #SingleInstance Force
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include LIB-CU~1\boot.ahk
-#Include LIB-CU~1\chrome.ahk
-#Include LIB-CU~1\games.ahk
-#Include LIB-CU~1\load.ahk
+#Include lib-custom\boot.ahk
+#Include lib-custom\chrome.ahk
+#Include lib-custom\games.ahk
+#Include lib-custom\load.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
@@ -21,6 +21,7 @@
 #Include lib-mc\gui\pausemenu.ahk
 #Include lib-mc\gui\volumemenu.ahk
 #Include lib-mc\gui\controllermenu.ahk
+#Include lib-mc\gui\programmenu.ahk
 
 #Include lib-mc\mt\status.ahk
 #Include lib-mc\mt\threads.ahk
@@ -106,7 +107,7 @@ setStatusParam("kbbmode", false, mainStatus.Ptr)
 setStatusParam("currProgram", "", mainStatus.Ptr)
 ; load screen info
 setStatusParam("loadShow", false, mainStatus.Ptr)
-setStatusParam("loadText", "Now Loading...", mainStatus.Ptr)
+setStatusParam("loadText", (mainConfig["GUI"].Has("DefaultLoadText")) ? mainConfig["GUI"]["DefaultLoadText"] : "Now Loading...", mainStatus.Ptr)
 ; error info
 setStatusParam("errorShow", false, mainStatus.Ptr)
 setStatusParam("errorHwnd", 0, mainStatus.Ptr)
@@ -239,7 +240,7 @@ loop {
     if (externalMessage.Length > 0) {
         if (StrLower(externalMessage[1]) = "run") {
             externalMessage.RemoveAt(1)
-            createProgram(externalMessage, globalRunning, globalPrograms)
+            createProgram(joinArray(externalMessage))
         }
         else {
             runFunction(externalMessage)
@@ -257,7 +258,12 @@ loop {
         currGui     := getStatusParam("currGui")
 
         if (StrLower(internalMessage) = "pause") {
-            setStatusParam("pause", !getStatusParam("pause"))
+            if (!globalGuis.Has(GUIPAUSETITLE)) {
+                createPauseMenu()
+            }
+            else {
+                destroyPauseMenu()
+            }
         }
         else if (StrLower(internalMessage) = "exit") {
             if (getStatusParam("errorShow")) {
@@ -377,7 +383,7 @@ loop {
 
     ; activate load screen if its supposed to be shown
     if (!activeSet && getStatusParam("loadShow")) {
-        activateLoadScreen()
+        updateLoadScreen()
         activeSet := true
     }
 
@@ -403,17 +409,6 @@ loop {
         checkAllCount := 0
     }
 
-    ; --- CHECK PAUSE ---
-    if (getStatusParam("pause") && !WinShown(GUIPAUSETITLE)) {
-        createPauseMenu()
-        continue
-    }
-
-    if (!getStatusParam("pause") && WinShown(GUIPAUSETITLE)) {
-        destroyPauseMenu()
-        continue
-    }
-
     ; --- CHECK OPEN GUIS ---
     if (currGui != "") {
         if (globalGuis.Has(currGui) && WinShown(currGui)) {
@@ -424,6 +419,15 @@ loop {
 
                 if (globalGuis[currGui].hotkeys.Count > 0) {
                     currHotkeys := addHotkeys(currHotkeys, globalGuis[currGui].hotkeys)
+                }
+
+                if (!globalGuis[currGui].allowPause) {
+                    for key, value in currHotkeys {
+                        if (value = "Pause") {
+                            currHotkeys.Delete(key)
+                            break
+                        }
+                    }
                 }
 
                 setStatusParam("buttonTime", 25)
@@ -459,6 +463,15 @@ loop {
 
                     if (globalRunning[currProgram].hotkeys.Count > 0) {
                         currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys)
+                    }
+
+                    if (!globalRunning[currProgram].allowPause) {
+                        for key, value in currHotkeys {
+                            if (value = "Pause") {
+                                currHotkeys.Delete(key)
+                                break
+                            }
+                        }
                     }
 
                     setStatusParam("buttonTime", 70)

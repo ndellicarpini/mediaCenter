@@ -11,9 +11,10 @@ class Program {
     volume  := 0
     time    := 0
 
-    muted       := false
-    background  := false
-    enablePause := true
+    muted            := false
+    background       := false
+    allowQuickAccess := false
+    allowPause       := true
 
     pauseOrder   := []
     pauseOptions := Map()
@@ -41,6 +42,7 @@ class Program {
         this.wndw := (exeConfig.Has("wndw")) ? exeConfig["wndw"] : this.wndw
         
         this.background := (exeConfig.Has("background")) ? exeConfig["background"] : this.background
+        this.allowQuickAccess := (exeConfig.Has("allowQuickAccess")) ? exeConfig["allowQuickAccess"] : this.allowQuickAccess
 
         this.time := A_TickCount
 
@@ -56,10 +58,10 @@ class Program {
 
         this.hotkeys := (exeConfig.Has("hotkeys")) ? exeConfig["hotkeys"] : this.hotkeys
 
-        this.enablePause := (exeConfig.Has("enablePause")) ? exeConfig["enablePause"] : this.enablePause
+        this.allowPause := (exeConfig.Has("allowPause")) ? exeConfig["allowPause"] : this.allowPause
 
         ; set pause contents if appropriate
-        if (this.enablePause) {
+        if (this.allowPause) {
             this.pauseOptions := (exeConfig.Has("pauseOptions")) ? exeConfig["pauseOptions"]        : this.pauseOptions
             this.pauseOrder   := (exeConfig.Has("pauseOrder"))   ? toArray(exeConfig["pauseOrder"]) : this.pauseOrder
         }
@@ -68,6 +70,8 @@ class Program {
     launch(args) {
         ; TODO
         ; take args from externalMessage
+        setLoadScreen("Waiting for " . this.name . "...")
+
         if (this.customLaunch != "") {
             runFunction(this.customLaunch, args)
         }
@@ -76,8 +80,18 @@ class Program {
         }
         else {
             ErrorMsg(this.name . "does not have an exe defined, it cannot be launched with default settings")
-            return
         }
+
+        count := 0
+        maxCount := 150
+
+        while (!this.exists() && count < maxCount) {
+            count += 1
+
+            Sleep(150)
+        }
+
+        resetLoadScreen()
     }
     
     pause() {
@@ -97,7 +111,7 @@ class Program {
             return
         }
 
-        WinWait window
+        WinWait(window)
 
         if (this.customRestore != "") {
             runFunction(this.customRestore)
@@ -130,32 +144,38 @@ class Program {
     }
 
     exit() {
+        setLoadScreen("Exiting " . this.name . "...")
+
         ; TODO - think about if this.wndw -> don't wait for exe to close
         activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
         activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
 
         if (this.customExit != "") {
             runFunction(this.customExit)
+            resetLoadScreen()
+            
             return
         }
 
-        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
         count := 0
-        maxCount := 32
+        maxCount := 50
 
+        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
         WinClose(window)
 
         exeExists := (activeEXE != "") ? ProcessExist(activeEXE) : WinHidden(window)
         while (exeExists && count < maxCount) {
             count += 1
-            exeExists := (activeWNDW != "") ? ProcessExist(activeWNDW) : WinHidden(window)
+            exeExists := (activeEXE != "") ? ProcessExist(activeEXE) : WinHidden(window)
 
-            Sleep(250)
+            Sleep(150)
         }
 
-        if (exeExists) {
+        if (WinHidden(window)) {
             ProcessWinClose(window)
         }
+
+        resetLoadScreen()
     }
 
     exists() {

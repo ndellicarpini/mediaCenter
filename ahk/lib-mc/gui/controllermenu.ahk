@@ -2,10 +2,10 @@ global GUICONTROLLERTITLE := "AHKGUICONTROLLER"
 
 createControllerMenu() {
     global globalConfig
-    global globalGuis
     global globalControllers
+    global globalGuis
 
-    createInterface(GUICONTROLLERTITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "destroyControllerMenu", "[HOLD]A", Map("down", "controllerMenuVibrate 1", "up", "controllerMenuVibrate 0")), true)
+    createInterface(GUICONTROLLERTITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy", "[HOLD]A", Map("down", "controllerMenuVibrate 1", "up", "controllerMenuVibrate 0")), true, false,, "destroyControllerMenu")
     controllerInt := globalGuis[GUICONTROLLERTITLE]
 
     controllerInt.unselectColor := COLOR1
@@ -74,10 +74,11 @@ controllerMenuVibrate(enable) {
     global globalControllers
     global globalGuis
 
-    currGui := globalGuis[GUICONTROLLERTITLE]
-    if (!currGui) {
+    if (!globalGuis.Has(GUICONTROLLERTITLE)) {
         return
     }
+
+    currGui := globalGuis[GUICONTROLLERTITLE]
 
     if (enable) {
         xEnableVibration(currGui.currentY - 1, globalControllers)
@@ -93,9 +94,10 @@ controllerMenuVibrate(enable) {
 destroyControllerMenu() {
     global globalGuis
 
-    SetTimer(ControllerSecondTimer, 0)
-    
-    globalGuis[GUICONTROLLERTITLE].guiObj.Destroy()
+    if (getGUI(GUICONTROLLERTITLE)) {
+        SetTimer(ControllerSecondTimer, 0)
+        globalGuis[GUICONTROLLERTITLE].guiObj.Destroy()
+    }
 }
 
 ; timer triggered each second to update the controller info

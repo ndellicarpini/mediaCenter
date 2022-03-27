@@ -2,10 +2,19 @@ global GUIPAUSETITLE := "AHKGUIPAUSE"
 
 createPauseMenu() {
     global globalConfig
+    global globalRunning
     global globalPrograms
     global globalGuis
 
-    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true, "count-current", "setStatusParam pause 0", true)
+    currProgram := getStatusParam("currProgram")
+
+    ; set pause & activate currProgram pause
+    setStatusParam("pause", true)
+    if (currProgram != "") {
+        globalRunning[currProgram].pause()
+    }
+
+    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true,, "count-current")
     pauseInt := globalGuis[GUIPAUSETITLE]
 
     pauseInt.unselectColor := COLOR1
@@ -59,7 +68,7 @@ createPauseMenu() {
         pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
         pauseInt.Add("Picture", "vVolume f(createVolumeMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-        pauseInt.Add("Picture", "vMulti xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti xpos4 f(createProgramMenu) ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     
     }
@@ -68,14 +77,12 @@ createPauseMenu() {
 
         pauseInt.Add("Picture", "vVolume Section f(createVolumeMenu) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-        pauseInt.Add("Picture", "vMulti xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti xpos3 f(createProgramMenu) ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     }
 
 
     ; --- ADD PAUSE OPTIONS ---
-    currProgram := getStatusParam("currProgram")
-
     defaultOptions := defaultPauseOptions()
     programOptions := programPauseOptions((currProgram != "") ? globalRunning[currProgram] : "")
 
@@ -125,11 +132,21 @@ createPauseMenu() {
 ;
 ; returns null
 destroyPauseMenu() {
+    global globalRunning
     global globalGuis
 
-    SetTimer(PauseSecondTimer, 0)
+    if (getGUI(GUIPAUSETITLE)) {
+        SetTimer(PauseSecondTimer, 0)
+        globalGuis[GUIPAUSETITLE].guiObj.Destroy()
     
-    globalGuis[GUIPAUSETITLE].guiObj.Destroy()
+        currProgram := getStatusParam("currProgram")
+    
+        ; set pause & activate currProgram resume
+        setStatusParam("pause", false)
+        if (currProgram != "") {
+            globalRunning[currProgram].resume()
+        }
+    }
 }
 
 ; adds default to pause options based on selected options from global config
@@ -234,7 +251,7 @@ defaultProgramOpen() {
             globalRunning[defaultProgram].restore()
         }
         else {
-            createProgram(defaultProgram, true, true)
+            createProgram(defaultProgram)
         }
     }
 }

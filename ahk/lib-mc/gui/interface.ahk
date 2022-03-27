@@ -8,6 +8,8 @@ class Interface {
     selectColor := ""
     deselectColor := ""
 
+    allowPause := ""
+
     customDeselect := Map()
     customDestroy  := ""
     
@@ -33,11 +35,29 @@ class Interface {
     ;  off - doesn't close guis
     closeGuiMode := "off"
 
+    overlayObj := ""
+
     ; same as Program
     hotkeys := Map()
     time := 0
 
-    __New(title, options := "", eventObj := "", enableAnalog := false, closeGuiMode := "off", customDestroy := "", additionalHotkeys := "") {
+    __New(title, options := "", eventObj := "", enableAnalog := false, allowPause := true, closeGuiMode := "off", customDestroy := "", additionalHotkeys := "") {
+        customOptions := []
+
+        optionsArr := StrSplit(options, A_Space)
+        for item in optionsArr {
+            if (item != "" && InStr(StrLower(item), "overlay")) {
+                this.overlayObj := Gui(GUIOPTIONS . " +Disabled", "AHKOVERLAY")
+                this.overlayObj.BackColor := StrReplace(StrLower(item), "overlay", "")
+
+                customOptions.Push(item)
+            }
+        }
+
+        for item in customOptions {
+            options := StrReplace(options, item, "")
+        }
+        
         ; create the gui object
         if (eventObj != "") {
             this.guiObj := Gui(options, title, eventObj)
@@ -71,7 +91,6 @@ class Interface {
         this.hotkeys["[REPEAT]DD&DR"] := "gui.downright"
 
         this.hotkeys["A"] := "gui.select"
-        ; this.hotkeys["B"] := "gui.back"
 
         if (additionalHotkeys != "") {
             for key, value in additionalHotkeys {
@@ -83,6 +102,7 @@ class Interface {
         this.guiName       := title
         this.closeGuiMode  := closeGuiMode
         this.customDestroy := customDestroy
+        this.allowPause    := allowPause
     }
 
     ; exactly like gui.show except renders the selected item w/ the proper background
@@ -125,7 +145,30 @@ class Interface {
             }
         }
 
+        if (this.overlayObj != "") {
+            this.overlayObj.Show("x0 y0 w" . percentWidth(1) . " h" . percentHeight(1))
+            WinSetTransparent(200, "AHKOVERLAY")
+        }
+
         this.guiObj.Show(options)
+    }
+
+    ; exactly like gui.destroy
+    ; 
+    ; returns null
+    Destroy() {
+        ; omega kill this stupid overlay bc sometimes destroy doesn't work i guess??
+        while (WinShown("AHKOVERLAY")) {
+            this.overlayObj.Destroy()
+            Sleep(50)
+        }
+
+        if (this.customDestroy != "") {
+            runFunction(this.customDestroy)
+            return 
+        }
+
+        try this.guiObj.Destroy()
     }
 
     ; exactly like gui.add, but supports additional params
@@ -291,18 +334,6 @@ class Interface {
         else {
             this.guiObj.Add(type, cleanOptions)
         }
-    }
-
-    ; exactly like gui.destroy
-    ; 
-    ; returns null
-    Destroy() {
-        if (this.customDestroy != "") {
-            runFunction(this.customDestroy)
-            return
-        }
-
-        try this.guiObj.Destroy()
     }
 
     ; runs the function defined in the selected control's interactable data
@@ -580,10 +611,10 @@ class Interface {
 ;  customTime - override the launch time
 ;
 ; returns null
-createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
+createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, allowPause := true, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
     global globalGuis
     
-    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, closeGuiMode, customDestroy, additionalHotkeys)
+    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, allowPause, closeGuiMode, customDestroy, additionalHotkeys)
 
     if (setCurrent) {
         setStatusParam("currGui", title)

@@ -11,3 +11,6 @@ USAGE
 - https://www.reddit.com/r/AutoHotkey/comments/liicqk/real_total_system_cpu_usage_from_within_an/
 - https://www.autohotkey.com/boards/viewtopic.php?f=6&t=142&hilit=MemoryInfo
 - https://www.autohotkey.com/boards/viewtopic.php?t=5508
+
+SCREENSHOT
+- https://www.autohotkey.com/board/topic/91585-screen-capture-using-only-ahk-no-3rd-party-software-required/

@@ -48,8 +48,7 @@ setMonitorInfo(guiConfig) {
 
     global 
 
-    MONITORN := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "")
-    ? guiConfig.items["Monitor"] : 0
+    MONITORN := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "") ? guiConfig.items["Monitor"] : 0
     
     MonitorGet(MONITORN, &ML, &MT, &MR, &MB)
 
