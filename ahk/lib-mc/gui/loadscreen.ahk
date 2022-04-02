@@ -18,7 +18,7 @@ createLoadScreen() {
         guiObj.Add("Text", "vLoadText Right x0 y" . percentHeight(0.92, false) " w" . percentWidth(0.985, false), getStatusParam("loadText"))
     }
 
-    guiObj.Show("Center NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
+    guiObj.Show("x" . MONITORX . " y" . MONITORY . " NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
 }
 
 ; activates & updates the text the load screen

@@ -1,10 +1,11 @@
 {
-    "name": "Chrome",
+    "id": "chrome",
+    "name": "Google Chrome",
 
     "allowQuickAccess": true,
     "isBackground": false,
 
-    "dir": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\",
+    "dir": "C:\\Program Files\\Google\\Chrome\\Application\\",
     "exe": "chrome.exe",
     "wndw": "Google Chrome",
 
@@ -26,7 +27,8 @@
 
     "pauseOptions": {
         "Show Controls": "chromeControls",
-        "Enable Picture-in-Picture": "chromePIP"
+        "Enable Picture-in-Picture": "chromePIP",
+        "Screenshot": "saveScreenshot chrome"
     },
-    "pauseOrder": ["Show Controls", "Enable Picture-in-Picture"]
+    "pauseOrder": ["Screenshot", "Show Controls", "Enable Picture-in-Picture"]
 }

@@ -113,16 +113,28 @@ class Interface {
         optionsArr := StrSplit(options, A_Space)
         for item in optionsArr {
             if (StrLower(SubStr(item, 1, 1)) = "x") {
-                this.guiX := Integer(SubStr(item, 2))
+                this.guiX := MONITORX + Integer(SubStr(item, 2))
+                options := StrReplace(options, item, "x" . this.guiX)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "y") {
-                this.guiY := Integer(SubStr(item, 2))
+                this.guiY := MONITORY + Integer(SubStr(item, 2))
+                options := StrReplace(options, item, "y" . this.guiY)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "w") {
                 this.guiW := Integer(SubStr(item, 2))
+
+                if (this.guiW > MONITORW) {
+                    this.guiW := MONITORW
+                    options := StrReplace(options, item, "w" . MONITORW)
+                }
             }
             else if (StrLower(SubStr(item, 1, 1)) = "h") {
                 this.guiH := Integer(SubStr(item, 2))
+
+                if (this.guiH > MONITORH) {
+                    this.guiH := MONITORH
+                    options := StrReplace(options, item, "h" . MONITORH)
+                }
             }
         }
 
@@ -157,10 +169,9 @@ class Interface {
     ; 
     ; returns null
     Destroy() {
-        ; omega kill this stupid overlay bc sometimes destroy doesn't work i guess??
-        while (WinShown("AHKOVERLAY")) {
-            this.overlayObj.Destroy()
-            Sleep(50)
+        if (this.overlayObj != "") {
+            try this.overlayObj.Destroy()
+            SetTimer(OverlayKill, -100)
         }
 
         if (this.customDestroy != "") {
@@ -169,6 +180,15 @@ class Interface {
         }
 
         try this.guiObj.Destroy()
+
+        ; omega kill this stupid overlay bc sometimes destroy doesn't work i guess??
+        OverlayKill() {
+            if (WinShown("AHKOVERLAY")) {
+                WinKill("AHKOVERLAY")
+            }
+
+            return
+        }
     }
 
     ; exactly like gui.add, but supports additional params

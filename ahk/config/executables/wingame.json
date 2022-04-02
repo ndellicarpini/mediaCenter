@@ -1,5 +1,6 @@
 {
-    "name": "WinGame",
+    "id": "wingame",
+	"name": "Windows Game",
 
     "allowQuickAccess": false,
     "isBackground": false,

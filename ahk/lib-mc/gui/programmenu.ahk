@@ -19,12 +19,13 @@ createProgramMenu() {
     programInt.guiObj.MarginX := marginSize
     programInt.guiObj.MarginY := marginSize
 
-    guiWidth  := percentWidth(0.3)
-    guiHeight := percentHeight(0.4)
+    guiWidth  := percentWidth(0.4)
+    guiHeight := percentHeight(0.75)
 
     guiSetFont(programInt, "bold s24")
     programInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . percentHeight(0.05) . " w" . (guiWidth - (marginSize * 2)), "MultiTasking")
 
+    ; create the list of running programs
     programList := []
     for key, value in globalRunning {
         if (value.background) {
@@ -49,6 +50,7 @@ createProgramMenu() {
         }
     }
 
+    ; create the list of quick access programs
     quickAccessList := []
     for key, value in globalPrograms {
         if ((value.Has("background") && value["background"]) || inArray(key, programList)) {
@@ -60,37 +62,68 @@ createProgramMenu() {
         }
     }
 
+    ; render the list of quick access programs
     index := 1
     if (quickAccessList.Length > 0) {
-        guiSetFont(programInt, "norm s22")
-        programInt.Add("Text", "0x200 xm0 y+" . percentHeight(0.01) . " h" . percentHeight(0.04) . " w" . (guiWidth - (marginSize * 2)), "Quick Access")
-        programInt.Add("Text", "Section Background" . FONTCOLOR . " xm0 y+" . percentHeight(0.008) . " h" . percentHeight(0.002) . " w" . (guiWidth - (marginSize * 2)), "")
+        guiSetFont(programInt, "norm s24")
+        programInt.Add("Text", "0x200 xm5 y+" . percentHeight(0.01) . " h" . percentHeight(0.04) . " w" . (guiWidth - (marginSize * 2)), "Quick Access")
+        programInt.Add("Text", "Section Background" . FONTCOLOR . " xm0 y+" . percentHeight(0.002) . " h" . percentHeight(0.002) . " w" . (guiWidth - (marginSize * 2)), "")
 
-        guiSetFont(programInt, "s20")
+        guiSetFont(programInt, "bold s24")
         for item in quickAccessList {
-            programInt.Add("Text", "vQuick" . item . " f(launchQuickProgram " . item . ") 0x200 xpos1 ypos" . index . " xm0 y+" . percentHeight(0.01) . " h" . percentHeight(0.04) . " w" . (guiWidth - (marginSize * 2)), "  " . item)
+            programInt.Add("Text", "vQuick" . item . " f(launchQuickProgram " . item . ") Center 0x200 xpos1 ypos" . index . " xm0 y+" . percentHeight(0.006) . " h" . percentHeight(0.05) . " w" . (guiWidth - (marginSize * 2)), globalPrograms[item]["name"])
             index += 1
         }
     }
 
+    ; render the list of running programs
     if (programList.Length > 0) {
-        closeButtonSize := percentWidth(0.02)
+        closeButtonSize := percentWidth(0.03)
+        thumbnailSize   := percentWidth(0.18)
 
-        guiSetFont(programInt, "norm s22")
-        programInt.Add("Text", "0x200 xm0 y+" . percentHeight(0.01) . " h" . percentHeight(0.04) . " w" . (guiWidth - percentHeight(0.02)), "Running Programs")
-        programInt.Add("Text", "Section Background" . FONTCOLOR . " xm0 y+" . percentHeight(0.008) . " h" . percentHeight(0.002) . " w" . (guiWidth - (marginSize * 2)), "")
+        guiSetFont(programInt, "norm s24")
+        programInt.Add("Text", "0x200 xm5 y+" . percentHeight(0.015) . " h" . percentHeight(0.04) . " w" . (guiWidth - percentHeight(0.02)), "Running Programs")
+        programInt.Add("Text", "Section Background" . FONTCOLOR . " xm0 y+" . percentHeight(0.002) . " h" . percentHeight(0.002) . " w" . (guiWidth - (marginSize * 2)), "")
 
-        guiSetFont(programInt, "s20")
+        programIndex := 1
+        guiSetFont(programInt, "bold s24")
         for item in programList {
-            programInt.Add("Text", "vRunning" . item . " f(updateCurrProgram " . item . ") 0x200 xpos1 ypos" . index . " xm0 y+" . percentHeight(0.01) . " h" . percentHeight(0.04) . " w" . (guiWidth - (marginSize * 2)), "  " . item)
-            programInt.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos2 ypos" . index . " xm+" . percentWidth(0.2) . " yp+" . percentHeight(0.01) . " h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
+            if (programIndex = 1) {
+                programInt.Add("Text", "vRunning" . item . " f(updateCurrProgram " . item . ") Center xpos1 ypos" . index . " xm0 ys+" . percentHeight(0.006) . " h" . percentHeight(0.19) . " w" . (guiWidth - (marginSize * 2)), "")
+            }
+            else {
+                programInt.Add("Text", "vRunning" . item . " f(updateCurrProgram " . item . ") Center xpos1 ypos" . index . " xm0 ys+" . percentHeight(0.19) . " h" . percentHeight(0.19) . " w" . (guiWidth - (marginSize * 2)), "")
+            }
+
+            programInt.Add("Picture", "Section xm+" . percentWidth(0.0035) . " yp+" . percentHeight(0.005) . " w" . thumbnailSize . " h-1", getThumbnailPath(item, globalConfig))
+            programInt.Add("Text", "Left BackgroundTrans h" . percentHeight(0.105) . " w" . percentWidth(0.195) . " yp+" . percentHeight(0.075) . " x+" . percentWidth(0.0075), globalRunning[item].name)
+
+            ; render minimize/restore buttons if there are multiple running programs
+            if (programList.Length > 1) {
+                if (!globalRunning[item].minimized) {
+                    programInt.Add("Picture", "vMinMax" . item . " f(minimizeProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.323) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\minimize.png", globalConfig))
+                }
+                else {
+                    programInt.Add("Picture", "vMinMax" . item . " f(restoreProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.323) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\restore.png", globalConfig))
+                }
+
+                programInt.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos3 ypos" . index . " xm+" . percentWidth(0.356) . " yp0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
+            }
+            else {
+                programInt.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos2 ypos" . index . " xm+" . percentWidth(0.356) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
+            }
+            
             index += 1
+            programIndex += 1
         }
     }
 
     programInt.Show("Center w" . guiWidth . " h" . guiHeight)
 }
 
+; destroys the program menu & resumes current program
+;
+; returns null
 destroyProgramMenu() {
     global globalRunning
     global globalGuis
@@ -108,19 +141,60 @@ destroyProgramMenu() {
     }
 }
 
+; sets the current program to selected
+;  name - selected program
+;
+; returns null
 updateCurrProgram(name) {
+    global globalRunning
+
+    destroyProgramMenu()
+
+    globalRunning[name].time := A_TickCount
     setStatusParam("currProgram", name)
-    destroyProgramMenu()
 }
 
+; launchs quick program as currProgram
+;  name - selected quick program
+;
+; returns null
 launchQuickProgram(name) {
-    createProgram(name)
     destroyProgramMenu()
+    createProgram(name)
 }
 
+; closes the selected program
+;  name - selected program
+;
+; returns null
 closeProgram(name) {
     global globalRunnning
 
     destroyProgramMenu()
     globalRunning[name].exit()
+}
+
+; minimizes the selected program
+;  name - selected program
+;
+; returns null
+minimizeProgram(name) {
+    global globalRunnning
+
+    destroyProgramMenu()
+
+    globalRunning[name].time := 0
+    setStatusParam("currProgram", "")
+    globalRunning[name].minimize()
+}
+
+; restores the selected program
+;  name - selected program
+;
+; returns null
+restoreProgram(name) {
+    global globalRunnning
+
+    setStatusParam("currProgram", name)
+    destroyProgramMenu()
 }

@@ -31,10 +31,10 @@ createPauseMenu() {
     currentTimeArr := StrSplit(FormatTime(, "h:mm tt`ndddd, MMM d yyy"), "`n")
 
     ; --- ADD TIME & DATE --- 
-    guiSetFont(pauseInt, "s39")
+    guiSetFont(pauseInt, "s38")
     pauseInt.Add("Text", "vTime Section Center xm0 ym0 w" . (guiWidth * 0.46), currentTimeArr[1])
 
-    guiSetFont(pauseInt, "s14")
+    guiSetFont(pauseInt, "s13")
     pauseInt.Add("Text", "vDate Center wp0 xm0 y+" . percentHeight(0.008), currentTimeArr[2])
 
     ; --- ADD MONITORS ---
@@ -94,7 +94,7 @@ createPauseMenu() {
     ; program options
     if (programOptions.items.Count > 0) {
         guiSetFont(pauseInt, "bold s24")
-        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, getStatusParam("currProgram"))
+        pauseInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, globalRunning[currProgram].name)
     
         guiSetFont(pauseInt, "norm s20")
         
@@ -233,6 +233,11 @@ programPauseOptions(currProgram) {
 ; returns null
 currProgramExit() {
     global globalRunning
+    global globalGuis
+
+    if (globalGuis.Has(GUIPAUSETITLE)) {
+        destroyPauseMenu()
+    }
 
     globalRunning[getStatusParam("currProgram")].exit()
 }

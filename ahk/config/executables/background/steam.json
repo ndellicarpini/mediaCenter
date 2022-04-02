@@ -1,4 +1,5 @@
 {
+    "id": "steam",
     "name": "Steam",
 
     "exe": "steam.exe",

@@ -3,6 +3,8 @@
 ; each function & more in json files has default version as well
 class Program {
     ; attributes
+    id      := ""
+
     name    := ""
     dir     := ""
     exe     := ""
@@ -13,6 +15,8 @@ class Program {
 
     muted            := false
     background       := false
+    minimized        := false
+    fullscreen       := false
     allowQuickAccess := false
     allowPause       := true
 
@@ -35,6 +39,8 @@ class Program {
     currWNDW := ""
 
     __New(exeConfig) {
+        this.id   := exeConfig["id"]
+
         ; set basic attributes
         this.name := (exeConfig.Has("name")) ? exeConfig["name"] : this.name
         this.dir  := (exeConfig.Has("dir"))  ? exeConfig["dir"]  : this.dir
@@ -92,14 +98,57 @@ class Program {
         }
 
         resetLoadScreen()
+        SetTimer(CheckLaunch, -3000)
+
+        CheckLaunch() {
+            global globalGuis
+
+            if (globalGuis.Count > 0) {
+                SetTimer(WaitCheckGuis, 500)
+                return
+            }
+
+            if (this.exists()) {
+                this.isFullscreen()
+                saveScreenshot(this.id)
+            }
+
+            return
+        }
+
+        WaitCheckGuis() {
+            global globalGuis
+
+            if (!this.exists()) {
+                SetTimer(WaitCheckGuis, 0)
+                return
+            }
+
+            if (globalGuis.Count = 0) {
+                SetTimer(WaitCheckGuis, 0)
+
+                this.isFullscreen()
+                saveScreenshot(this.id)
+            }
+
+            return
+        }
     }
     
     pause() {
-        ; TODO
+        saveScreenshot(this.id)
+
+        if (this.customPause != "") {
+            runFunction(this.customPause)
+            return
+        }
     }
 
     resume() {
-        ; TODO
+        if (this.customRestore != "") {
+            runFunction(this.customRestore)
+            return
+        }
     }
 
     restore() {
@@ -121,17 +170,51 @@ class Program {
         ; TODO - think about removing borders & making fullscreen
         ; for now just gonna restore & activate
         if (!WinActive(window) || WinGetMinMax(window) != 1) {
-            WinActivate(window)
-            Sleep(100)
-            WinMaximize(window)
+            maxCount := 150
+            
+            if (!this.fullscreen) {
+                count := 0
+                while (WinGetMinMax(window) = -1 && count < maxCount) {
+                    try {
+                        WinMaximize(window)
+                    }
+                    catch {
+                        break
+                    }
+
+                    Sleep(100)
+                    maxCount += 1
+                }
+
+                WinMoveTop(window)
+                Sleep(100)
+            }
+            
+            count := 0
+            while (!WinActive(window) && count < maxCount) {
+                try {
+                    WinActivate(window)
+                }
+                catch {
+                    break
+                }
+                
+                Sleep(100)
+                maxCount += 1
+            }
 
             this.time := A_TickCount
+            this.minimized := false
         }
     }
 
     minimize() {
         activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
         activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
+
+        this.minimized := true
+
+        saveScreenshot(this.id)
 
         if (this.customMinimize != "") {
             runFunction(this.customMinimize)
@@ -250,6 +333,27 @@ class Program {
 
             return
         }
+    }
+
+    isFullscreen() {
+        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
+        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
+
+        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
+
+        try {
+            if (WinGetMinMax(window) = -1) {
+                return false
+            }
+            
+        
+            style := WinGetStyle(window)
+            this.fullscreen := (style & 0x20800000) ? false : true
+
+            return this.fullscreen
+        }
+
+        return false
     }
 
     getPID() {
@@ -391,7 +495,7 @@ createProgram(params, launchProgram := true, setCurrent := true, customTime := "
     newName    := newProgram.RemoveAt(1)
 
     for key, value in globalPrograms {
-        if (key = newName) {
+        if (StrLower(key) = StrLower(newName)) {
             globalRunning[newName] := Program(value)
 
             if (setCurrent) {
@@ -518,7 +622,7 @@ checkWNDW(wndw, retName := false) {
 getMostRecentProgram(checkBackground := false) {
     global globalRunning
 
-    prevTime := 0
+    prevTime := -1
     prevProgram := ""
     for key, value in globalRunning {
         if (!checkBackground && value.background) {

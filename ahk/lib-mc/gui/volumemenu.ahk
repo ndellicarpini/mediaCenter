@@ -84,7 +84,7 @@ createVolumeMenu() {
 
         currProgram := globalRunning[programList[A_Index]]
 
-        volumeInt.Add("Text", "Section xm0 y+" . percentHeight(0.018), programList[A_Index])
+        volumeInt.Add("Text", "Section xm0 y+" . percentHeight(0.018), globalRunning[programList[A_Index]].name)
         volumeInt.Add("Text", "v" . programList[A_Index] . "Control Center f(updateChangeVolume " . programList[A_Index] . ") xpos1 ypos" . (A_Index + 1) . " Background" . COLOR2 " h" . volControlHeight . " w" . volControlWidth . " y+" . percentHeight(0.0065), "")
         volumeInt.Add("Progress", "v" . programList[A_Index] . "Progress Background" . COLOR2 . " c" . FONTCOLOR 
             . " h" . (volControlHeight - volControlSelectBox) . " w" . (volControlWidth - volControlSelectBox) . " yp" . (volControlSelectBox / 2) . " xm" . (volControlSelectBox / 2), (currProgram.muted) ? 0 : currProgram.volume)

@@ -6,6 +6,7 @@
     ;  all referenced functions should have default versions if not in config (exit, launch, enablePause, etc)
     ;  if & in button -> button AND, if | -> button OR
     ;  if ? in key -> split by ?, run [1] as function that returns boolean whether or not to show [2]
+    "id": "retroarch",
     "name": "RetroArch",
 
     "exe": "retroarch.exe",

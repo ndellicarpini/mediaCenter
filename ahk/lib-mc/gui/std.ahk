@@ -1,8 +1,11 @@
 global GUIOPTIONS := "-DPIScale -Resize -Caption"
 
-global MONITORN := ""
-global MONITORH := ""
-global MONITORW := ""
+global MONITORN := 0
+global MONITORH := 0
+global MONITORW := 0
+global MONITORX := 0
+global MONITORY := 0
+
 global SIZE := ""
 global FONT := ""
 global FONTCOLOR := ""
@@ -46,12 +49,18 @@ parseGUIConfig(guiConfig) {
 setMonitorInfo(guiConfig) {
     ; TODO - get selecting a monitor actually working
 
-    global 
+    global MONITORN
+    global MONITORX
+    global MONITORY
+    global MONITORW
+    global MONITORH
 
     MONITORN := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "") ? guiConfig.items["Monitor"] : 0
     
     MonitorGet(MONITORN, &ML, &MT, &MR, &MB)
 
+    MONITORX := ML
+    MONITORY := MT
     MONITORH := Floor(Abs(MB - MT))
     MONITORW := Floor(Abs(MR - ML))
 }
@@ -128,6 +137,42 @@ getGUI(title) {
 
         return GuiFromHwnd(hwnd)
     }
+}
+
+; gets an asset's path based on the name of the asset & the current AssetDir
+;  asset - asset name / path to get (path=subfolders in assets folder)
+;  globalConfig - global config (globalConfig)
+;
+; returns asset's full path 
+getAssetPath(asset, globalConfig) {
+	if (!globalConfig["General"].Has("AssetDir") || globalConfig["General"]["AssetDir"] = "") {
+		ErrorMsg("Cannot get AssetDir when it does not exist in in global.cfg")
+		return
+	}
+
+	assetPath := globalConfig["General"]["AssetDir"] . asset
+
+	if (!FileExist(assetPath)) {
+		ErrorMsg("Requested asset [" . asset . "] does not exist")
+		return
+	}
+
+    return assetPath
+}
+
+; gets an thumbnails's path based on the name, or default image-missing
+;  asset - asset name / path to get (path=subfolders in assets folder)
+;  globalConfig - global config (globalConfig)
+;
+; returns thumbnail path
+getThumbnailPath(asset, globalConfig) {
+    assetPath := "data\thumbnails\" . asset . (RegExMatch(asset, "\.\w{2,5}$") ? "" : ".png")
+    
+	if (!FileExist(assetPath)) {
+		return getAssetPath("image-missing.png", globalConfig)
+	}
+
+    return assetPath
 }
 
 ; gets the cpu load as a float percentage

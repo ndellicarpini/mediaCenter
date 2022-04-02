@@ -1,10 +1,11 @@
 #SingleInstance Force
+#WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include lib-custom\boot.ahk
-#Include lib-custom\chrome.ahk
-#Include lib-custom\games.ahk
-#Include lib-custom\load.ahk
+#Include LIB-CU~1\boot.ahk
+#Include LIB-CU~1\chrome.ahk
+#Include LIB-CU~1\games.ahk
+#Include LIB-CU~1\load.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
@@ -27,6 +28,9 @@
 #Include lib-mc\mt\threads.ahk
 
 SetKeyDelay 50, 50
+
+; set dpi scaling per window
+prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
 
 setCurrentWinTitle(MAINNAME)
 global MAINSCRIPTDIR := A_ScriptDir
@@ -82,6 +86,14 @@ for value in requiredFolders {
 ; load process monitoring library for checking process lists
 processLib := dllLoadLib("psapi.dll")
 
+; load gdi library for screenshot thumbnails
+gdiLib := dllLoadLib("GdiPlus.dll")
+
+gdiToken  := 0
+gdiBuffer := Buffer(24, 0)
+NumPut("Char", 1, gdiBuffer.Ptr, 0)
+DllCall("GdiPlus\GdiplusStartup", "UPtr*", gdiToken, "Ptr", gdiBuffer.Ptr, "Ptr", 0)
+
 ; load nvidia library for gpu monitoring
 if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) { 
     try {
@@ -136,7 +148,7 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
         tempConfig.cleanAllItems(true)
 
-        if (tempConfig.items.Has("name") || tempConfig.items["name"] != "") {
+        if (tempConfig.items.Has("id") || tempConfig.items["id"] != "") {
 
             if (mainConfig["Programs"].Has("SettingListDir") && mainConfig["Programs"]["SettingListDir"] != "") {
                 for key, value in tempConfig.items {
@@ -166,10 +178,10 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
                 tempConfig.items["wndw"] := tempMap
             }
             
-            globalPrograms[tempConfig.items["name"]] := tempConfig.toMap()
+            globalPrograms[tempConfig.items["id"]] := tempConfig.toMap()
         }
         else {
-            ErrorMsg(A_LoopFileFullPath . " does not have required 'name' parameter")
+            ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
         }
     }
 }
@@ -232,6 +244,7 @@ checkErrors   := globalConfig["Programs"].Has("ErrorList") && globalConfig["Prog
 loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"])
 
 checkAllCount := 0
+
 loop {
     ; --- CHECK MESSAGES ---
 
@@ -259,10 +272,18 @@ loop {
 
         if (StrLower(internalMessage) = "pause") {
             if (!globalGuis.Has(GUIPAUSETITLE)) {
+                if (currProgram != "") {
+                    globalRunning[currProgram].pause()
+                }
+
                 createPauseMenu()
             }
             else {
                 destroyPauseMenu()
+
+                if (currProgram != "") {
+                    globalRunning[currProgram].restore()
+                }
             }
         }
         else if (StrLower(internalMessage) = "exit") {
@@ -308,13 +329,13 @@ loop {
             tempArr  := StrSplit(internalMessage, A_Space)
             tempFunc := tempArr.RemoveAt(1)
             
-            globalGuis[currGui].%StrReplace(tempFunc, "gui.", "")%(tempArr*)
+            try globalGuis[currGui].%StrReplace(tempFunc, "gui.", "")%(tempArr*)
         }
         else if (StrLower(SubStr(internalMessage, 1, 8)) = "program.") {
             tempArr  := StrSplit(internalMessage, A_Space)
             tempFunc := tempArr.RemoveAt(1)
 
-            globalRunning[currProgram].%StrReplace(tempFunc, "program.", "")%(tempArr*)
+            try globalRunning[currProgram].%StrReplace(tempFunc, "program.", "")%(tempArr*)
         }
         else {
             runFunction(internalMessage)
@@ -445,6 +466,7 @@ loop {
             mostRecentGui := getMostRecentGui()
             if (mostRecentGui != currGui) {
                 setStatusParam("currGui", mostRecentGui)
+                activeSet := true
             }
             else {
                 setStatusParam("currGui", "")
@@ -484,6 +506,7 @@ loop {
                 mostRecentProgram := getMostRecentProgram()
                 if (mostRecentProgram != currProgram) {
                     setStatusParam("currProgram", mostRecentProgram)
+                    activeSet := true
                 }
                 else {
                     setStatusParam("currProgram", "")
@@ -546,9 +569,15 @@ try hotkeyThreadRef.ExitApp()
 
 dllFreeLib(processLib)
 
+DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
+dllFreeLib(gdiLib)
+
 if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
     dllFreeLib(nvLib)
 }
+
+; reset dpi scaling
+DllCall("SetThreadDpiAwarenessContext", "Ptr", prevDPIContext, "Ptr")
 
 Sleep(100)
 ExitApp()

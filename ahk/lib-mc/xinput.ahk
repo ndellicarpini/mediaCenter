@@ -113,15 +113,6 @@ xSetVibration(port, setVibePtr, controllerVibe) {
     return controllerVibe
 }
 
-; gets the controller connected status
-;  port - current controller to check
-;  ptr - ptr to controller data to check
-;
-; returns connected status
-xGetConnected(port, ptr) {
-    return NumGet(ptr + (port * 20), 0, "UChar")
-}
-
 ; gets the controller battery type
 ;  port - current controller to check
 ;  ptr - ptr to controller data to check
@@ -153,6 +144,15 @@ xGetBatteryLevel(port, ptr) {
     return 0
 }
 
+; gets the controller connected status
+;  port - current controller to check
+;  ptr - ptr to controller data to check
+;
+; returns connected status
+xGetConnected(port, ptr) {
+    return NumGet(ptr + (port * 20), 0, "UChar")
+}
+
 ; sets the appropriate value in globalControllers to enable the vibration
 ;  port - controller port to enable vibration on
 ;  ptr - ptr to controller data to check
@@ -178,7 +178,12 @@ xDisableVibration(port, ptr) {
 ; 
 ; returns boolean if hotkey status is fulfilled by controller status, or axis value
 xCheckStatus(toCheck, port, ptr) {
-    if (toCheck = "" || NumGet(ptr + (port * 20), 0, "UChar") = 0) {
+    if (toCheck = "" || !xGetConnected(port, ptr)) {
+        return false
+    }
+
+    checkArr := toArray(toCheck)
+    if (!inArray("HOME", checkArr) && xGetBatteryType(port, ptr) = 0) {
         return false
     }
 
@@ -190,7 +195,7 @@ xCheckStatus(toCheck, port, ptr) {
     axisVal := true
     checkAxis := false
     buttons := 0x000000
-    for item in toArray(toCheck) {
+    for item in checkArr {
         if (item = "") {
             continue
         }

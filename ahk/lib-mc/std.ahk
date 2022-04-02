@@ -483,6 +483,10 @@ validateDir(directory) {
 ;
 ; returns full directory
 expandDir(directory) {
+	if (SubStr(directory, 2, 1) = ":") {
+		return directory
+	}
+
 	backDirs := 1
 
 	while (SubStr(directory, 1, 3) = "..\") {
@@ -499,27 +503,6 @@ expandDir(directory) {
 	}
 
 	return retString . directory
-}
-
-; gets an asset's path based on the name of the asset & the current AssetDir
-;  asset - asset name / path to get (path=subfolders in assets folder)
-;  globalConfig - global config (globalConfig)
-;
-; returns asset's full path 
-getAssetPath(asset, globalConfig) {
-	if (!globalConfig["General"].Has("AssetDir") || globalConfig["General"]["AssetDir"] = "") {
-		ErrorMsg("Cannot get AssetDir when it does not exist in in global.cfg")
-		return
-	}
-
-	assetPath := globalConfig["General"]["AssetDir"] . asset
-
-	if (!FileExist(assetPath)) {
-		ErrorMsg("Requested asset [" . asset . "] does not exist")
-		return
-	}
-
-    return assetPath
 }
 
 ; gets the raw data from a buffer & puts it into a another buffer
