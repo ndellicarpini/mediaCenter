@@ -30,13 +30,14 @@ updateLoadScreen(activate := true) {
 
     if (loadObj) {
         loadObj["LoadText"].Text := getStatusParam("loadText")
-        
-        if (activate) {
-            WinActivate(GUILOADTITLE)
-        }
     }
     else {
         createLoadScreen()
+        Sleep(100)
+    }
+
+    if (activate) {
+        WinActivate(GUILOADTITLE)
     }
 }
 

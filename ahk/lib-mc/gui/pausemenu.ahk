@@ -8,12 +8,6 @@ createPauseMenu() {
 
     currProgram := getStatusParam("currProgram")
 
-    ; set pause & activate currProgram pause
-    setStatusParam("pause", true)
-    if (currProgram != "") {
-        globalRunning[currProgram].pause()
-    }
-
     createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true,, "count-current")
     pauseInt := globalGuis[GUIPAUSETITLE]
 
@@ -138,14 +132,6 @@ destroyPauseMenu() {
     if (getGUI(GUIPAUSETITLE)) {
         SetTimer(PauseSecondTimer, 0)
         globalGuis[GUIPAUSETITLE].guiObj.Destroy()
-    
-        currProgram := getStatusParam("currProgram")
-    
-        ; set pause & activate currProgram resume
-        setStatusParam("pause", false)
-        if (currProgram != "") {
-            globalRunning[currProgram].resume()
-        }
     }
 }
 

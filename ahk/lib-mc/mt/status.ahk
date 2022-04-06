@@ -188,3 +188,48 @@ setStatusParam(param, newVal, ptr := "") {
             }
     }
 }
+
+; whether or not important status fields have been updated
+; ~~~~~~~~~~~~~~~~~~~ isn't it lovely ~~~~~~~~~~~~~~~~~~~~
+;
+; returns true if the status has been updated
+statusUpdated() {
+    static prevPause         := getStatusParam("pause")
+    static prevSuspendScript := getStatusParam("suspendScript")
+    static prevKbmmode       := getStatusParam("kbmmode")
+    static prevCurrProgram   := getStatusParam("currProgram")
+    static prevLoadShow      := getStatusParam("loadShow")
+    static prevLoadText      := getStatusParam("loadText")
+    static prevErrorShow     := getStatusParam("errorShow")
+    static prevErrorHwnd     := getStatusParam("errorHwnd")
+    static prevCurrGui       := getStatusParam("currGui")
+
+    currPause         := getStatusParam("pause")
+    currSuspendScript := getStatusParam("suspendScript")
+    currKbmmode       := getStatusParam("kbmmode")
+    currCurrProgram   := getStatusParam("currProgram")
+    currLoadShow      := getStatusParam("loadShow")
+    currLoadText      := getStatusParam("loadText")
+    currErrorShow     := getStatusParam("errorShow")
+    currErrorHwnd     := getStatusParam("errorHwnd")
+    currCurrGui       := getStatusParam("currGui")
+
+    if (prevPause != currPause || prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevCurrProgram != currCurrProgram
+        || prevLoadShow != currLoadShow || prevLoadText != currLoadText || prevErrorShow != currErrorShow || prevErrorHwnd != currErrorHwnd
+        || prevCurrGui != currCurrGui) {
+            
+        prevPause         := currPause
+        prevSuspendScript := currSuspendScript
+        prevKbmmode       := currKbmmode
+        prevCurrProgram   := currCurrProgram
+        prevLoadShow      := currLoadShow
+        prevLoadText      := currLoadText
+        prevErrorShow     := currErrorShow
+        prevErrorHwnd     := currErrorHwnd
+        prevCurrGui       := currCurrGui
+
+        return true
+    } 
+
+    return false
+}

@@ -13,6 +13,10 @@ class Program {
     volume  := 0
     time    := 0
 
+    ; number of seconds before determining a program not responding
+    hungCount    := 0
+    maxHungCount := 20
+
     muted            := false
     background       := false
     minimized        := false
@@ -46,11 +50,11 @@ class Program {
         this.dir  := (exeConfig.Has("dir"))  ? exeConfig["dir"]  : this.dir
         this.exe  := (exeConfig.Has("exe"))  ? exeConfig["exe"]  : this.exe
         this.wndw := (exeConfig.Has("wndw")) ? exeConfig["wndw"] : this.wndw
+
+        this.time := A_TickCount
         
         this.background := (exeConfig.Has("background")) ? exeConfig["background"] : this.background
         this.allowQuickAccess := (exeConfig.Has("allowQuickAccess")) ? exeConfig["allowQuickAccess"] : this.allowQuickAccess
-
-        this.time := A_TickCount
 
         ; set custom functions
         this.customLaunch      := (exeConfig.Has("launch"))       ? exeConfig["launch"]       : this.customLaunch
@@ -183,7 +187,7 @@ class Program {
                     }
 
                     Sleep(100)
-                    maxCount += 1
+                    count += 1
                 }
 
                 WinMoveTop(window)
@@ -200,7 +204,7 @@ class Program {
                 }
                 
                 Sleep(100)
-                maxCount += 1
+                count += 1
             }
 
             this.time := A_TickCount
@@ -262,9 +266,10 @@ class Program {
     }
 
     exists() {
-        ; check if wndw exists
         wndwStatus := false
+        exeStatus := false
 
+        ; check if wndw exists
         if (IsObject(this.wndw)) {
             if (this.currWNDW = "") {
                 this.currWNDW := checkWNDW(this.wndw, true)
@@ -282,31 +287,40 @@ class Program {
             wndwStatus := checkWNDW(this.wndw)
         }
 
-        if (wndwStatus) {
-            return true
-        }
-
         ; check if exe exists
-        exeStatus := false
+        if (!wndwStatus) {
+            if (IsObject(this.exe)) {
+                if (this.currEXE = "") {
+                    this.currEXE := checkEXE(this.exe, true)
+                }
 
-        if (IsObject(this.exe)) {
-            if (this.currEXE = "") {
-                this.currEXE := checkEXE(this.exe, true)
-            }
+                if (this.currEXE != "") {
+                    exeStatus := true
 
-            if (this.currEXE != "") {
-                exeStatus := true
-
-                if (!checkEXE(this.currEXE)) {
-                    SetTimer(DelayCheckEXE, -1000)
+                    if (!checkEXE(this.currEXE)) {
+                        SetTimer(DelayCheckEXE, -1000)
+                    }
                 }
             }
-        }
-        else {
-            exeStatus := checkEXE(this.exe)
+            else {
+                exeStatus := checkEXE(this.exe)
+            }
+
         }
 
-        return exeStatus
+        ; check if wndw hung 
+        if (!getGUI(GUICHOICETITLE)) {
+            if ((exeStatus || wndwStatus) && this.hungCount = 0 && DllCall("IsHungAppWindow", "Ptr", this.getHWND())) {
+                SetTimer(CheckHungTimer, 1000)
+                CheckHungTimer()
+            }
+            else {
+                hungCount := 0
+            }
+        }
+        
+
+        return exeStatus || wndwStatus
 
         DelayCheckEXE() {
             if (this.exe = "") {
@@ -331,6 +345,25 @@ class Program {
                 this.wndw := ""
             }
 
+            return
+        }
+
+        CheckHungTimer() {
+            if (ProcessExist(this.getPID()) && DllCall("IsHungAppWindow", "Ptr", this.getHWND())) {
+                this.hungCount += 1
+                
+                if (this.hungCount > this.maxHungCount) {
+                    createChoiceDialog(this.name " has stopped responding", "Wait",,, "Exit", "ProcessKill " . this.getPID(), "FF0000")
+                    
+                    this.hungCount := 0
+                    SetTimer(CheckHungTimer, 0)
+                }
+            }
+            else {
+                this.hungCount := 0
+                SetTimer(CheckHungTimer, 0)
+            }
+            
             return
         }
     }
@@ -373,12 +406,16 @@ class Program {
             PID := ProcessExist(activeEXE)
         }
 
-        if (PID <= 0) {
-            ErrorMsg(this.name . ".getPID() failed")
-            return -1
-        }
-
         return PID
+    }
+
+    getHWND() {
+        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
+        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
+
+        HWND := WinHidden((activeWNDW != "") ? activeWNDW : "ahk_exe" activeEXE)
+
+        return HWND
     }
 
     updateVolume() {
@@ -484,10 +521,10 @@ class Program {
 ;  params - params to pass to Program(), first element of params must be program name
 ;  launchProgram - if program.launch() should be called
 ;  setCurrent - if currProgram should be updated
-;  customTime - manual time value to set (useful for backup)
+;  customAttributes - map of manual set attributes
 ;
 ; returns null
-createProgram(params, launchProgram := true, setCurrent := true, customTime := "") {   
+createProgram(params, launchProgram := true, setCurrent := true, customAttributes := "") {   
     global globalRunning
     global globalPrograms
 
@@ -506,8 +543,10 @@ createProgram(params, launchProgram := true, setCurrent := true, customTime := "
                 globalRunning[newName].launch(newProgram)
             }
 
-            if (customTime != "") {
-                globalRunning[newName].time := customTime
+            if (customAttributes != "") {                
+                for key, value in customAttributes {
+                    globalRunning[newName].%key% := value
+                }
             }
         
             return
@@ -668,7 +707,7 @@ checkAllPrograms() {
             ErrorMsg("Default Program" . globalConfig["Programs"]["Default"] . " has no config", true)
         }
 
-        createProgram(globalConfig["Programs"]["Default"], true, true)
+        createProgram(globalConfig["Programs"]["Default"])
     }
 
     if (globalConfig["Programs"].Has("Required") && globalConfig["Programs"]["Required"] != "") {

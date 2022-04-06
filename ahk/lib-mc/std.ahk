@@ -59,10 +59,11 @@ ProcessWinClose(window) {
 
 ; kills a process with extreme prejudice
 ;  PID - pid of process to murder
+;  includeChildren - whether or not to kill child processes
 ;
 ; returns null
-ProcessKill(PID) {
-	Run 'taskkill /t /f /pid ' . PID,, 'Hide'
+ProcessKill(PID, includeChildren := true) {
+	Run "taskkill " . ((includeChildren) ? "/t" : "") . " /f /pid " . PID,, "Hide"
 }
 
 ; returns the winexist of the window only if the window is not hidden

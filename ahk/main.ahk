@@ -18,6 +18,7 @@
 
 #Include lib-mc\gui\std.ahk
 #Include lib-mc\gui\interface.ahk
+#Include lib-mc\gui\choicedialog.ahk
 #Include lib-mc\gui\loadscreen.ahk
 #Include lib-mc\gui\pausemenu.ahk
 #Include lib-mc\gui\volumemenu.ahk
@@ -195,16 +196,14 @@ globalStatus      := mainStatus.Ptr
 globalControllers := mainControllers.Ptr
 
 ; ----- PARSE START ARGS -----
-for key, value in globalConfig["StartArgs"] {
-    if (value = "-backup") {
+for item in globalConfig["StartArgs"] {
+    if (item = "-backup") {
         statusRestore()
-    }
-    else if (value = "-quiet") {
         globalConfig["Boot"]["EnableBoot"] := false
     }
 }
 
-if (!globalConfig["StartArgs"].Has("-quiet") && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
+if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
     createLoadScreen()
 }
 
@@ -227,9 +226,7 @@ if (globalConfig["Boot"]["EnableBoot"]) {
 global externalMessage := []
 
 enableMainMessageListener()
-
-; ----- ENABLE BACKUP -----
-SetTimer(BackupTimer, 10000)
+statusBackup()
 
 ; ----- MAIN THREAD LOOP -----
 ; the main thread monitors the other threads, checks that looper is running
@@ -256,7 +253,7 @@ loop {
             createProgram(joinArray(externalMessage))
         }
         else {
-            runFunction(externalMessage)
+            runFunction(joinArray(externalMessage))
         }
 
         ; reset message after processing
@@ -272,6 +269,8 @@ loop {
 
         if (StrLower(internalMessage) = "pause") {
             if (!globalGuis.Has(GUIPAUSETITLE)) {
+                ; set pause & activate currProgram pause
+                setStatusParam("pause", true)
                 if (currProgram != "") {
                     globalRunning[currProgram].pause()
                 }
@@ -281,8 +280,10 @@ loop {
             else {
                 destroyPauseMenu()
 
+                ; set pause & activate currProgram resume
+                setStatusParam("pause", false)
                 if (currProgram != "") {
-                    globalRunning[currProgram].restore()
+                    globalRunning[currProgram].resume()
                 }
             }
         }
@@ -479,7 +480,7 @@ loop {
         if (globalRunning.Has(currProgram)) {
             if (globalRunning[currProgram].exists()) {
                 if (!activeSet) {
-                    if (forceActivate) {
+                    if (forceActivate && globalRunning[currProgram].hungCount = 0) {
                         try globalRunning[currProgram].restore()
                     }
 
@@ -539,6 +540,11 @@ loop {
         setStatusParam("currHotkeys", currHotkeys)
     }
 
+    ; --- BACKUP ---
+    if (statusUpdated()) {
+        statusBackup()
+    }
+
     ; --- CHECK THREADS ---
     try {
         controllerThreadRef.FuncPtr("")
@@ -581,10 +587,3 @@ DllCall("SetThreadDpiAwarenessContext", "Ptr", prevDPIContext, "Ptr")
 
 Sleep(100)
 ExitApp()
-
-; write globalStatus/globalRunning to file as backup cache?
-; maybe only do it like every 10ish secs?
-BackupTimer() {    
-    try statusBackup()
-    return
-}

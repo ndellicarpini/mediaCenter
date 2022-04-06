@@ -8,13 +8,20 @@ statusBackup() {
 
     backup := Map()
 
-    for key, value in MT_STATUS_KEYS {
+    for key, value in MT_STATUS_KEYS {       
         backup[key] := getStatusParam(key)
     }
     
     backup["globalRunning"] := Map()
     for key, value in globalRunning {
-        backup["globalRunning"][key] := value.time
+        attrMap := Map()
+        for name, attr in value.OwnProps() {
+            if (!IsObject(attr)) {
+                attrMap[name] := attr
+            }
+        }
+
+        backup["globalRunning"][key] := attrMap
     }
 
     backupFile := FileOpen("data\backup.bin", "w -rwd")
@@ -32,8 +39,8 @@ statusRestore() {
     
     for key, value in backup {
         if (key = "globalRunning") {
-            for name, time in backup["globalRunning"] {
-                createProgram(name, false, false, time)
+            for name, attr in backup["globalRunning"] {
+                createProgram(name, false, false, attr)
             }
         }
         else {
