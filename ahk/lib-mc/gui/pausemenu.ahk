@@ -62,8 +62,8 @@ createPauseMenu() {
         pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
         pauseInt.Add("Picture", "vVolume f(createVolumeMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-        pauseInt.Add("Picture", "vMulti xpos4 f(createProgramMenu) ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
-        pauseInt.Add("Picture", "vPower xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti f(createProgramMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vPower f(createPowerMenu) xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     
     }
     else {
@@ -71,8 +71,8 @@ createPauseMenu() {
 
         pauseInt.Add("Picture", "vVolume Section f(createVolumeMenu) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
         pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-        pauseInt.Add("Picture", "vMulti xpos3 f(createProgramMenu) ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
-        pauseInt.Add("Picture", "vPower xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti f(createProgramMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vPower f(createPowerMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     }
 
 
@@ -136,10 +136,8 @@ destroyPauseMenu() {
 }
 
 ; adds default to pause options based on selected options from global config
-;  currOptions - current options map to add default to
-;  currKeys - current key array used to maintain user defined order
 ; 
-; returns current options + default options
+; returns default order & options
 defaultPauseOptions() {
     global globalConfig
 
@@ -160,17 +158,18 @@ defaultPauseOptions() {
         function: "setStatusParam suspendScript " . !currSuspend
     }
 
+    optionsOrder := []
     if (globalConfig["GUI"].Has("DefaultPauseOptions") && IsObject(globalConfig["GUI"]["DefaultPauseOptions"])) {
-        globalOptions := globalConfig["GUI"]["DefaultPauseOptions"]
+        optionsOrder := globalConfig["GUI"]["DefaultPauseOptions"]
 
-        for item in globalOptions {           
+        for item in optionsOrder {           
             if (!defaultOptions.Has(item)) {
                 defaultOptions.Delete(item)
             }
         }
     }
 
-    return {order: globalOptions, items: defaultOptions}
+    return {order: optionsOrder, items: defaultOptions}
 }
 
 ; adds program pause options

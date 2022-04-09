@@ -23,7 +23,7 @@ createProgramMenu() {
     guiHeight := percentHeight(0.75)
 
     guiSetFont(programInt, "bold s24")
-    programInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . percentHeight(0.05) . " w" . (guiWidth - (marginSize * 2)), "MultiTasking")
+    programInt.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . percentHeight(0.05) . " w" . (guiWidth - (marginSize * 2)), "Multitasking")
 
     ; create the list of running programs
     programList := []

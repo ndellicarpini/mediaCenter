@@ -218,7 +218,9 @@ class Program {
 
         this.minimized := true
 
-        saveScreenshot(this.id)
+        if (this.id = getStatusParam("currProgram")) {
+            saveScreenshot(this.id)
+        }
 
         if (this.customMinimize != "") {
             runFunction(this.customMinimize)
@@ -736,5 +738,27 @@ checkRequiredPrograms() {
                 createProgram(item, true, false)
             }
         }
+    }
+}
+
+; updates program list & exits all existing programs
+;
+; returns null
+exitAllPrograms() {
+    global globalRunning
+
+    checkAllPrograms()
+
+    while (globalRunning.Count > 0) {
+        name := getMostRecentProgram(true)
+
+        globalRunning[name].exit()
+        Sleep(250)
+
+        if (globalRunning[name].exists()) {
+            ProcessKill(globalRunning[name].getPID())
+        }
+
+        globalRunning.Delete(name)
     }
 }

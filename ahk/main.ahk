@@ -24,6 +24,7 @@
 #Include lib-mc\gui\volumemenu.ahk
 #Include lib-mc\gui\controllermenu.ahk
 #Include lib-mc\gui\programmenu.ahk
+#Include lib-mc\gui\powermenu.ahk
 
 #Include lib-mc\mt\status.ahk
 #Include lib-mc\mt\threads.ahk
