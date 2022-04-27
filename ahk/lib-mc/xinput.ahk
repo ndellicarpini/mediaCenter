@@ -132,11 +132,11 @@ xGetBatteryLevel(port, ptr) {
 
     switch (level) {
         case 0:
-            return 0.1
+            return 0
         case 1:
-            return 0.4
+            return 0.2
         case 2:
-            return 0.7
+            return 0.6
         case 3:
             return 1
     }

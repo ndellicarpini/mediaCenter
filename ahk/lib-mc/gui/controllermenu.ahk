@@ -40,11 +40,11 @@ createControllerMenu() {
             . (((batteryType = 2 || batteryType = 3) && connected) ? " Hidden" : ""), (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected")
         
         batteryColor := "00FF00"
-        if (batteryLevel = 10) {
-            batteryColor := "FF0000"
+        if (batteryLevel < 100) {
+            batteryColor := "AAFF00"
         }
-        else if (batteryLevel = 40) {
-            batteryColor := "FFFF00"
+        else if (batteryLevel < 60) {
+            batteryColor := "FF0000"
         }
 
         borderWidth := percentHeight(0.005)
@@ -123,11 +123,11 @@ ControllerSecondTimer() {
         currGui["Port" . port . "Text"].Text := (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected"
 
         batteryColor := "00FF00"
-        if (batteryLevel = 10) {
-            batteryColor := "FF0000"
+        if (batteryLevel < 100) {
+            batteryColor := "AAFF00"
         }
-        else if (batteryLevel = 40) {
-            batteryColor := "FFFF00"
+        else if (batteryLevel < 60) {
+            batteryColor := "FF0000"
         }
 
         currGui["Port" . port . "Progress"].Value := batteryLevel
