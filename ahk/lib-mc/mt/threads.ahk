@@ -10,6 +10,8 @@ controllerThread(globalConfig, globalControllers) {
         #Include lib-mc\xinput.ahk
         
         setCurrentWinTitle('controllerThread')
+
+        global exitThread := false
         
         global globalConfig      := ObjShare(" globalConfig ")
         global globalControllers := " globalControllers "
@@ -52,7 +54,8 @@ controllerThread(globalConfig, globalControllers) {
 
                 ; controller not connected
                 if (controllerStatus = -1) {
-                    NumPut('UChar', 0, globalControllers + (port * 20), 0)
+                    copyBufferData(Buffer(20, 0).Ptr, globalControllers + (port * 20), 20)
+
                     continue
                 }
 
@@ -74,7 +77,7 @@ controllerThread(globalConfig, globalControllers) {
             }
 
             ; close if main is no running
-            if (!WinHidden(MAINNAME)) {
+            if (!WinHidden(MAINNAME) || exitThread) {
                 dllFreeLib(xLibrary)
                 ExitApp()
             }
@@ -111,6 +114,8 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         SetKeyDelay 80, 60
 
         ; --- GLOBAL VARIABLES ---
+
+        global exitThread := false
 
         ; variables are global to be accessed in timers
         global globalConfig      := ObjShare(" globalConfig ")
@@ -163,11 +168,12 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
             ; check hotkeys
             for item in currHotkeys['uniqueKeys'] {
-                loop maxControllers {
-                    if (xCheckStatus(item, (A_Index - 1), globalControllers)) {
-                        currController := A_Index - 1
-                        currButton := item
+                currButton := item
 
+                loop maxControllers {
+                    currController := A_Index - 1
+
+                    if (xCheckStatus(currButton, currController, globalControllers)) {                       
                         SetTimer(ButtonTimer, (-1 * buttonTime))
                         while (xCheckStatus(currButton, currController, globalControllers)) {
                             Sleep(5)
@@ -185,7 +191,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             ; close if main is no running
-            if (!WinHidden(MAINNAME)) {
+            if (!WinHidden(MAINNAME) || exitThread) {
                 ExitApp()
             }
             

@@ -204,14 +204,8 @@ xCheckStatus(toCheck, port, ptr) {
             buttons := buttons | xButtons.%item%
         }
         catch {
-            axisData := xCheckAxis(statusData, item)
-
-            if (Type(axisData) != "String") {
-                return axisData
-            }
-
             checkAxis := true
-            axisVal := axisVal && ((axisData = "true") ? true : false)
+            axisVal := xCheckAxis(statusData, item)
         }
     }
 
@@ -267,14 +261,14 @@ xCheckAxis(statusData, axis) {
     currValue := NumGet(statusData, xAxis.%currAxis%.offset, xAxis.%currAxis%.type) / xAxis.%currAxis%.max
 
     if (InStr(comparison, ">") && currValue > value) {
-        return "true"
+        return true
     }
     else if (InStr(comparison, "<") && currValue < value) {
-        return "true"
+        return true
     }
     else if (InStr(comparison, "=") && currValue = value) {
-        return "true"
+        return true
     }
 
-    return "false"
+    return false
 }

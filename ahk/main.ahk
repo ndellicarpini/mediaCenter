@@ -234,14 +234,15 @@ statusBackup()
 ; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
 ; probably going to need to figure out updating loadscreen?
 
-forceMaintain := globalConfig["General"]["ForceMaintainMain"]
-forceActivate := globalConfig["General"]["ForceActivateWindow"]
+forceMaintain := globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]
+forceActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+hideTaskbar   := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
 checkErrors   := globalConfig["Programs"].Has("ErrorList") && globalConfig["Programs"]["ErrorList"] != ""
 
 loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"])
 
-checkAllCount := 0
+delayCount := 0
 
 loop {
     ; --- CHECK MESSAGES ---
@@ -268,6 +269,7 @@ loop {
         currProgram := getStatusParam("currProgram")
         currGui     := getStatusParam("currGui")
 
+        ; update pause status & create/destroy pause menu
         if (StrLower(internalMessage) = "pause") {
             if (!globalGuis.Has(GUIPAUSETITLE)) {
                 ; set pause & activate currProgram pause
@@ -288,6 +290,8 @@ loop {
                 }
             }
         }
+
+        ; exits the current error or program
         else if (StrLower(internalMessage) = "exit") {
             if (getStatusParam("errorShow")) {
                 errorHwnd := getStatusParam("errorHwnd")
@@ -305,8 +309,11 @@ loop {
                 try globalRunning[currProgram].exit()
             }
         }
+
+        ; kills the current error or program or itself
         else if (StrLower(internalMessage) = "nuclear") {
             killed := false
+
             if (!killed && getStatusParam("errorShow")) {
                 try {
                     errorPID := WinGetPID("ahk_id " getStatusParam("errorHwnd"))
@@ -321,24 +328,29 @@ loop {
                 killed := true
             }
 
-            ; TODO - gui notification that drastic measures have been taken
-
+            ; TODO - gui notification that drastic measures have been taken?
             if (!killed) {
                 ProcessKill(WinGetPID(WinHidden(MAINNAME)))
             }
         }
+
+        ; run current gui funcion
         else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
             tempArr  := StrSplit(internalMessage, A_Space)
             tempFunc := tempArr.RemoveAt(1)
             
             try globalGuis[currGui].%StrReplace(tempFunc, "gui.", "")%(tempArr*)
         }
+
+        ; run current program function
         else if (StrLower(SubStr(internalMessage, 1, 8)) = "program.") {
             tempArr  := StrSplit(internalMessage, A_Space)
             tempFunc := tempArr.RemoveAt(1)
 
             try globalRunning[currProgram].%StrReplace(tempFunc, "program.", "")%(tempArr*)
         }
+
+        ; run function
         else {
             runFunction(internalMessage)
         }
@@ -356,6 +368,7 @@ loop {
     Sleep(loopSleep)
 
     activeSet := false
+    hotkeySet := false
     currHotkeys := defaultHotkeys(globalConfig)
 
     ; --- CHECK OVERRIDE ---
@@ -392,10 +405,14 @@ loop {
                     WinActivate("ahk_id " errorHwnd)
                 }
 
-                currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
-
-                setStatusParam("buttonTime", 25)
                 activeSet := true
+            }
+
+            if (!hotkeySet) {
+                currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
+                setStatusParam("buttonTime", 25)
+
+                hotkeySet := true
             }
         }
         else {
@@ -407,14 +424,16 @@ loop {
     ; activate load screen if its supposed to be shown
     if (!activeSet && getStatusParam("loadShow")) {
         updateLoadScreen()
+        
         activeSet := true
+        hotkeySet := true
     }
 
     ; --- CHECK ALL OPEN ---
     currProgram := getStatusParam("currProgram")
     currGui     := getStatusParam("currGui")
 
-    if (checkAllCount > 20 || (currProgram = "" && currGui = "")) {
+    if (delayCount > 20 || (currProgram = "" && currGui = "")) {
         checkAllGuis()
 
         mostRecentGui := getMostRecentGui()
@@ -428,8 +447,6 @@ loop {
         if (mostRecentProgram != currProgram) {
             setStatusParam("currProgram", mostRecentProgram)
         }
-
-        checkAllCount := 0
     }
 
     ; --- CHECK OPEN GUIS ---
@@ -440,6 +457,10 @@ loop {
                     try WinActivate(currGui)
                 }
 
+                activeSet := true
+            }
+
+            if (!hotkeySet) {
                 if (globalGuis[currGui].hotkeys.Count > 0) {
                     currHotkeys := addHotkeys(currHotkeys, globalGuis[currGui].hotkeys)
                 }
@@ -454,7 +475,7 @@ loop {
                 }
 
                 setStatusParam("buttonTime", 25)
-                activeSet := true
+                hotkeySet := true
             }
         } 
         else {
@@ -468,7 +489,8 @@ loop {
             mostRecentGui := getMostRecentGui()
             if (mostRecentGui != currGui) {
                 setStatusParam("currGui", mostRecentGui)
-                activeSet := true
+                
+                continue
             }
             else {
                 setStatusParam("currGui", "")
@@ -485,6 +507,10 @@ loop {
                         try globalRunning[currProgram].restore()
                     }
 
+                    activeSet := true
+                }
+
+                if (!hotkeySet) {
                     if (globalRunning[currProgram].hotkeys.Count > 0) {
                         currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys)
                     }
@@ -499,7 +525,7 @@ loop {
                     }
 
                     setStatusParam("buttonTime", 70)
-                    activeSet := true
+                    hotkeySet := true
                 }
             }
             else {
@@ -508,7 +534,8 @@ loop {
                 mostRecentProgram := getMostRecentProgram()
                 if (mostRecentProgram != currProgram) {
                     setStatusParam("currProgram", mostRecentProgram)
-                    activeSet := true
+                    
+                    continue
                 }
                 else {
                     setStatusParam("currProgram", "")
@@ -560,31 +587,139 @@ loop {
         hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
     }
 
-    ; --- CHECK LOOPER ---
-    if (forceMaintain && !WinHidden(MAINLOOP)) {
-        Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
+    if (delayCount > 20) {
+        ; check that looper is running
+        if (forceMaintain && !WinHidden(MAINLOOP)) {
+            Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
+        }
+
+        ; check that taskbar is hidden
+        if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
+            try WinHide "ahk_class Shell_TrayWnd"
+        }
+
+        delayCount := 0
     }
- 
-    checkAllCount += 1
+    
+    delayCount += 1
     Sleep(loopSleep)
 }
 
-disableMainMessageListener()
+; clean shutdown of script
+ShutdownScript() {
+    disableMainMessageListener()
+    
+    setLoadScreen("Please Wait...")
 
-try controllerThreadRef.ExitApp()
-try hotkeyThreadRef.ExitApp()
+    ; tell the threads to close
+    controllerThreadRef.exitThread := true
+    hotkeyThreadRef.exitThread     := true
 
-dllFreeLib(processLib)
-
-DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
-dllFreeLib(gdiLib)
-
-if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
-    dllFreeLib(nvLib)
+    Sleep(100)
+    
+    dllFreeLib(processLib)
+    
+    DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
+    dllFreeLib(gdiLib)
+    
+    if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
+        dllFreeLib(nvLib)
+    }
+    
+    ; reset dpi scaling
+    DllCall("SetThreadDpiAwarenessContext", "Ptr", prevDPIContext, "Ptr")
+    
+    ; reset taskbar
+    if (!WinShown("ahk_class Shell_TrayWnd") && WinHidden("ahk_class Shell_TrayWnd")) {
+        try WinShow "ahk_class Shell_TrayWnd"
+    }
 }
 
-; reset dpi scaling
-DllCall("SetThreadDpiAwarenessContext", "Ptr", prevDPIContext, "Ptr")
+ExitScript() {
+    global globalConfig
 
-Sleep(100)
-ExitApp()
+    setStatusParam("internalMessage", "")
+    statusBackup()
+
+    if (WinHidden(MAINLOOP) && globalConfig["General"].Has("ForceMaintainMain") 
+        && globalConfig["General"]["ForceMaintainMain"]) {
+
+        ProcessWinClose(MAINLOOP)
+    }
+
+    ShutdownScript()
+    Sleep(500)
+
+    ExitApp()
+}
+
+ResetScript() {
+    global globalConfig
+
+    setStatusParam("internalMessage", "")
+    statusBackup()
+
+    if (!globalConfig["General"].Has("ForceMaintainMain") 
+        || (globalConfig["General"].Has("ForceMaintainMain") && !globalConfig["General"]["ForceMaintainMain"])) {
+
+        Run A_AhkPath . A_Space . "mainLooper.ahk 1", A_ScriptDir, "Hide"
+    }
+    else if (!WinHidden(MAINLOOP)) {
+        MsgBox("huh?")
+        Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
+    }
+
+    ShutdownScript()
+    Sleep(500)
+
+    ExitApp()
+}
+
+; clean up running programs & shutdown
+PowerOff() {
+    exitAllPrograms()
+    Sleep(500)
+    
+    ShutdownScript()
+    Sleep(500)
+
+    Shutdown 1
+    ExitApp()
+}
+
+; clean up running programs & restart
+Restart() {
+    exitAllPrograms()
+    Sleep(500)
+
+    ShutdownScript()
+    Sleep(500)
+
+    Shutdown 2
+    ExitApp()
+}
+
+; clean up running programs & sleep -> restarting script after
+Standby() {
+    if (WinHidden(MAINLOOP)) {
+        ProcessKill(WinGetPID(WinHidden(MAINLOOP)))
+    }
+    
+    exitAllPrograms()
+    Sleep(500)
+
+    ShutdownScript()
+    Sleep(500)
+
+    ProcessKill("explorer.exe")
+    Sleep(500)
+    
+    DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
+    Sleep(2000)
+
+    Run "explorer.exe"
+    Sleep(500)
+
+    Run A_ScriptDir . "\" . "startMain.cmd", A_ScriptDir, "Hide"
+    ExitApp()
+}

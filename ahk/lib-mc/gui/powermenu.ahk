@@ -71,13 +71,8 @@ createPowerOptions() {
     defaultOptions["Standby"]  := {title: "Standby",  function: "powerStandby",  icon: "standby"}
     defaultOptions["Shutdown"] := {title: "Shutdown", function: "powerShutdown", icon: "power"}
     defaultOptions["Restart"]  := {title: "Restart",  function: "powerRestart",  icon: "restart"}
-
-    if (globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]) {
-        defaultOptions["Exit"] := {title: "Reload", function: "powerExit", icon: "reload"}
-    }
-    else {
-        defaultOptions["Exit"] := {title: "Exit", function: "powerExit", icon: "close"}
-    }
+    defaultOptions["Reset"] := {title: "Reload", function: "powerReset", icon: "reload"}
+    defaultOptions["Exit"] := {title: "Exit", function: "powerExit", icon: "close"}
 
     optionsOrder := []
     if (globalConfig["GUI"].Has("PowerOptions") && IsObject(globalConfig["GUI"]["PowerOptions"])) {
@@ -99,12 +94,16 @@ createPowerOptions() {
 powerExit() {
     destroyPowerMenu()
     
-    statusBackup()
-    
-    setLoadScreen("Please Wait...")
-    Sleep(500)
+    setStatusParam("internalMessage", "ExitScript")
+}
 
-    ExitApp()
+; forces backup & resets the script
+;
+; returns null
+powerReset() {
+    destroyPowerMenu()
+    
+    setStatusParam("internalMessage", "ResetScript")
 }
 
 ; closes all open programs & explorer -> sleep, then on wake restart main
@@ -113,23 +112,7 @@ powerExit() {
 powerStandby() {
     destroyPowerMenu()
 
-    exitAllPrograms()
-    ProcessKill("explorer.exe")
-
-    if (WinHidden(MAINLOOP)) {
-        ProcessKill(WinGetPID(WinHidden(MAINLOOP)))
-    }
-    
-    setLoadScreen("Please Wait...")
-    Sleep(500)
-    
-    DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
-    Sleep(2000)
-
-    Run "explorer.exe"
-    Sleep(500)
-
-    Run A_ScriptDir . "\" . "startMain.cmd", A_ScriptDir
+    setStatusParam("internalMessage", "Standby")
 }
 
 ; closes all open programs then shuts down the system
@@ -138,12 +121,7 @@ powerStandby() {
 powerShutdown() {
     destroyPowerMenu()
 
-    exitAllPrograms()
-    
-    setLoadScreen("Please Wait...")
-    Sleep(500)
-
-    Shutdown 1
+    setStatusParam("internalMessage", "PowerOff")
 }
 
 ; closes all open programs then restarts the system
@@ -152,10 +130,5 @@ powerShutdown() {
 powerRestart() {
     destroyPowerMenu()
 
-    exitAllPrograms()
-    
-    setLoadScreen("Please Wait...")
-    Sleep(500)
-
-    Shutdown 2
+    setStatusParam("internalMessage", "Restart")
 }

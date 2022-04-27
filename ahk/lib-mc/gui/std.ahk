@@ -132,11 +132,14 @@ guiSetFont(guiObj, options := "s15", enableSizing := true) {
 ;
 ; returns gui object from title
 getGUI(title) {
+    retGui := ""
+
     try {
         hwnd := WinGetID(title)
-
-        return GuiFromHwnd(hwnd)
+        retGui := GuiFromHwnd(hwnd)
     }
+
+    return retGui
 }
 
 ; gets an asset's path based on the name of the asset & the current AssetDir

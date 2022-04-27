@@ -15,20 +15,18 @@
     ; "minimize": "chromeMinimize",
     "exit": "",
 
+    ;"mouse": {
+    ;    "x": 
+    ;},
     "hotkeys": {
         "SELECT": "chromeOSK",
         "START": "chromeNewTab",
         "START&SELECT": "Exit",
-        "Y&RT>=0.4": {
-            "down": "MsgBox bruh",
-            "up": "Exit"
-        },
     },
 
     "pauseOptions": {
         "Show Controls": "chromeControls",
         "Enable Picture-in-Picture": "chromePIP",
-        "Screenshot": "saveScreenshot chrome"
     },
-    "pauseOrder": ["Screenshot", "Show Controls", "Enable Picture-in-Picture"]
+    "pauseOrder": ["Show Controls", "Enable Picture-in-Picture"]
 }
