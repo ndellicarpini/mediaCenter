@@ -1,5 +1,4 @@
 {
-    ; do i still need modes?
     ; might need a way to make certain like pauseOptions optionally enabled? like specific games might not have manual
 
     ; IDEAS:
@@ -17,8 +16,6 @@
     "pause": "raPause",
     "resume": "raResume",
 
-    "restore": "raRestore",
-    "minimize": "raMin",
     "exit": "raExit",
 
     "hotkeys": {

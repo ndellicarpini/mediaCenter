@@ -1,7 +1,5 @@
 CODE
 - Fix runFunction being dogshit
-- BOOT
-  - create check for internet
 - CONFIG
   - Add XML & INDENT parsing to readConfig()
   - create writeConfig()
@@ -17,12 +15,6 @@ CODE
 GUI
 - create Keyboard
 - create PauseScreen
-  - Home Button (default program)
-  - Volume Button (pop-out volume mixer)
-  - Controllers Button (pop-out show battery & vibrate button)
-  - MultiTasking Button (show programs to switch to/from)
-  - Power Button (WinXP style power menu)
-    - create gui for how to handle previous program (Hide/Minimize)
   - Program Specific Settings
     - Show Controls button
     - Save/Load state dialogs (w/ multiple slot support & taking screenshots)

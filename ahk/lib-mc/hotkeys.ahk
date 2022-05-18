@@ -7,7 +7,7 @@ defaultHotkeys(config) {
 
     for key in config["Hotkeys"] {
         ; only add pause hotkey if pausing is enabled
-        if (key = "Pause" && config["General"].Has("EnablePause") && config["General"]["EnablePause"] = true) {    
+        if (key = "Pause" && config["General"].Has("EnablePause") && config["General"]["EnablePause"]) {    
             newHotkeys[config["Hotkeys"][key]] := key
         }
         else {

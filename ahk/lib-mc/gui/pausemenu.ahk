@@ -8,7 +8,14 @@ createPauseMenu() {
 
     currProgram := getStatusParam("currProgram")
 
-    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "Pause"), true,, "count-current")
+    setStatusParam("pause", true)
+    
+    ; set activate currProgram pause
+    if (currProgram != "") {
+        globalRunning[currProgram].pause()
+    }
+
+    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("HOME|B", "gui.Destroy"), true,, "count-current", "destroyPauseMenu")
     pauseInt := globalGuis[GUIPAUSETITLE]
 
     pauseInt.unselectColor := COLOR1
@@ -123,15 +130,27 @@ createPauseMenu() {
 }
 
 ; destroys the pause screen
+;  resume - if to resume after destroy
 ;
 ; returns null
-destroyPauseMenu() {
+destroyPauseMenu(resume := true) {
     global globalRunning
     global globalGuis
 
     if (getGUI(GUIPAUSETITLE)) {
         SetTimer(PauseSecondTimer, 0)
         globalGuis[GUIPAUSETITLE].guiObj.Destroy()
+    }
+
+    if (resume) {
+        currProgram := getStatusParam("currProgram")
+
+        setStatusParam("pause", false)
+
+        ; set currProgram resume
+        if (currProgram != "") {
+            globalRunning[currProgram].resume()
+        }
     }
 }
 
@@ -207,8 +226,10 @@ programPauseOptions(currProgram) {
     }
 
     ; add exit
-    programOptions["currProgramExit"] := {title: "Exit", function: "currProgramExit"}
-    programOrder.Push("currProgramExit")
+    if (currProgram.allowExit) {
+        programOptions["currProgramExit"] := {title: "Exit", function: "currProgramExit"}
+        programOrder.Push("currProgramExit")
+    }
 
     return {order: programOrder, items: programOptions}
 }
@@ -238,7 +259,7 @@ defaultProgramOpen() {
         defaultProgram := globalConfig["Programs"]["Default"]
 
         if (globalRunning.Has(defaultProgram)) {
-            globalRunning[defaultProgram].restore()
+            setStatusParam("currProgram", defaultProgram)
         }
         else {
             createProgram(defaultProgram)
@@ -260,7 +281,6 @@ PauseSecondTimer() {
             pauseObj["Time"].Text := currentTimeArr[1]
             pauseObj["Date"].Text := currentTimeArr[2]
 
-            ; MsgBox(getCpuLoad())
             pauseObj["CPU"].Value := Ceil(getCpuLoad())
             pauseObj["RAM"].Value := Ceil(getRamLoad())
 

@@ -1,0 +1,10 @@
+{
+	"id": "wingame",
+	"name": "Windows Game",
+
+	"launch": "winGameLaunch",
+
+	"exe": [
+		"gzdoom.exe",
+	]
+}

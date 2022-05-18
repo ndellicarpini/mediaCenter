@@ -5,20 +5,6 @@ global MESSAGE_END := "END_TRANSMISSION"     ; marks endd of a data set being se
 global MESSAGE_ENABLE := false ; if received MESSAGE_START -> true
 global MESSAGE_DATA := []
 
-; enables the OnMessage listener for send2Main
-;
-; returns null
-enableMainMessageListener() {
-    OnMessage(MESSAGE_VAL, handleMessage)
-}
-
-; disables the OnMessage listener for send2Main
-;
-; returns null
-disableMainMessageListener() {
-    OnMessage(MESSAGE_VAL, handleMessage, 1)
-}
-
 ; sends a message to main and waits to confirm message was recieved
 ;  message - message to send to main
 ;  waitTime - ms to wait for message to be confirmed recieved
@@ -67,11 +53,9 @@ sendListToMain(list) {
 ;  parameters are default for a function called by OnMessage
 ;
 ; returns null
-handleMessage(wParam, lParam, msg, hwnd) {
+getMessage(wParam, lParam, msg, hwnd) {
     global MESSAGE_ENABLE
     global MESSAGE_DATA
-    
-    global externalMessage
 
     stringAddress := NumGet(lParam, (2 * A_PtrSize), "Ptr")
     messageData := StrGet(stringAddress)
@@ -83,12 +67,15 @@ handleMessage(wParam, lParam, msg, hwnd) {
         if (messageData = MESSAGE_END) {
             MESSAGE_ENABLE := false
 
-            ; send message to main
-            externalMessage := MESSAGE_DATA
+            retVal := MESSAGE_DATA
             MESSAGE_DATA := []
+
+            return retVal
         }
         else {
             MESSAGE_DATA.Push(messageData)
         }
     }
+
+    return []
 }

@@ -8,10 +8,40 @@
 
 ; STUBS FINGER LICKIN GOOD
 
-gameMin() {
+jackboxLaunch(version) {
+    global globalRunning
 
+    this := globalRunning["jackbox"]
+
+    retVal := 0
+    if (version = 1) {
+        retVal := steamGameLaunchHandler("jackbox", "steam://rungameid/331670")
+    }
+    else if (version = 2) {
+        retVal := steamGameLaunchHandler("jackbox", "steam://rungameid/397460")
+    }
+    else if (version = 3) {
+        retVal := steamGameLaunchHandler("jackbox", "steam://rungameid/434170")
+    }
+
+    return (retVal) ? 0 : -1
 }
 
-gameRestore() {
+winGameLaunch(game) {
+    global globalRunning
+
+    this := globalRunning["wingame"]
+
+    pathArr := StrSplit(game, "\")
     
+    exe := pathArr.RemoveAt(pathArr.Length)
+    path := joinArray(pathArr, "\")
+
+    Run game, path
+}
+
+bigBoxRestore() {
+    if (WinShown("LaunchBox Game Startup")) {
+        return -1
+    }
 }

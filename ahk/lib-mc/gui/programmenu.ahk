@@ -5,7 +5,7 @@ createProgramMenu() {
     global globalRunning
     global globalGuis
 
-    destroyPauseMenu()
+    destroyPauseMenu(false)
 
     createInterface(GUIPROGRAMTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,, "destroyProgramMenu")
     programInt := globalGuis[GUIPROGRAMTITLE]
@@ -98,19 +98,29 @@ createProgramMenu() {
             programInt.Add("Picture", "Section xm+" . percentWidth(0.0035) . " yp+" . percentHeight(0.005) . " w" . thumbnailSize . " h-1", getThumbnailPath(item, globalConfig))
             programInt.Add("Text", "Left BackgroundTrans h" . percentHeight(0.105) . " w" . percentWidth(0.195) . " yp+" . percentHeight(0.075) . " x+" . percentWidth(0.0075), globalRunning[item].name)
 
-            ; render minimize/restore buttons if there are multiple running programs
-            if (programList.Length > 1) {
-                if (!globalRunning[item].minimized) {
-                    programInt.Add("Picture", "vMinMax" . item . " f(minimizeProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.323) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\minimize.png", globalConfig))
+            if (globalRunning[item].allowExit) {
+                ; render minimize/restore buttons if there are multiple running programs
+                if (programList.Length > 1) {
+                    if (!globalRunning[item].minimized) {
+                        programInt.Add("Picture", "vMinMax" . item . " f(minimizeProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.323) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\minimize.png", globalConfig))
+                    }
+                    else {
+                        programInt.Add("Picture", "vMinMax" . item . " f(restoreProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.323) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\restore.png", globalConfig))
+                    }
+
+                    programInt.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos3 ypos" . index . " xm+" . percentWidth(0.356) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
                 }
                 else {
-                    programInt.Add("Picture", "vMinMax" . item . " f(restoreProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.323) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\restore.png", globalConfig))
+                    programInt.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos2 ypos" . index . " xm+" . percentWidth(0.356) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
                 }
-
-                programInt.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos3 ypos" . index . " xm+" . percentWidth(0.356) . " yp0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
             }
             else {
-                programInt.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos2 ypos" . index . " xm+" . percentWidth(0.356) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
+                if (!globalRunning[item].minimized) {
+                    programInt.Add("Picture", "vMinMax" . item . " f(minimizeProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.356) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\minimize.png", globalConfig))
+                }
+                else {
+                    programInt.Add("Picture", "vMinMax" . item . " f(restoreProgram " . item . ") Background" . COLOR2 . " xpos2 ypos" . index . " xm+" . percentWidth(0.356) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\restore.png", globalConfig))
+                }
             }
             
             index += 1

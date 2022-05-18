@@ -1,3 +1,11 @@
+chromeOSK() {
+
+}
+
+chromeNewTab() {
+    
+}
+
 chromeControls() {
     MsgBox("having sex with your moother")
 }

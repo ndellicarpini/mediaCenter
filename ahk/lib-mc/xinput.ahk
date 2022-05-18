@@ -136,7 +136,7 @@ xGetBatteryLevel(port, ptr) {
         case 1:
             return 0.2
         case 2:
-            return 0.6
+            return 0.8
         case 3:
             return 1
     }

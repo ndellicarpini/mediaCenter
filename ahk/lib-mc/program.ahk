@@ -17,26 +17,39 @@ class Program {
     hungCount    := 0
     maxHungCount := 20
 
-    muted            := false
-    background       := false
-    minimized        := false
-    fullscreen       := false
-    allowQuickAccess := false
-    allowPause       := true
+    ; if waiting on check of program relaunching
+    waitingExistTimer      := false
+    waitingFullscreenTimer := false
+
+    muted              := false
+    background         := false
+    minimized          := false
+    fullscreened       := false
+
+    allowQuickAccess  := false
+    allowPause        := true
+    allowExit         := true
+    requireInternet   := false
+    requireFullscreen := false
 
     pauseOrder   := []
     pauseOptions := Map()
     hotkeys      := Map()
+    mouse        := Map()
 
     ; functions
     customLaunch := ""
-
     customPause  := ""
     customResume := ""
 
-    customExit     := ""
-    customRestore  := ""
-    customMinimize := ""
+    customExit       := ""
+    customRestore    := ""
+    customMinimize   := ""
+    customFullscreen := ""
+
+    ; TODO - create a config obj that gives details how to update the program config before launch
+    ; think emulator configs -> allow create defaults per args?
+    configObj := ""
 
     ; used when exe/wndw are lists - keep current active
     currEXE  := ""
@@ -53,22 +66,24 @@ class Program {
 
         this.time := A_TickCount
         
-        this.background := (exeConfig.Has("background")) ? exeConfig["background"] : this.background
-        this.allowQuickAccess := (exeConfig.Has("allowQuickAccess")) ? exeConfig["allowQuickAccess"] : this.allowQuickAccess
+        this.background         := (exeConfig.Has("background"))         ? exeConfig["background"]         : this.background
+        this.allowPause         := (exeConfig.Has("allowPause"))         ? exeConfig["allowPause"]         : this.allowPause
+        this.allowExit          := (exeConfig.Has("allowExit"))          ? exeConfig["allowExit"]          : this.allowExit
+        this.allowQuickAccess   := (exeConfig.Has("allowQuickAccess"))   ? exeConfig["allowQuickAccess"]   : this.allowQuickAccess
+        this.requireInternet    := (exeConfig.Has("requireInternet"))    ? exeConfig["requireInternet"]    : this.requireInternet
+        this.requireFullscreen  := (exeConfig.Has("requireFullscreen"))  ? exeConfig["requireFullscreen"]  : this.requireFullscreen
 
         ; set custom functions
-        this.customLaunch      := (exeConfig.Has("launch"))       ? exeConfig["launch"]       : this.customLaunch
-  
-        this.customPause       := (exeConfig.Has("pause"))        ? exeConfig["pause"]        : this.customPause
-        this.customResume      := (exeConfig.Has("resume"))       ? exeConfig["resume"]       : this.customResume
-  
-        this.customExit        := (exeConfig.Has("exit"))         ? exeConfig["exit"]         : this.customExit
-        this.customRestore     := (exeConfig.Has("restore"))      ? exeConfig["restore"]      : this.customRestore
-        this.customMinimize    := (exeConfig.Has("minimize"))     ? exeConfig["minimize"]     : this.customMinimize
+        this.customLaunch     := (exeConfig.Has("launch"))     ? exeConfig["launch"]     : this.customLaunch 
+        this.customPause      := (exeConfig.Has("pause"))      ? exeConfig["pause"]      : this.customPause
+        this.customResume     := (exeConfig.Has("resume"))     ? exeConfig["resume"]     : this.customResume 
+        this.customExit       := (exeConfig.Has("exit"))       ? exeConfig["exit"]       : this.customExit
+        this.customRestore    := (exeConfig.Has("restore"))    ? exeConfig["restore"]    : this.customRestore
+        this.customMinimize   := (exeConfig.Has("minimize"))   ? exeConfig["minimize"]   : this.customMinimize
+        this.customFullscreen := (exeConfig.Has("fullscreen")) ? exeConfig["fullscreen"] : this.customFullscreen
 
         this.hotkeys := (exeConfig.Has("hotkeys")) ? exeConfig["hotkeys"] : this.hotkeys
-
-        this.allowPause := (exeConfig.Has("allowPause")) ? exeConfig["allowPause"] : this.allowPause
+        this.mouse   := (exeConfig.Has("mouse"))   ? exeConfig["mouse"]   : this.mouse
 
         ; set pause contents if appropriate
         if (this.allowPause) {
@@ -77,16 +92,22 @@ class Program {
         }
     }
 
-    launch(args) {
-        ; TODO
-        ; take args from externalMessage
+    launch(args := "") {
+        if (this.requireInternet) {
+            if (!internetLoadScreen()) {
+                return
+            }
+        }
+
         setLoadScreen("Waiting for " . this.name . "...")
 
         if (this.customLaunch != "") {
-            runFunction(this.customLaunch, args)
+            if (runFunction(this.customLaunch, args) = -1) {
+                return
+            }
         }
         else if (!IsObject(this.exe) && this.exe != "") {
-            Run validateDir(this.dir) . this.exe . ((args != "" || (args && args.Length > 0)) ? joinArray(args) : ""), validateDir(this.dir), ((this.background) ? "Hide" : "Max")
+            Run validateDir(this.dir) . this.exe . ((args != "" || (args && args.Length > 0)) ? " " . joinArray(args) : ""), validateDir(this.dir), ((this.background) ? "Hide" : "Max")
         }
         else {
             ErrorMsg(this.name . "does not have an exe defined, it cannot be launched with default settings")
@@ -95,44 +116,43 @@ class Program {
         count := 0
         maxCount := 150
 
-        while (!this.exists() && count < maxCount) {
+        while (!this.exists(!this.background) && count < maxCount) {
             count += 1
 
             Sleep(150)
         }
 
+        SetTimer(DelayCheckLaunch, -3000)
         resetLoadScreen()
-        SetTimer(CheckLaunch, -3000)
+        return
 
-        CheckLaunch() {
+        ; saves screenshot & updates program data
+        DelayCheckLaunch() {
             global globalGuis
 
-            if (globalGuis.Count > 0) {
-                SetTimer(WaitCheckGuis, 500)
+            if (this.exists(true) && globalGuis.Count = 0) {
+                this.checkFullscreen()
+                saveScreenshot(this.id)
                 return
             }
 
-            if (this.exists()) {
-                this.isFullscreen()
-                saveScreenshot(this.id)
-            }
-
+            SetTimer(CheckLaunchTimer, 500)
             return
         }
 
-        WaitCheckGuis() {
+        CheckLaunchTimer() {
             global globalGuis
 
             if (!this.exists()) {
-                SetTimer(WaitCheckGuis, 0)
+                SetTimer(CheckLaunchTimer, 0)
                 return
             }
 
-            if (globalGuis.Count = 0) {
-                SetTimer(WaitCheckGuis, 0)
-
-                this.isFullscreen()
+            if (this.exists(true) && globalGuis.Count = 0) {
+                this.checkFullscreen()
                 saveScreenshot(this.id)
+
+                SetTimer(CheckLaunchTimer, 0)
             }
 
             return
@@ -144,31 +164,34 @@ class Program {
 
         if (this.customPause != "") {
             runFunction(this.customPause)
-            return
         }
     }
 
     resume() {
         if (this.customRestore != "") {
             runFunction(this.customRestore)
-            return
         }
     }
 
     restore() {
-        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
-        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
+        window := this.getWND()
 
-        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
-        if (!WinHidden(window)) {
+        if (!WinShown(window) || WinGetExStyle(window) & 0x00000080) {
             return
         }
 
-        WinWait(window)
-
         if (this.customRestore != "") {
-            runFunction(this.customRestore)
-            return
+            if (runFunction(this.customRestore) = -1) {
+                this.time := A_TickCount
+                this.minimized := false
+
+                if (this.requireFullscreen && !this.waitingFullscreenTimer) {
+                    SetTimer(DelayFullscreen, -3000)
+                    this.waitingFullscreenTimer := true
+                }
+                
+                return
+            }
         }
 
         ; TODO - think about removing borders & making fullscreen
@@ -176,7 +199,7 @@ class Program {
         if (!WinActive(window) || WinGetMinMax(window) != 1) {
             maxCount := 150
             
-            if (!this.fullscreen) {
+            if (!this.fullscreened) {
                 count := 0
                 while (WinGetMinMax(window) = -1 && count < maxCount) {
                     try {
@@ -210,12 +233,25 @@ class Program {
             this.time := A_TickCount
             this.minimized := false
         }
+
+        if (this.requireFullscreen && !this.waitingFullscreenTimer) {
+            SetTimer(DelayFullscreen, -3000)
+            this.waitingFullscreenTimer := true
+        }
+
+        return
+
+        DelayFullscreen() {
+            this.waitingFullscreenTimer := false
+
+            this.fullscreen()
+            Sleep(250)
+            MouseMove(MONITORX + MONITORW, MONITORY + MONITORH)
+            return
+        }
     }
 
     minimize() {
-        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
-        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
-
         this.minimized := true
 
         if (this.id = getStatusParam("currProgram")) {
@@ -223,40 +259,74 @@ class Program {
         }
 
         if (this.customMinimize != "") {
-            runFunction(this.customMinimize)
-            return
+            if (runFunction(this.customMinimize) = -1) {
+                return
+            }
         }
 
-        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
+        WinMinimize(this.getWND())
+    }
 
-        WinMinimize(window)
+    fullscreen() {
+        if (!this.checkFullscreen()) {
+            if (this.customFullscreen != "") {
+                if (runFunction(this.customFullscreen) = -1) {
+                    return
+                }
+            }
+
+            window := this.getWND()
+            if (!WinShown(window)) {
+                return
+            }
+
+            WinSetStyle(-0xC40000, window)
+            
+            Sleep(50)
+
+            WinGetPos(,, &W, &H, window)
+
+            multiplier := Min(MONITORW / W, MONITORH / H)
+            newW := W * multiplier
+            newH := H * multiplier
+
+            WinMove((MONITORW - newW) / 2, (MONITORH - newH) / 2, newW, newH, window)
+
+            Sleep(50)
+            this.checkFullscreen()
+        }
     }
 
     exit() {
         setLoadScreen("Exiting " . this.name . "...")
 
-        ; TODO - think about if this.wndw -> don't wait for exe to close
-        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
-        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
-
         if (this.customExit != "") {
-            runFunction(this.customExit)
-            resetLoadScreen()
-            
-            return
+            if (runFunction(this.customExit) = -1) {
+                return
+            }
         }
 
-        count := 0
-        maxCount := 50
-
-        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
-        WinClose(window)
-
+        window    := this.getWND()
+        activeEXE := (this.currEXE != "")  ? this.currEXE  : this.exe
         exeExists := (activeEXE != "") ? ProcessExist(activeEXE) : WinHidden(window)
-        while (exeExists && count < maxCount) {
-            count += 1
-            exeExists := (activeEXE != "") ? ProcessExist(activeEXE) : WinHidden(window)
 
+        count := 0
+        maxCount := 150
+        while (exeExists && count < maxCount) {
+            if (Mod(count, 30) = 0 && this.customExit = "") {
+                try {
+                    window := this.getWND()
+                    WinClose(window)
+                }
+                catch {
+                    resetLoadScreen(500)
+                    return
+                }
+            }
+
+            exeExists := (activeEXE != "") ? ProcessExist(activeEXE) : WinHidden(window)
+            
+            count += 1
             Sleep(150)
         }
 
@@ -264,12 +334,17 @@ class Program {
             ProcessWinClose(window)
         }
 
-        resetLoadScreen()
+        resetLoadScreen(500)
+        return
     }
 
-    exists() {
+    exists(skipEXE := false) {
         wndwStatus := false
         exeStatus := false
+
+        if (this.waitingExistTimer) {
+            return true
+        }
 
         ; check if wndw exists
         if (IsObject(this.wndw)) {
@@ -280,8 +355,9 @@ class Program {
             if (this.currWNDW != "") {
                 wndwStatus := true
 
-                if (!checkWNDW(this.currWNDW)) {
-                    SetTimer(DelayCheckWNDW, -1000)
+                if (!checkWNDW(this.currWNDW) && !this.waitingExistTimer) {
+                    SetTimer(DelayCheckWNDW, -1500)
+                    this.waitingExistTimer := true
                 }
             }
         }
@@ -291,7 +367,23 @@ class Program {
 
         ; check if exe exists
         if (!wndwStatus) {
-            if (IsObject(this.exe)) {
+            if (skipEXE) {
+                if (this.wndw = "") {
+                    if (IsObject(this.exe)) {
+                        for key, empty in this.exe {
+                            if (WinShown("ahk_exe " key)) {
+                                this.currEXE := key
+                                exeStatus := true
+                                break
+                            }   
+                        }         
+                    }
+                    else {
+                        exeStatus := WinShown("ahk_exe " this.exe) ? true : false
+                    }
+                }
+            }
+            else if (IsObject(this.exe)) {
                 if (this.currEXE = "") {
                     this.currEXE := checkEXE(this.exe, true)
                 }
@@ -299,8 +391,9 @@ class Program {
                 if (this.currEXE != "") {
                     exeStatus := true
 
-                    if (!checkEXE(this.currEXE)) {
-                        SetTimer(DelayCheckEXE, -1000)
+                    if (!checkEXE(this.currEXE) && !this.waitingExistTimer) {
+                        SetTimer(DelayCheckEXE, -1500)
+                        this.waitingExistTimer := true
                     }
                 }
             }
@@ -321,10 +414,11 @@ class Program {
             }
         }
         
-
         return exeStatus || wndwStatus
 
         DelayCheckEXE() {
+            this.waitingExistTimer := false
+
             if (this.exe = "") {
                 return
             }
@@ -338,6 +432,8 @@ class Program {
         }
 
         DelayCheckWNDW() {
+            this.waitingExistTimer := false
+
             if (this.wndw = "") {
                 return
             }
@@ -370,22 +466,18 @@ class Program {
         }
     }
 
-    isFullscreen() {
-        activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
-        activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
-
-        window := (activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE
+    checkFullscreen() {
+        window := this.getWND()
 
         try {
             if (WinGetMinMax(window) = -1) {
                 return false
             }
-            
         
             style := WinGetStyle(window)
-            this.fullscreen := (style & 0x20800000) ? false : true
+            this.fullscreened := (style & 0x20800000) ? false : true
 
-            return this.fullscreen
+            return this.fullscreened
         }
 
         return false
@@ -411,13 +503,15 @@ class Program {
         return PID
     }
 
-    getHWND() {
+    getWND() {
         activeEXE  := (this.currEXE != "")  ? this.currEXE  : this.exe
         activeWNDW := (this.currWNDW != "") ? this.currWNDW : this.wndw
 
-        HWND := WinHidden((activeWNDW != "") ? activeWNDW : "ahk_exe" activeEXE)
+        return ((activeWNDW != "") ? activeWNDW : "ahk_exe " . activeEXE)
+    }
 
-        return HWND
+    getHWND() {
+        return WinHidden(this.getWND())
     }
 
     updateVolume() {
@@ -531,23 +625,44 @@ createProgram(params, launchProgram := true, setCurrent := true, customAttribute
     global globalPrograms
 
     newProgram := toArray(StrSplit(params, A_Space))
-    newName    := newProgram.RemoveAt(1)
+    newID      := newProgram.RemoveAt(1)
 
     for key, value in globalPrograms {
-        if (StrLower(key) = StrLower(newName)) {
-            globalRunning[newName] := Program(value)
+        if (StrLower(key) = StrLower(newID)) {
+            if (!value.Has("id") || !value.Has("name")) {
+                ErrorMsg("Tried to create program " . newID . "missing required fields id/name", true)
+                return
+            }
+
+            for key2, value2 in globalRunning {
+                if ((key = key2 || value["name"] = value2.name) && value2.exists()) {
+                    if (setCurrent || launchProgram) {
+                        setStatusParam("currProgram", key2)
+                    }
+
+                    resetLoadScreen()
+                    return
+                }
+            }
+
+            if (value.Has("console")) {
+                globalRunning[newID] := Emulator(value)
+            }
+            else {
+                globalRunning[newID] := Program(value)
+            }
 
             if (setCurrent) {
-                setStatusParam("currProgram", newName)
+                setStatusParam("currProgram", newID)
             }
 
             if (launchProgram) {
-                globalRunning[newName].launch(newProgram)
+                globalRunning[newID].launch(newProgram)
             }
 
             if (customAttributes != "") {                
                 for key, value in customAttributes {
-                    globalRunning[newName].%key% := value
+                    globalRunning[newID].%key% := value
                 }
             }
         
@@ -555,7 +670,7 @@ createProgram(params, launchProgram := true, setCurrent := true, customAttribute
         }
     }
 
-    ErrorMsg("Program " . newName . " was not found")
+    ErrorMsg("Program " . newID . " was not found")
 }
 
 ; cleans up program setting if it is a file, converting it into a newline deliminated list
@@ -601,15 +716,20 @@ checkEXE(exe, retName := false) {
                 continue
             }
 
+            processName := ""
             processNameBuff := Buffer(size, 0)
             processNamePtr  := DllCall("psapi.dll\GetModuleBaseName", "Ptr", processPtr, "Ptr", 0, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
-            if (!processNamePtr) {
-                processNamePtr := DllCall("psapi.dll\GetProcessImageFileName", "Ptr", processPtr, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
+            if (processNamePtr) {
+                processName := StrGet(processNameBuff)
+            }
+            else {
+                DllCall("psapi.dll\GetProcessImageFileName", "Ptr", processPtr, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
+                processNameArr := StrSplit(StrGet(processNameBuff), "\")
+                processName := processNameArr[processNameArr.Length]
             }
 
             DllCall("CloseHandle", "Ptr", processPtr)
 
-            processName := StrGet(processNameBuff)
             if (processName != "" && exe.Has(processName)) {
                 return (retName) ? processName : true
             }
@@ -694,14 +814,23 @@ checkAllPrograms() {
         }
     }
 
+    toDelete := []
     numForeground := 0
     for key, value in globalRunning {
         if (!value.exists()) {
-            globalRunning.Delete(key)
+            toDelete.Push(key)
         }
         else if (!value.background) {
             numForeground += 1
         }
+    }
+
+    for item in toDelete {
+        globalRunning.Delete(item)
+    }
+
+    if (globalConfig["Programs"].Has("Required") && globalConfig["Programs"]["Required"] != "") {
+        checkRequiredPrograms()
     }
 
     if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "" && numForeground = 0) {
@@ -710,10 +839,6 @@ checkAllPrograms() {
         }
 
         createProgram(globalConfig["Programs"]["Default"])
-    }
-
-    if (globalConfig["Programs"].Has("Required") && globalConfig["Programs"]["Required"] != "") {
-        checkRequiredPrograms()
     }
 }
 
@@ -727,7 +852,8 @@ checkRequiredPrograms() {
 
     for item in toArray(globalConfig["Programs"]["Required"]) {
         if (!globalPrograms.Has(item)) {
-            ErrorMsg("Required Program " . item . "has no config", true)
+            ErrorMsg("Required Program " . item . " has no config", true)
+            continue
         }
 
         if (!globalRunning.Has(item)) {

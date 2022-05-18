@@ -38,6 +38,9 @@ controllerThread(globalConfig, globalControllers) {
             currVibration.Push(0)
         }
 
+        delayCount := -1
+        maxDelayCount := 250
+
         loop {
             ; --- CONTROLLER BUFFER ---
             ; UChar - connected status (0/1)
@@ -62,10 +65,6 @@ controllerThread(globalConfig, globalControllers) {
                 ; copy connected status to buffer
                 NumPut('UChar', 1, globalControllers + (port * 20), 0)
 
-                ; copy battery type & level to buffer
-                batteryStatus := xGetBattery(port, xGetBatteryPtr)
-                copyBufferData(batteryStatus.Ptr, globalControllers + (port * 20) + 1, 2)
-
                 ; gets vibration setting & activates/deactivates if needed
                 newVibration := NumGet(globalControllers + (port * 20) + 3, 0, 'UChar')
                 if (currVibration[A_Index] != newVibration) {
@@ -74,6 +73,16 @@ controllerThread(globalConfig, globalControllers) {
 
                 ; copy button status to buffer
                 copyBufferData(controllerStatus.Ptr, globalControllers + (port * 20) + 4, 16)
+
+                if (delayCount = -1 || delayCount > maxDelayCount) {
+                    ; copy battery type & level to buffer
+                    batteryStatus := xGetBattery(port, xGetBatteryPtr)
+                    copyBufferData(batteryStatus.Ptr, globalControllers + (port * 20) + 1, 2)
+                    
+                    delayCount := 0
+                }
+
+                delayCount += 1
             }
 
             ; close if main is no running
@@ -111,7 +120,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
         setCurrentWinTitle('hotkeyThread')
 
-        SetKeyDelay 80, 60
+        SetKeyDelay 50, 80
 
         ; --- GLOBAL VARIABLES ---
 
@@ -144,7 +153,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             ; check if can just send input or need to buffer
-            if (getStatusParam('internalMessage') != '') {
+            if (getStatusParam('internalMessage') != '' && !getStatusParam('loadShow')) {
                 hotkeyBuffer.Push(hotkeyFunction)
             }
             else {
@@ -184,10 +193,8 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
             
             ; if hotkeyBuffer has items, prioritize sending buffered inputs
-            if (hotkeyBuffer.Length > 0) {
-                if (getStatusParam('internalMessage') = '') {
-                    setStatusParam('internalMessage', hotkeyBuffer.RemoveAt(1))
-                }
+            if (hotkeyBuffer.Length > 0 && getStatusParam('internalMessage') = '') {
+                setStatusParam('internalMessage', hotkeyBuffer.RemoveAt(1))
             }
 
             ; close if main is no running
@@ -224,22 +231,13 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                 return
             }
 
-            ; TODO - think about if hard-coded disable pause when loading is good
-            ;      - now also exit is hard-coded off when paused
-            if ((hotkeyData.function = 'Pause' && currLoad) 
-                || ((hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) && getStatusParam('pause') && !getStatusParam('errorShow'))) {
-                currController := -1
-                currButton := ''
-
-                return
+            if (!((hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) && getStatusParam('pause') && !getStatusParam('errorShow'))) {
+                sendHotkey(hotkeyData.function)
             }
-
-            ; check if can just send input or need to buffer
-            sendHotkey(hotkeyData.function)
 
             ; if user holds button for a long time, kill everything
             if (hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) {
-                SetTimer(NuclearTimer, -3000)
+                SetTimer(NuclearTimer, -4000)
                 while ((currProgram = getStatusParam('currProgram') || currGui = getStatusParam('currGui')
                     || currError = getStatusParam('errorHwnd' || currLoad = getStatusParam('loadShow')))
                     && xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {

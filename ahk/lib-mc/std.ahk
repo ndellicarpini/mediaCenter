@@ -58,11 +58,22 @@ ProcessWinClose(window) {
 }
 
 ; kills a process with extreme prejudice
-;  PID - pid of process to murder
+;  process - process to murder
 ;  includeChildren - whether or not to kill child processes
 ;
 ; returns null
-ProcessKill(PID, includeChildren := true) {
+ProcessKill(process, includeChildren := true) {
+	PID := 0
+	if (IsInteger(process)) {
+		PID := process
+	}
+	else if (ProcessExist(process)) {
+		PID := WinGetPID("ahk_exe " . process)
+	}
+	else {
+		PID := WinGetPID(WinHidden(process))
+	}
+
 	Run "taskkill " . ((includeChildren) ? "/t" : "") . " /f /pid " . PID,, "Hide"
 }
 
@@ -567,12 +578,42 @@ runFunction(text, params := "") {
 	}
 
 	; set args for func from words in text
+	stringType := ""
+	tempString := ""
 	for item in textArr {
 		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%") {
 			funcArr.Push(%Trim(item, "%")%)
+			continue
+		}
+		
+		; handle function param strings w/ spaces
+		if (!stringType) {
+			if (SubStr(item, 1, 1) = '"') {
+				tempString .= LTrim(item, '"') . A_Space
+				stringType := '"'
+			}
+			else if (SubStr(item, 1, 1) = "'") {
+				tempString .= LTrim(item, "'") . A_Space
+				stringType := "'"
+			}
+			else {
+				funcArr.Push(item)
+			}
 		}
 		else {
-			funcArr.Push(item)
+			if (SubStr(item, -1, 1) = '"' && stringType = '"') {
+				funcArr.Push(RTrim(tempString . item, '"'))
+				tempString := ""
+				stringType := ""
+			}
+			else if (SubStr(item, -1, 1) = "'" && stringType = "'") {
+				funcArr.Push(RTrim(tempString . item, "'"))
+				tempString := ""
+				stringType := ""
+			}
+			else {
+				tempString .= item . A_Space
+			}
 		}
 	}
 

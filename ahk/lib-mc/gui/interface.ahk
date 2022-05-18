@@ -671,9 +671,14 @@ getMostRecentGui() {
 checkAllGuis() {
     global globalGuis
 
+    toDelete := []
     for key, value in globalGuis {
         if (!WinShown(key)) {
-            globalGuis.Delete(key)
+            toDelete.Push(key)
         }
+    }
+
+    for item in toDelete {
+        globalGuis.Delete(item)
     }
 }

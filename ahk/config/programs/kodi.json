@@ -1,0 +1,12 @@
+{
+    "id": "kodi",
+	"name": "Kodi",
+
+	"wndw": "Kodi",
+    "exe": "kodi.exe",
+
+    "allowQuickAccess": false,
+    "allowExit": false,
+
+    "launch": "Run 'C:\Kodi\kodi.exe -fs -p' C:\Kodi",
+}

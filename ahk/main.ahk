@@ -6,6 +6,7 @@
 #Include LIB-CU~1\chrome.ahk
 #Include LIB-CU~1\games.ahk
 #Include LIB-CU~1\load.ahk
+#Include LIB-CU~1\steam.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
@@ -13,6 +14,7 @@
 #Include lib-mc\xinput.ahk
 #Include lib-mc\messaging.ahk
 #Include lib-mc\program.ahk
+#Include lib-mc\emulator.ahk
 #Include lib-mc\data.ahk
 #Include lib-mc\hotkeys.ahk
 
@@ -30,6 +32,7 @@
 #Include lib-mc\mt\threads.ahk
 
 SetKeyDelay 50, 50
+CoordMode "Mouse", "Screen"
 
 ; set dpi scaling per window
 prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
@@ -152,12 +155,6 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
 
         if (tempConfig.items.Has("id") || tempConfig.items["id"] != "") {
 
-            if (mainConfig["Programs"].Has("SettingListDir") && mainConfig["Programs"]["SettingListDir"] != "") {
-                for key, value in tempConfig.items {
-                    tempConfig.items[key] := cleanSetting(value, mainConfig["Programs"]["SettingListDir"])
-                }
-            }
-
             ; convert array of exe to map for efficient lookup
             if (tempConfig.items.Has("exe") && Type(tempConfig.items["exe"]) = "Array") {
                 tempMap := Map()
@@ -226,7 +223,10 @@ if (globalConfig["Boot"]["EnableBoot"]) {
 ; message sent from send2Main
 global externalMessage := []
 
-enableMainMessageListener()
+; enables the OnMessage listener for send2Main
+OnMessage(MESSAGE_VAL, HandleMessage)
+
+; initial backup of status
 statusBackup()
 
 ; ----- MAIN THREAD LOOP -----
@@ -234,16 +234,21 @@ statusBackup()
 ; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
 ; probably going to need to figure out updating loadscreen?
 
-forceMaintain := globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]
-forceActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
-hideTaskbar   := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
+forceMaintain  := globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]
+forceActivate  := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+bypassFirewall := globalConfig["General"].Has("BypassFirewallPrompt") && globalConfig["General"]["BypassFirewallPrompt"]
+hideTaskbar    := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
-checkErrors   := globalConfig["Programs"].Has("ErrorList") && globalConfig["Programs"]["ErrorList"] != ""
+checkErrors    := globalConfig["Programs"].Has("ErrorList") && globalConfig["Programs"]["ErrorList"] != ""
 
-loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"])
+loopSleep      := Round(globalConfig["General"]["AvgLoopSleep"])
 
 delayCount := 0
+maxDelayCount := 15
 
+mouseHidden := false
+
+hotkeySource := ""
 loop {
     ; --- CHECK MESSAGES ---
 
@@ -251,6 +256,16 @@ loop {
     ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
     if (externalMessage.Length > 0) {
         if (StrLower(externalMessage[1]) = "run") {
+            externalMessage.RemoveAt(1)
+            createProgram(joinArray(externalMessage))
+        }
+        else if (StrLower(externalMessage[1]) = "minthenrun") {
+            currProgram := getStatusParam("currProgram")
+            if (currProgram != "") {
+                globalRunning[currProgram].minimize()
+                Sleep(100)
+            }
+            
             externalMessage.RemoveAt(1)
             createProgram(joinArray(externalMessage))
         }
@@ -268,26 +283,21 @@ loop {
     if (internalMessage != "") {
         currProgram := getStatusParam("currProgram")
         currGui     := getStatusParam("currGui")
+        currLoad    := getStatusParam("loadShow")
+        currError   := getStatusParam("errorShow")
+
+        ; mismatched currHotkeys & status, ignore message
+        if ((hotkeySource != currProgram && hotkeySource != currGui) 
+            || (hotkeySource = "load" && !currLoad) || (hotkeySource = "error" && !currError)) {
+
+            setStatusParam("internalMessage", "")
+            continue
+        }
 
         ; update pause status & create/destroy pause menu
         if (StrLower(internalMessage) = "pause") {
             if (!globalGuis.Has(GUIPAUSETITLE)) {
-                ; set pause & activate currProgram pause
-                setStatusParam("pause", true)
-                if (currProgram != "") {
-                    globalRunning[currProgram].pause()
-                }
-
                 createPauseMenu()
-            }
-            else {
-                destroyPauseMenu()
-
-                ; set pause & activate currProgram resume
-                setStatusParam("pause", false)
-                if (currProgram != "") {
-                    globalRunning[currProgram].resume()
-                }
             }
         }
 
@@ -304,9 +314,19 @@ loop {
                     CloseErrorMsg(errorHwnd)
                 }
             }
-
-            else if (currProgram != "") {
+            else if (currGui != "") {
+                try globalGuis[currGui].Destroy()
+                
+                if (!WinShown(currGui)) {
+                    setStatusParam("currGui", "")
+                }
+            }
+            else if (currProgram != "" && globalRunning[currProgram].allowExit) {
                 try globalRunning[currProgram].exit()
+
+                if (!globalRunning[currProgram].exists()) {
+                    setStatusParam("currProgram", "")
+                }
             }
         }
 
@@ -330,7 +350,7 @@ loop {
 
             ; TODO - gui notification that drastic measures have been taken?
             if (!killed) {
-                ProcessKill(WinGetPID(WinHidden(MAINNAME)))
+                ProcessKill(MAINNAME)
             }
         }
 
@@ -355,20 +375,36 @@ loop {
             runFunction(internalMessage)
         }
 
-        if (getStatusParam("internalMessage") != internalMessage) {
-            continue
+        ; reset message after processing
+        if (getStatusParam("internalMessage") = internalMessage) {
+            setStatusParam("internalMessage", "")
         }
 
-        ; reset message after processing
-        setStatusParam("internalMessage", "")
-
         continue
+    }
+
+    ; check that sound driver hasn't crashed
+    if (SoundGetMute()) {
+        SoundSetMute(false)
+    }
+
+    ; automatically accept firewall
+    if (bypassFirewall && WinShown("Windows Security Alert")) {
+        WinActivate("Windows Security Alert")
+        Sleep(50)
+        Send "{Enter}"
+    }
+
+    ; check that taskbar is hidden
+    if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
+        try WinHide "ahk_class Shell_TrayWnd"
+        Sleep(50)
     }
     
     Sleep(loopSleep)
 
     activeSet := false
-    hotkeySet := false
+    hotkeySource := ""
     currHotkeys := defaultHotkeys(globalConfig)
 
     ; --- CHECK OVERRIDE ---
@@ -408,11 +444,11 @@ loop {
                 activeSet := true
             }
 
-            if (!hotkeySet) {
+            if (hotkeySource = "") {
                 currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
                 setStatusParam("buttonTime", 25)
 
-                hotkeySet := true
+                hotkeySource := "error"
             }
         }
         else {
@@ -421,19 +457,26 @@ loop {
         }
     }
 
-    ; activate load screen if its supposed to be shown
+    ; --- CHECK LOAD SCREEN ---
     if (!activeSet && getStatusParam("loadShow")) {
         updateLoadScreen()
+
+        for key, value in currHotkeys {
+            if (value = "Pause") {
+                currHotkeys.Delete(key)
+                break
+            }
+        }
         
         activeSet := true
-        hotkeySet := true
+        hotkeySource := "load"
     }
 
     ; --- CHECK ALL OPEN ---
     currProgram := getStatusParam("currProgram")
     currGui     := getStatusParam("currGui")
 
-    if (delayCount > 20 || (currProgram = "" && currGui = "")) {
+    if (delayCount > maxDelayCount || (currProgram = "" && currGui = "")) {
         checkAllGuis()
 
         mostRecentGui := getMostRecentGui()
@@ -460,22 +503,20 @@ loop {
                 activeSet := true
             }
 
-            if (!hotkeySet) {
+            if (hotkeySource = "") {
                 if (globalGuis[currGui].hotkeys.Count > 0) {
                     currHotkeys := addHotkeys(currHotkeys, globalGuis[currGui].hotkeys)
                 }
 
-                if (!globalGuis[currGui].allowPause) {
-                    for key, value in currHotkeys {
-                        if (value = "Pause") {
-                            currHotkeys.Delete(key)
-                            break
-                        }
+                for key, value in currHotkeys {
+                    if (!globalGuis[currGui].allowPause && value = "pause") {
+                        currHotkeys.Delete(key)
+                        break
                     }
                 }
 
                 setStatusParam("buttonTime", 25)
-                hotkeySet := true
+                hotkeySource := currGui
             }
         } 
         else {
@@ -489,7 +530,7 @@ loop {
             mostRecentGui := getMostRecentGui()
             if (mostRecentGui != currGui) {
                 setStatusParam("currGui", mostRecentGui)
-                
+
                 continue
             }
             else {
@@ -510,22 +551,20 @@ loop {
                     activeSet := true
                 }
 
-                if (!hotkeySet) {
+                if (hotkeySource = "") {
                     if (globalRunning[currProgram].hotkeys.Count > 0) {
                         currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys)
                     }
 
-                    if (!globalRunning[currProgram].allowPause) {
-                        for key, value in currHotkeys {
-                            if (value = "Pause") {
-                                currHotkeys.Delete(key)
-                                break
-                            }
+                    for key, value in currHotkeys {
+                        if (!globalRunning[currProgram].allowPause && value = "Pause") {
+                            currHotkeys.Delete(key)
+                            break
                         }
                     }
 
                     setStatusParam("buttonTime", 70)
-                    hotkeySet := true
+                    hotkeySource := currProgram
                 }
             }
             else {
@@ -533,7 +572,7 @@ loop {
 
                 mostRecentProgram := getMostRecentProgram()
                 if (mostRecentProgram != currProgram) {
-                    setStatusParam("currProgram", mostRecentProgram)
+                    setStatusParam("currProgram", mostRecentProgram)                    
                     
                     continue
                 }
@@ -587,15 +626,10 @@ loop {
         hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
     }
 
-    if (delayCount > 20) {
+    if (delayCount > maxDelayCount) {
         ; check that looper is running
         if (forceMaintain && !WinHidden(MAINLOOP)) {
             Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
-        }
-
-        ; check that taskbar is hidden
-        if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
-            try WinHide "ahk_class Shell_TrayWnd"
         }
 
         delayCount := 0
@@ -605,9 +639,27 @@ loop {
     Sleep(loopSleep)
 }
 
+; handle when message comes in from send2Main
+HandleMessage(wParam, lParam, msg, hwnd) {
+    global externalMessage
+    global globalConfig
+
+    externalMessage := getMessage(wParam, lParam, msg, hwnd)
+
+    if (externalMessage.Length = 0) {
+        return
+    }
+
+    ; force load screen to show asap on requested new program
+    if (StrLower(externalMessage[1]) = "run") {
+        setLoadScreen((mainConfig["GUI"].Has("DefaultLoadText")) ? mainConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
+    }
+}
+
 ; clean shutdown of script
 ShutdownScript() {
-    disableMainMessageListener()
+    ; disable message listener
+    OnMessage(MESSAGE_VAL, HandleMessage, 1)
     
     setLoadScreen("Please Wait...")
 
@@ -635,6 +687,7 @@ ShutdownScript() {
     }
 }
 
+; exits the script entirely, including looper
 ExitScript() {
     global globalConfig
 
@@ -653,6 +706,7 @@ ExitScript() {
     ExitApp()
 }
 
+; resets the script, loading from statusBackup
 ResetScript() {
     global globalConfig
 
@@ -702,7 +756,7 @@ Restart() {
 ; clean up running programs & sleep -> restarting script after
 Standby() {
     if (WinHidden(MAINLOOP)) {
-        ProcessKill(WinGetPID(WinHidden(MAINLOOP)))
+        ProcessKill(MAINLOOP)
     }
     
     exitAllPrograms()
@@ -710,15 +764,9 @@ Standby() {
 
     ShutdownScript()
     Sleep(500)
-
-    ProcessKill("explorer.exe")
-    Sleep(500)
     
     DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
     Sleep(2000)
-
-    Run "explorer.exe"
-    Sleep(500)
 
     Run A_ScriptDir . "\" . "startMain.cmd", A_ScriptDir, "Hide"
     ExitApp()

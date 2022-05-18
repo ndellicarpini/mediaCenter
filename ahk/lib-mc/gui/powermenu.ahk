@@ -4,7 +4,7 @@ createPowerMenu() {
     global globalConfig
     global globalGuis
 
-    destroyPauseMenu()
+    destroyPauseMenu(false)
     
     createInterface(GUIPOWERTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,, "destroyPowerMenu")    
     powerInt := globalGuis[GUIPOWERTITLE]

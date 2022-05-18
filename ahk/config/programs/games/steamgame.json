@@ -1,17 +1,11 @@
 {
-    "id": "wingame",
+    "id": "steamgame",
 	"name": "Windows Game",
 
-    "allowQuickAccess": false,
-    "isBackground": false,
+	"requireInternet": true,
+	"requireFullscreen": true,
 
-    "launch": "",
-
-    "exit": "",
-
-    "hotkeys": {
-        "START&SELECT": "Exit"
-    },
+    "launch": "steamGameLaunch",
 
     "exe": [
         "20XX.exe",
@@ -150,7 +144,6 @@
 		"I Wanna Be The Boshy.exe",
 		"cannonball.exe",
 		"DOOM64.exe",
-		"gzdoom.exe",
 		"TombRaider.exe",
 		"umvc3.exe",
 		"AWayOut.exe",
@@ -199,7 +192,6 @@
 		"WHAT THE GOLF.exe",
 		"oriwotw.exe",
 		"MBAA.exe",
-		"Simpsons.exe",
 		"Bully.exe",
 		"MaxPayne.exe",
 		"maxpayne2.exe",
@@ -244,5 +236,7 @@
 		"Adventures of Chris.exe",
 		"DH-Win64-Shipping.exe",
 		"Vanquish.exe",
+		"Nickelodeon All-Star Brawl.exe",
+		"RSDKv4_64_rev02.exe",
     ]
 }

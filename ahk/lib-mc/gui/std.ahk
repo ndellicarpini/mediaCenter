@@ -247,7 +247,7 @@ getNvidiaLoad() {
 	return 0
 }
 
-; creates a centered message popup that can be closed with A or B]
+; creates a centered message popup that can be closed with A or B
 ;  message - message string to show
 ;  timeout - if > 0 closes window after # of ms
 ;

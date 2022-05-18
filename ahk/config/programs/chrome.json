@@ -3,25 +3,25 @@
     "name": "Google Chrome",
 
     "allowQuickAccess": true,
-    "isBackground": false,
 
     "dir": "C:\\Program Files\\Google\\Chrome\\Application\\",
     "exe": "chrome.exe",
     "wndw": "Google Chrome",
 
     "launch": "",
-
-    ; "restore": "chromeRestore",
-    ; "minimize": "chromeMinimize",
     "exit": "",
 
-    ;"mouse": {
-    ;    "x": 
-    ;},
+    "mouse": {
+        "x": "LSX",
+        "y": "LSY",
+        "lclick": "A",
+        "rclick": "X",
+        "initialpos": [0.5, 0.5]
+    },
+
     "hotkeys": {
         "SELECT": "chromeOSK",
         "START": "chromeNewTab",
-        "START&SELECT": "Exit",
     },
 
     "pauseOptions": {
