@@ -1,14 +1,15 @@
+; boot
 boot() {
     if (!ProcessExist("explorer.exe")) {
         Run "explorer.exe"
 
         count := 0
-        maxCount := 20
+        maxCount := 50
         while (count < maxCount) {
-            updateLoadScreen()
+            activateLoadScreen()
             
             count += 1
-            Sleep(100)
+            Sleep(50)
         }
 
         resetLoadScreen()

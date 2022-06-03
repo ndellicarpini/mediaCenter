@@ -71,7 +71,7 @@ setMonitorInfo(guiConfig) {
 ;
 ; returns proper size in pixels
 percentWidth(width, useSize := true) {
-    return width * MONITORW * ((useSize && width < 1) ? SIZE : 1)
+    return MONITORX + (width * MONITORW * ((useSize && width < 1) ? SIZE : 1))
 }
 
 ; gets the proper height in pixels based on pixel size of screen
@@ -80,7 +80,7 @@ percentWidth(width, useSize := true) {
 ;
 ; returns proper size in pixels
 percentHeight(height, useSize := true) {
-    return height * MONITORH * ((useSize && height < 1) ? SIZE : 1)
+    return MONITORY + (height * MONITORH * ((useSize && height < 1) ? SIZE : 1))
 }
 
 ; sets the font of the guiObj using the default options & param options

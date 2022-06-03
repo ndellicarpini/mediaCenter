@@ -21,24 +21,38 @@ createLoadScreen() {
     guiObj.Show("x" . MONITORX . " y" . MONITORY . " NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
 }
 
+; activates the load screen
+;
+; retuns null
+activateLoadScreen() {
+	if (WinShown(GUILOADTITLE)) {
+		WinActivate(GUILOADTITLE)
+	}
+}
+
 ; activates & updates the text the load screen
 ;  activate - if to activate the loadscreen
 ;
 ; returns null
 updateLoadScreen(activate := true) {
-    loadObj := getGUI(GUILOADTITLE)
+	loadObj := getGUI(GUILOADTITLE)
+	if (loadObj) {
+		loadObj["LoadText"].Text := getStatusParam("loadText")
+		loadObj["LoadText"].Redraw()
+	}
+	else {
+		createLoadScreen()
+		Sleep(100)
+	}
+	
+	pauseObj := getGUI(GUIPAUSETITLE)
+	if (pauseObj) {
+		destroyPauseMenu(false)
+	}
 
-    if (loadObj) {
-        loadObj["LoadText"].Text := getStatusParam("loadText")
-    }
-    else {
-        createLoadScreen()
-        Sleep(100)
-    }
-
-    if (activate) {
-        WinActivate(GUILOADTITLE)
-    }
+	if (activate) {
+		activateLoadScreen()
+	}
 }
 
 ; destroys the load screen
@@ -55,7 +69,7 @@ destroyLoadScreen() {
 ;
 ; returns null
 setLoadScreen(text) {
-    MouseMove(MONITORX + MONITORW, MONITORY + MONITORH)
+    MouseMove(percentWidth(1, false), percentHeight(1, false))
 
     setStatusParam("loadShow", true)
     setStatusParam("loadText", text)
@@ -63,27 +77,16 @@ setLoadScreen(text) {
 }
 
 ; resets the text of the load screen & deactivates it
-;  delay - delays reseting the load screen
 ;
 ; returns null
-resetLoadScreen(delay := 0) {
-	if (delay = 0) {
-		DelayReset()
-		return
-	}
+resetLoadScreen() {
+	global globalConfig
 
-    SetTimer(DelayReset, -1 * delay)
+	setStatusParam("loadText", (globalConfig["GUI"].Has("DefaultLoadText")) ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
+	updateLoadScreen(false)
+	setStatusParam("loadShow", false)
+
 	return
-
-    DelayReset() {
-        global globalConfig
-        
-        setStatusParam("loadText", (mainConfig["GUI"].Has("DefaultLoadText")) ? mainConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
-        updateLoadScreen(false)
-        setStatusParam("loadShow", false)
-
-        return
-    }
 }
 
 ; spin waits until either timeout or successful internet connection

@@ -22,7 +22,7 @@ GUI
     - PIP for chrome
     - All programs will have exit option
   - Settings Category
-    - Enable KB&Mouse Mode
+    - Enable KB&Mouse Mode (WITH HOTKEY)
     - Suspend All Scripts
     - change global settings dialog (updates global.cfg)
     - change windows settings (launch Settings)

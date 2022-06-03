@@ -183,9 +183,9 @@ xCheckStatus(toCheck, port, ptr) {
     }
 
     checkArr := toArray(toCheck)
-    if (!inArray("HOME", checkArr) && xGetBatteryType(port, ptr) = 0) {
-        return false
-    }
+    ; if (!inArray("HOME", checkArr)) && xGetBatteryType(port, ptr) = 0) {
+    ;     return false
+    ; }
 
     statusData := Buffer(16)
     copyBufferData(ptr + (port * 20) + 4, statusData.Ptr, 16)

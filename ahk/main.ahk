@@ -1,12 +1,13 @@
 #SingleInstance Force
-#WinActivateForce
+; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include LIB-CU~1\boot.ahk
-#Include LIB-CU~1\chrome.ahk
-#Include LIB-CU~1\games.ahk
+#Include LIB-CU~1\EMULAT~1.AHK
 #Include LIB-CU~1\load.ahk
+#Include LIB-CU~1\programs.ahk
 #Include LIB-CU~1\steam.ahk
+#Include LIB-CU~1\wingames.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
@@ -31,8 +32,9 @@
 #Include lib-mc\mt\status.ahk
 #Include lib-mc\mt\threads.ahk
 
-SetKeyDelay 50, 50
+SetKeyDelay 50, 100
 CoordMode "Mouse", "Screen"
+Critical "Off"
 
 ; set dpi scaling per window
 prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
@@ -64,6 +66,12 @@ for key, value in readGlobalConfig().subConfigs {
     mainConfig[key] := configObj
 }
 
+; set priority from config
+if (mainConfig["General"].Has("MainPriority") && mainConfig["General"]["MainPriority"] != "") {
+    ProcessSetPriority(mainConfig["General"]["MainPriority"])
+}
+
+; set gui variables
 parseGUIConfig(mainConfig["GUI"])
 
 ; create required folders
@@ -250,6 +258,8 @@ mouseHidden := false
 
 hotkeySource := ""
 loop {
+    currSuspended := getStatusParam("suspendScript")
+
     ; --- CHECK MESSAGES ---
 
     ; do something based on external message (like launching app)
@@ -257,17 +267,17 @@ loop {
     if (externalMessage.Length > 0) {
         if (StrLower(externalMessage[1]) = "run") {
             externalMessage.RemoveAt(1)
-            createProgram(joinArray(externalMessage))
+            createProgram(externalMessage)
         }
         else if (StrLower(externalMessage[1]) = "minthenrun") {
             currProgram := getStatusParam("currProgram")
             if (currProgram != "") {
                 globalRunning[currProgram].minimize()
-                Sleep(100)
+                Sleep(200)
             }
             
             externalMessage.RemoveAt(1)
-            createProgram(joinArray(externalMessage))
+            createProgram(externalMessage)
         }
         else {
             runFunction(joinArray(externalMessage))
@@ -372,7 +382,7 @@ loop {
 
         ; run function
         else {
-            runFunction(internalMessage)
+            try runFunction(internalMessage)
         }
 
         ; reset message after processing
@@ -411,7 +421,7 @@ loop {
     currError := getStatusParam("errorShow")
 
     ; if errors should be detected, set error here
-    if (!currError && checkErrors) {
+    if (!currError && checkErrors && !currSuspended) {
         resetTMM := A_TitleMatchMode
 
         SetTitleMatchMode 2
@@ -432,7 +442,7 @@ loop {
         SetTitleMatchMode resetTMM
     }
 
-    if (currError) {
+    if (currError && !currSuspended) {
         errorHwnd := getStatusParam("errorHwnd")
 
         if (WinShown("ahk_id " errorHwnd)) {
@@ -444,9 +454,10 @@ loop {
                 activeSet := true
             }
 
+            ; REPLACE THIS W/ KB & M MODE
             if (hotkeySource = "") {
-                currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
-                setStatusParam("buttonTime", 25)
+                ; currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
+                ; setStatusParam("buttonTime", 25)
 
                 hotkeySource := "error"
             }
@@ -458,8 +469,8 @@ loop {
     }
 
     ; --- CHECK LOAD SCREEN ---
-    if (!activeSet && getStatusParam("loadShow")) {
-        updateLoadScreen()
+    if (getStatusParam("loadShow") && !activeSet && !currSuspended) {
+        activateLoadScreen()
 
         for key, value in currHotkeys {
             if (value = "Pause") {
@@ -476,7 +487,7 @@ loop {
     currProgram := getStatusParam("currProgram")
     currGui     := getStatusParam("currGui")
 
-    if (delayCount > maxDelayCount || (currProgram = "" && currGui = "")) {
+    if ((delayCount > maxDelayCount || (currProgram = "" && currGui = "")) && !currSuspended) {
         checkAllGuis()
 
         mostRecentGui := getMostRecentGui()
@@ -488,7 +499,7 @@ loop {
 
         mostRecentProgram := getMostRecentProgram()
         if (mostRecentProgram != currProgram) {
-            setStatusParam("currProgram", mostRecentProgram)
+            setCurrentProgram(mostRecentProgram)
         }
     }
 
@@ -540,7 +551,7 @@ loop {
     }
 
     ; --- CHECK OPEN PROGRAMS ---
-    if (currProgram != "" && !getStatusParam("suspendScript")) {
+    if (currProgram != "" && !currSuspended) {
         if (globalRunning.Has(currProgram)) {
             if (globalRunning[currProgram].exists()) {
                 if (!activeSet) {
@@ -572,7 +583,7 @@ loop {
 
                 mostRecentProgram := getMostRecentProgram()
                 if (mostRecentProgram != currProgram) {
-                    setStatusParam("currProgram", mostRecentProgram)                    
+                    setCurrentProgram(mostRecentProgram)                    
                     
                     continue
                 }

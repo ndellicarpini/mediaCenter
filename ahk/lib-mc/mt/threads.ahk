@@ -120,7 +120,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
         setCurrentWinTitle('hotkeyThread')
 
-        SetKeyDelay 50, 80
+        SetKeyDelay 50, 100
 
         ; --- GLOBAL VARIABLES ---
 

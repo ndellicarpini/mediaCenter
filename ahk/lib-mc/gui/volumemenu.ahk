@@ -49,7 +49,7 @@ createVolumeMenu() {
 
         ; ignore programs with no audio interface initialized
         if (!value.muted || value.volume = -1) {
-            value.updateVolume()
+            value.checkVolume()
         }
 
         if (value.volume = -1) {

@@ -9,4 +9,5 @@
     "allowExit": false,
 
     "launch": "Run 'C:\Kodi\kodi.exe -fs -p' C:\Kodi",
+    "minimize": "kodiMinimize"
 }

@@ -137,6 +137,9 @@ destroyPauseMenu(resume := true) {
     global globalRunning
     global globalGuis
 
+    ; little sleep to avoid button press propagating to window below
+    Sleep(100)
+
     if (getGUI(GUIPAUSETITLE)) {
         SetTimer(PauseSecondTimer, 0)
         globalGuis[GUIPAUSETITLE].guiObj.Destroy()
@@ -183,7 +186,7 @@ defaultPauseOptions() {
 
         for item in optionsOrder {           
             if (!defaultOptions.Has(item)) {
-                defaultOptions.Delete(item)
+                try defaultOptions[item] := runFunction(item)
             }
         }
     }
@@ -259,7 +262,7 @@ defaultProgramOpen() {
         defaultProgram := globalConfig["Programs"]["Default"]
 
         if (globalRunning.Has(defaultProgram)) {
-            setStatusParam("currProgram", defaultProgram)
+            setCurrentProgram(defaultProgram)
         }
         else {
             createProgram(defaultProgram)

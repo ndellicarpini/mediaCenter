@@ -161,7 +161,7 @@ updateCurrProgram(name) {
     destroyProgramMenu()
 
     globalRunning[name].time := A_TickCount
-    setStatusParam("currProgram", name)
+    setCurrentProgram(name)
 }
 
 ; launchs quick program as currProgram
@@ -205,6 +205,6 @@ minimizeProgram(name) {
 restoreProgram(name) {
     global globalRunnning
 
-    setStatusParam("currProgram", name)
+    setCurrentProgram(name)
     destroyProgramMenu()
 }
