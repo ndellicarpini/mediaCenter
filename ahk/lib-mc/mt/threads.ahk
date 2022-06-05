@@ -121,6 +121,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         setCurrentWinTitle('hotkeyThread')
 
         SetKeyDelay 50, 100
+        Critical 'Off'
 
         ; --- GLOBAL VARIABLES ---
 
@@ -132,23 +133,56 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         global globalControllers := " globalControllers "
 
         ; time user needs to hold button to trigger hotkey function
-        global buttonTime := getStatusParam('buttonTime')
-
+        global buttonTime  := getStatusParam('buttonTime')
         global currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
-        global currController := -1
-        global currButton := ''
 
-        global hotkeyData := {}
-        global hotkeyBuffer := []
+        global hotkeyBuffer  := []
+        global runningTimers := []
+        global currStatus    := ''
 
-        ; either adds a hotkey to the buffer or internalStatus
-        ;  hotkeyFunction - function string to send to main
+        ; removes timer id from running timers
+        ;  port - port of controller
+        ;  button - unique button pressed
         ;
         ; returns null
-        sendHotkey(hotkeyFunction) {
+        removeTimer(port, button) {
+            global runningTimers
+
+            loop runningTimers.Length {
+                if (runningTimers[A_Index] = port . button) {
+                    runningTimers.RemoveAt(A_Index)
+                    break
+                }
+            }
+        }
+
+        ; trys to run the hotkey internally, if fails sends to main
+        ;  hotkeyFunction - function string to run
+        ;
+        ; returns null
+        runHotkey(hotkeyFunction) {
+            try {
+                runFunction(hotkeyFunction)
+            }
+            catch {
+                setStatusParam('internalMessage', hotkeyFunction)
+            }
+        }
+
+        ; either adds a hotkey to the buffer or internalStatus
+        ;  hotkeyFunction - function string to run
+        ;  forceSend - whether or not to skip buffer
+        ;
+        ; returns null
+        sendHotkey(hotkeyFunction, forceSend := false) {
             global hotkeyBuffer
 
             if (hotkeyFunction = '') {
+                return
+            }
+
+            if (forceSend) {
+                runHotkey(hotkeyFunction)
                 return
             }
 
@@ -157,7 +191,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                 hotkeyBuffer.Push(hotkeyFunction)
             }
             else {
-                setStatusParam('internalMessage', hotkeyFunction)
+                runHotkey(hotkeyFunction)
             }
         }
 
@@ -166,35 +200,36 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
         ; --- MAIN LOOP ---
         loop {
-            currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
-            buttonTime  := getStatusParam('buttonTime')
+            loopStatus := getStatusParam('currProgram') . getStatusParam('currGui') 
+                . getStatusParam('errorShow') . getStatusParam('loadShow')
 
-            ; if hotkeys are not valid, just skip
-            if (!currHotkeys.Has('uniqueKeys') || !currHotkeys.Has('hotkeys')) {
-                Sleep(loopSleep)
+            if (loopStatus != currStatus) {
+                currStatus := loopStatus
+                hotkeyBuffer := []
+
                 continue
             }
 
+            currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
+            buttonTime  := getStatusParam('buttonTime')
+
             ; check hotkeys
-            for item in currHotkeys['uniqueKeys'] {
-                currButton := item
+            for key, value in currHotkeys.buttonTree {
+                currButton := key
 
                 loop maxControllers {
                     currController := A_Index - 1
 
-                    if (xCheckStatus(currButton, currController, globalControllers)) {                       
-                        SetTimer(ButtonTimer, (-1 * buttonTime))
-                        while (xCheckStatus(currButton, currController, globalControllers)) {
-                            Sleep(5)
-                        }
-                        SetTimer(ButtonTimer, 0)
+                    if (!inArray(currController . currButton, runningTimers) && xCheckStatus(currButton, currController, globalControllers)) {                       
+                        SetTimer(ButtonTimer.Bind(currButton, currController, loopStatus, 0), (-1 * buttonTime))
+                        runningTimers.Push(currController . currButton)
                     }
                 }
             }
             
             ; if hotkeyBuffer has items, prioritize sending buffered inputs
             if (hotkeyBuffer.Length > 0 && getStatusParam('internalMessage') = '') {
-                setStatusParam('internalMessage', hotkeyBuffer.RemoveAt(1))
+                runHotkey(hotkeyBuffer.RemoveAt(1))
             }
 
             ; close if main is no running
@@ -206,115 +241,82 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         }
 
         ; --- TIMERS ---
-        ButtonTimer() {   
+        ButtonTimer(button, port, status, loopCount) {   
+            Critical 'Off'
+
             global globalStatus     
             global globalControllers
 
             global currHotkeys
-            global currController
-            global currButton
+            global buttonTime
 
-            global hotkeyData
             global hotkeyBuffer
+            global runningTimers
 
-            currProgram  := getStatusParam('currProgram')
-            currGui      := getStatusParam('currGui')
-            currError    := getStatusParam('errorHwnd')
-            currLoad     := getStatusParam('loadShow')
+            if (!xCheckStatus(button, port, globalControllers)) {
+                removeTimer(port, button)
+                return
+            }
 
-            hotkeyData := checkHotkeys(currButton, currHotkeys, currController, globalControllers)
+            hotkeyData := checkHotkeys(button, currHotkeys, port, globalControllers)
 
             if (hotkeyData = -1) {
-                currController := -1
-                currButton := ''
-
+                removeTimer(port, button)
                 return
             }
 
             if (!((hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) && getStatusParam('pause') && !getStatusParam('errorShow'))) {
                 sendHotkey(hotkeyData.function)
+                SetTimer(WaitButtonTimer.Bind(button, port, hotkeyData, status, 0), -25)
             }
-
-            ; if user holds button for a long time, kill everything
-            if (hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) {
-                SetTimer(NuclearTimer, -4000)
-                while ((currProgram = getStatusParam('currProgram') || currGui = getStatusParam('currGui')
-                    || currError = getStatusParam('errorHwnd' || currLoad = getStatusParam('loadShow')))
-                    && xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
-                    
-                    Sleep(5)
-                }
-                SetTimer(NuclearTimer, 0)
-            }
-
-            ; forces internalMessage = function while hotkey is held
-            if (hotkeyData.modifier = 'hold') {
-                while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
-                    if (getStatusParam('internalMessage') = '') {
-                        setStatusParam('internalMessage', hotkeyData.function)
-                    }
-                    
-                    Sleep(loopSleep)
-                }
-            }
-
-            ; after a delay, repeatedly adds new function call to hotkey buffer while hotkey is held
-            else if (hotkeyData.modifier = 'repeat') {
-                SetTimer(RepeatTimer, -400)
-                
-                while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
-                    Sleep(5)
-                }
-
-                ; clear hotkey buffer when button is released
-                hotkeyBuffer := []
-                SetTimer(RepeatTimer, 0)
-                SetTimer(RepeatFastTimer, 0)
-            }
-
-            ; loop while hotkey is held
             else {
-                while (xCheckStatus(hotkeyData.hotkey, currController, globalControllers)) {
-                    Sleep(5)
-                }
+                removeTimer(port, button)
             }
 
-            ; trigger release function if it exists
-            sendHotkey(hotkeyData.release)
-
-            currController := -1
-            currButton := ''
-
             return
         }
 
-        ; timer for the delayed 2nd add to hotkey buffer
-        ; starts RepeatFastTimer
-        RepeatTimer() {
-            global hotkeyData
+        WaitButtonTimer(button, port, hotkeyData, status, loopCount) {
+            global globalControllers
+
             global hotkeyBuffer
+            global runningTimers
+            global currStatus
 
-            sendHotkey(hotkeyData.function)
+            Critical 'On'
 
-            SetTimer(RepeatFastTimer, 40)
-            return
-        }
+            if (xCheckStatus(hotkeyData.hotkey, port, globalControllers)) {
+                if (status = currStatus) {
+                    if (hotkeyData.function = 'Exit') {
+                        if (loopCount > 150) {
+                            sendHotkey('Nuclear', true)
+                        }
+                    }
+                    else if (hotkeyData.modifier = 'repeat') {
+                        if (loopCount > 12) {
+                            sendHotkey(hotkeyData.function)
+                        }
+                    }
+                    else if (hotkeyData.modifier = 'hold') {
+                        sendHotkey(hotkeyData.function, true)
+                    }
+                }
 
-        ; timer for repeated function adds to buffer at short interval 
-        RepeatFastTimer() {
-            global hotkeyData
-            global hotkeyBuffer
+                SetTimer(WaitButtonTimer.Bind(button, port, hotkeyData, status, loopCount + 1), -25)
+            }
+            else {
+                if (status = currStatus) {
+                    if (hotkeyData.modifier = 'repeat') {
+                        hotkeyBuffer := []
+                    }
+    
+                    ; trigger release function if it exists
+                    sendHotkey(hotkeyData.release)
+                }
 
-            sendHotkey(hotkeyData.function)
+                removeTimer(port, button)
+            }
 
-            return
-        }
-
-        ; timer for after exit has been held for long enough
-        NuclearTimer() {
-            global globalStatus
-
-            setStatusParam('internalMessage', 'Nuclear')
             return
         }
 

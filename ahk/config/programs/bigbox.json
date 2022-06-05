@@ -8,5 +8,52 @@
     "exe": "BigBox.exe",
     "wndw": "LaunchBox Big Box",
 
-    "restore": "bigBoxRestore"
+    "restore": "bigBoxRestore",
+
+    "hotkeys": {
+        "A": {
+            "down": "Send '{Enter down}'",
+            "up": "Send '{Enter up}'",
+        },
+        "B": {
+            "down": "Send '{Escape down}'",
+            "up": "Send '{Escape up}'",
+        },
+        "X": {
+            "down": "Send '{Y down}'",
+            "up": "Send '{Y up}'",
+        },
+        "Y": {
+            "down": "Send '{T down}'",
+            "up": "Send '{T up}'",
+        },
+        "START": {
+            "down": "Send '{S down}'",
+            "up": "Send '{S up}'",
+        },
+        "[REPEAT]LB": {
+            "down": "Send '{PgUp down}'",
+            "up": "Send '{PgUp up}'",
+        },
+        "[REPEAT]RB": {
+            "down": "Send '{PgDn down}'",
+            "up": "Send '{PgDn up}'",
+        },
+        "[REPEAT]DU|LSY>0.2": {
+            "down": "Send '{Up down}'",
+            "up": "Send '{Up up}'",
+        },
+        "[REPEAT]DD|LSY<-0.2": {
+            "down": "Send '{Down down}'",
+            "up": "Send '{Down up}'",
+        },
+        "[REPEAT]DL|LSX<-0.2": {
+            "down": "Send '{Left down}'",
+            "up": "Send '{Left up}'",
+        },
+        "[REPEAT]DR|LSX>0.2": {
+            "down": "Send '{Right down}'",
+            "up": "Send '{Right up}'",
+        },
+    }
 }

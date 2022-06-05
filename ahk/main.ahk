@@ -305,14 +305,14 @@ loop {
         }
 
         ; update pause status & create/destroy pause menu
-        if (StrLower(internalMessage) = "pause") {
+        if (StrLower(internalMessage) = "pausemenu") {
             if (!globalGuis.Has(GUIPAUSETITLE)) {
                 createPauseMenu()
             }
         }
 
         ; exits the current error or program
-        else if (StrLower(internalMessage) = "exit") {
+        else if (StrLower(internalMessage) = "exitprogram") {
             if (getStatusParam("errorShow")) {
                 errorHwnd := getStatusParam("errorHwnd")
                 errorGUI := getGUI(errorHwnd)
@@ -473,7 +473,7 @@ loop {
         activateLoadScreen()
 
         for key, value in currHotkeys {
-            if (value = "Pause") {
+            if (StrLower(value) = "pausemenu") {
                 currHotkeys.Delete(key)
                 break
             }
@@ -520,7 +520,7 @@ loop {
                 }
 
                 for key, value in currHotkeys {
-                    if (!globalGuis[currGui].allowPause && value = "pause") {
+                    if (!globalGuis[currGui].allowPause && StrLower(value) = "pausemenu") {
                         currHotkeys.Delete(key)
                         break
                     }
@@ -568,7 +568,7 @@ loop {
                     }
 
                     for key, value in currHotkeys {
-                        if (!globalRunning[currProgram].allowPause && value = "Pause") {
+                        if (!globalRunning[currProgram].allowPause && StrLower(value) = "pausemenu") {
                             currHotkeys.Delete(key)
                             break
                         }

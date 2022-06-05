@@ -7,7 +7,7 @@ defaultHotkeys(config) {
 
     for key in config["Hotkeys"] {
         ; only add pause hotkey if pausing is enabled
-        if (key = "Pause" && config["General"].Has("EnablePause") && config["General"]["EnablePause"]) {    
+        if (StrLower(key) = "pausemenu" && config["General"].Has("EnablePause") && config["General"]["EnablePause"]) {    
             newHotkeys[config["Hotkeys"][key]] := key
         }
         else {
@@ -23,7 +23,7 @@ defaultHotkeys(config) {
 ; returns hotkey map
 errorHotkeys() {
     retMap := Map()
-    retMap["A|B"] := "Exit"
+    retMap["A|B"] := "ExitProgram"
 
     return retMap
 }
@@ -63,9 +63,9 @@ optimizeHotkeys(currHotkeys) {
         maxVal := 0
         maxKey := ""   
         for key, value in list {
-            if (value > maxVal) {
+            if (value.Length > maxVal) {
                 maxKey := key
-                maxVal := value
+                maxVal := value.Length
             }
         }
 
@@ -74,7 +74,7 @@ optimizeHotkeys(currHotkeys) {
 
     ; --- FUNCTION ---
     cleanHotkeys := Map()
-    buttonCount := Map()
+    buttonRefs := Map()
     modifiers := Map()
 
     ; clean new hotkeys from program to put into proper format
@@ -86,23 +86,29 @@ optimizeHotkeys(currHotkeys) {
             addItem := ""
             currHotkey := StrSplit(currKey, "&")
 
+            refs := []
             for item in currHotkey {
                 currItem := Trim(item, " `t`r`n")
 
                 addItem .= currItem . "&"
+                refs.Push(currItem)
+            }
 
-                if (currItem != "") {
-                    if (!buttonCount.Has(currItem)) {
-                        buttonCount[currItem] := 1
+            cleanItem := RTrim(addItem, "&")
+
+            cleanHotkeys[cleanItem] := value
+            modifiers[cleanItem] := Trim(StrLower(currModifier), "[] `t`r`n")
+
+            loop refs.Length {
+                if (refs[A_Index] != "") {
+                    if (!buttonRefs.Has(refs[A_Index])) {
+                        buttonRefs[refs[A_Index]] := [cleanItem]
                     }
                     else {
-                        buttonCount[currItem] += 1
+                        buttonRefs[refs[A_Index]].Push(cleanItem)
                     }
                 }
             }
-
-            cleanHotkeys[RTrim(addItem, "&")] := value
-            modifiers[RTrim(addItem, "&")] := Trim(StrLower(currModifier), "[] `t`r`n")
         }
         else if (InStr(currKey, "|")) {
             currHotkey := StrSplit(currKey, "|")
@@ -115,11 +121,11 @@ optimizeHotkeys(currHotkeys) {
                 modifiers[currItem] := Trim(StrLower(currModifier), "[] `t`r`n")
 
                 if (currItem != "") {
-                    if (!buttonCount.Has(currItem)) {
-                        buttonCount[currItem] := 1
+                    if (!buttonRefs.Has(currItem)) {
+                        buttonRefs[currItem] := [currItem]
                     }
                     else {
-                        buttonCount[currItem] += 1
+                        buttonRefs[currItem].Push(currItem)
                     }
                 }
             }
@@ -131,34 +137,53 @@ optimizeHotkeys(currHotkeys) {
             modifiers[currItem] := Trim(StrLower(currModifier), "[] `t`r`n")
 
             if (currItem != "") {
-                if (!buttonCount.Has(currItem)) {
-                    buttonCount[currItem] := 1
+                if (!buttonRefs.Has(currItem)) {
+                    buttonRefs[currItem] := [currItem]
                 }
                 else {
-                    buttonCount[currItem] += 1
+                    buttonRefs[currItem].Push(currItem)
                 }
             }
         }
     }
 
-    retHotkeys := Map()
-    retHotkeys["hotkeys"] := cleanHotkeys
-    retHotkeys["modifiers"] := modifiers
-
     ; sort unique buttons by number of references to each button in the total
     ; hotkeys, lets me reduce the number of button checks in a loop by only
     ; checking the unique buttons in order of most referenced
-    uniqueButtons := []
-    loop buttonCount.Count {
-        maxButton := getMaxButton(buttonCount)
-        uniqueButtons.Push(maxButton)
+    sortedButtonRefs := Map()
+    loop buttonRefs.Count {
+        maxButton := getMaxButton(buttonRefs)
+        if (maxButton = "") {
+            continue
+        }
 
-        buttonCount.Delete(maxButton)
+        maxRefs := buttonRefs.Delete(maxButton)
+        sortedButtonRefs[maxButton] := maxRefs
+
+        ; remove shared references from any buttons outside of max
+        for key, value in buttonRefs {
+            loop maxRefs.Length {
+                currRef := maxRefs[A_Index]
+
+                toDelete := []
+                loop value.Length {
+                    if (currRef = value[A_Index]) {
+                        toDelete.Push(A_Index)
+                    }
+                }
+
+                loop toDelete.Length {
+                    value.RemoveAt(toDelete[A_Index])
+                }
+            }
+        }
     }
-        
-    retHotkeys["uniqueKeys"] := uniqueButtons
 
-    return retHotkeys
+    return {
+        hotkeys: cleanHotkeys,
+        modifiers: modifiers,
+        buttonTree: sortedButtonRefs
+    }
 }
 
 ; check & find most specific hotkey that matches controller state
@@ -174,8 +199,8 @@ checkHotkeys(currButton, currHotkeys, port, ptr) {
         downFunction := ""
         upFunction   := ""
 
-        if (IsObject(currHotkeys["hotkeys"][hotkey])) {
-            for key, value in currHotkeys["hotkeys"][hotkey] {
+        if (IsObject(currHotkeys.hotkeys[hotkey])) {
+            for key, value in currHotkeys.hotkeys[hotkey] {
                 if (StrLower(key) = "down") {
                     downFunction := value
                 }
@@ -185,30 +210,52 @@ checkHotkeys(currButton, currHotkeys, port, ptr) {
             }
         }
         else {
-            downFunction := currHotkeys["hotkeys"][hotkey]
+            downFunction := currHotkeys.hotkeys[hotkey]
         }
 
         return {
             hotkey: StrSplit(hotkey, ["&", "|"]), 
-            modifier: currHotkeys["modifiers"][hotkey],
+            modifier: currHotkeys.modifiers[hotkey],
             function: downFunction, 
             release: upFunction, 
         }
     }
 
-    checkArr := []
+    if (!currHotkeys.buttonTree.Has(currButton)) {
+        return -1
+    }
 
-    for key, value in currHotkeys["hotkeys"] {
-        currArr := StrSplit(key, ["&", "|"])
-        if (inArray(currButton, currArr)) {
-            checkArr.Push(key)
+    ; masking array of hotkeys from other branches in buttontree 
+    ; used to check that current pressed key combo is actually a child
+    ; of the buttontree[currbutton]
+    notCheckArr := []
+    for key, value in currHotkeys.buttonTree {
+        if (key = currButton) {
+            continue
+        }
+
+        loop value.length {
+            currArr := StrSplit(value[A_Index], ["&", "|"])
+            if (inArray(currButton, currArr)) {
+                notCheckArr.Push(value[A_Index])
+            }
         }
     }
 
-    ; if only 1 hotkeys references button & button is pressed -> return hotkey
-    if (checkArr.Length = 1 && checkArr[1] = currButton) {
-        return createHotkeyData(checkArr[1])
+    maxInvalidAmp := 0
+    for item in notCheckArr {
+        if (item = "") {
+            continue
+        }
+
+        hotkeyList := StrSplit(item, ["&", "|"])
+
+        if (xCheckStatus(hotKeyList, port, ptr)) {
+            maxInvalidAmp := hotkeyList.Length
+        }
     }
+
+    checkArr := currHotkeys.buttonTree[currButton]
 
     maxValidAmp := 0
     maxValidItem := ""
@@ -225,7 +272,9 @@ checkHotkeys(currButton, currHotkeys, port, ptr) {
         }
     }
 
-    if (maxValidAmp = 0) {
+    ; if the button combo is from a different buttontree branch
+    ; or if no valid button combos found
+    if (maxInvalidAmp > maxValidAmp || maxValidAmp = 0) {
         return -1
     }
 

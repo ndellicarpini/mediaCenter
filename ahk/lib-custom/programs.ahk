@@ -17,11 +17,11 @@ kodiMinimize() {
 
 ; --- CHROME ---
 chromeOSK() {
-
+    MsgBox("keyboard")
 }
 
 chromeNewTab() {
-    
+    MsgBox("tab")
 }
 
 chromeControls() {

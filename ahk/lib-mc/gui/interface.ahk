@@ -73,22 +73,12 @@ class Interface {
             this.hotkeys["[REPEAT]LSY<-0.2"]  := "gui.down"
             this.hotkeys["[REPEAT]LSX<-0.2"] := "gui.left"
             this.hotkeys["[REPEAT]LSX>0.2"]  := "gui.right"
-
-            this.hotkeys["[REPEAT]LSY>0.2&LSX<-0.2"] := "gui.upleft"
-            this.hotkeys["[REPEAT]LSY>0.2&LSX>0.2"] := "gui.upright"
-            this.hotkeys["[REPEAT]LSY<-0.2&LSX<-0.2"] := "gui.downleft"
-            this.hotkeys["[REPEAT]LSY<-0.2&LSX>0.2"] := "gui.downright"
         }
 
         this.hotkeys["[REPEAT]DU"] := "gui.up"
         this.hotkeys["[REPEAT]DD"] := "gui.down"
         this.hotkeys["[REPEAT]DL"] := "gui.left"
         this.hotkeys["[REPEAT]DR"] := "gui.right"
-
-        this.hotkeys["[REPEAT]DU&DL"] := "gui.upleft"
-        this.hotkeys["[REPEAT]DU&DR"] := "gui.upright"
-        this.hotkeys["[REPEAT]DD&DL"] := "gui.downleft"
-        this.hotkeys["[REPEAT]DD&DR"] := "gui.downright"
 
         this.hotkeys["A"] := "gui.select"
 
@@ -599,24 +589,6 @@ class Interface {
         this.guiObj[newControl].Redraw()
 
         this.checkScrollHorizontal(this.guiObj[newControl])
-    }
-
-    ; okay look im sorry but it works pretty well
-    upleft() {
-        this.up()
-        this.left()
-    }
-    upright() {
-        this.up()
-        this.right()
-    }
-    downleft() {
-        this.down()
-        this.left()
-    }
-    downright() {
-        this.down()
-        this.right()
     }
 }
 
