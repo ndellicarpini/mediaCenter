@@ -1,0 +1,12 @@
+{
+    "id": "wiiu",
+    "romDir": "D:\\Roms\\Wii U",
+    "romNameIndex": 2,
+
+    "emulators": ["cemu"],
+    "extensions": [".rpx"],
+
+    "romVersions": [
+        
+    ]
+}

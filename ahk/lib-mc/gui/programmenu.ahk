@@ -1,11 +1,11 @@
 global GUIPROGRAMTITLE := "AHKGUIPROGRAM"
 
-createProgramMenu() {
+guiProgramMenu() {
     global globalConfig
     global globalRunning
     global globalGuis
 
-    destroyPauseMenu(false)
+    destroyPauseMenu()
 
     createInterface(GUIPROGRAMTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,, "destroyProgramMenu")
     programInt := globalGuis[GUIPROGRAMTITLE]
@@ -135,19 +135,12 @@ createProgramMenu() {
 ;
 ; returns null
 destroyProgramMenu() {
-    global globalRunning
     global globalGuis
 
     if (getGUI(GUIPROGRAMTITLE)) {
         globalGuis[GUIPROGRAMTITLE].guiObj.Destroy()
-
-        currProgram := getStatusParam("currProgram")
-    
-        ; set pause & activate currProgram resume
+        
         setStatusParam("pause", false)
-        if (currProgram != "") {
-            globalRunning[currProgram].resume()
-        }
     }
 }
 
@@ -178,7 +171,7 @@ launchQuickProgram(name) {
 ;
 ; returns null
 closeProgram(name) {
-    global globalRunnning
+    global globalRunning
 
     destroyProgramMenu()
     globalRunning[name].exit()
@@ -189,7 +182,7 @@ closeProgram(name) {
 ;
 ; returns null
 minimizeProgram(name) {
-    global globalRunnning
+    global globalRunning
 
     destroyProgramMenu()
 
@@ -203,8 +196,6 @@ minimizeProgram(name) {
 ;
 ; returns null
 restoreProgram(name) {
-    global globalRunnning
-
     setCurrentProgram(name)
     destroyProgramMenu()
 }

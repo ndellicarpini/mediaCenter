@@ -9,7 +9,7 @@ controllerThread(globalConfig, globalControllers) {
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
         
-        setCurrentWinTitle('controllerThread')
+        SetCurrentWinTitle('controllerThread')
 
         global exitThread := false
         
@@ -118,7 +118,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
         #Include lib-mc\mt\status.ahk
 
-        setCurrentWinTitle('hotkeyThread')
+        SetCurrentWinTitle('hotkeyThread')
 
         SetKeyDelay 50, 100
         Critical 'Off'
@@ -216,12 +216,19 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             ; check hotkeys
             for key, value in currHotkeys.buttonTree {
                 currButton := key
-
+                currButtonTime := (currHotkeys.buttonTimes.Has(currButton)) ? currHotkeys.buttonTimes[currButton] : buttonTime
+                
                 loop maxControllers {
                     currController := A_Index - 1
 
                     if (!inArray(currController . currButton, runningTimers) && xCheckStatus(currButton, currController, globalControllers)) {                       
-                        SetTimer(ButtonTimer.Bind(currButton, currController, loopStatus, 0), (-1 * buttonTime))
+                        if (currButtonTime > 0) {
+                            SetTimer(ButtonTimer.Bind(currButton, currButtonTime, currController, loopStatus), (-1 * currButtonTime))
+                        }
+                        else {
+                            ButtonTimer(currButton, currButtonTime, currController, loopStatus)
+                        }
+
                         runningTimers.Push(currController . currButton)
                     }
                 }
@@ -241,7 +248,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         }
 
         ; --- TIMERS ---
-        ButtonTimer(button, port, status, loopCount) {   
+        ButtonTimer(button, time, port, status) {   
             Critical 'Off'
 
             global globalStatus     
@@ -266,6 +273,11 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             if (!((hotkeyData.function = 'Exit' || InStr(hotkeyData.function, '.exit')) && getStatusParam('pause') && !getStatusParam('errorShow'))) {
+                if (hotkeyData.time != '' && (time - hotkeyData.time) > 0) {
+                    SetTimer(ButtonTimer.Bind(button, hotkeyData.time, port, status), (-1 * (time - hotkeyData.time)))
+                    return
+                }
+
                 sendHotkey(hotkeyData.function)
                 SetTimer(WaitButtonTimer.Bind(button, port, hotkeyData, status, 0), -25)
             }
@@ -287,7 +299,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
             if (xCheckStatus(hotkeyData.hotkey, port, globalControllers)) {
                 if (status = currStatus) {
-                    if (hotkeyData.function = 'Exit') {
+                    if (hotkeyData.function = 'ExitProgram') {
                         if (loopCount > 150) {
                             sendHotkey('Nuclear', true)
                         }

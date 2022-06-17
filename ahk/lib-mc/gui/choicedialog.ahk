@@ -4,7 +4,7 @@ createChoiceDialog(text, lText := "Cancel", lFunc := "", lColor := "", rText := 
     global globalConfig
     global globalGuis
 
-    destroyPauseMenu(false)
+    destroyPauseMenu()
 
     if (lColor = "") {
         lColor := COLOR2

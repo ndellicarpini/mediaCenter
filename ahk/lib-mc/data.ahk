@@ -40,7 +40,12 @@ statusRestore() {
     for key, value in backup {
         if (key = "globalRunning") {
             for name, attr in backup["globalRunning"] {
-                createProgram(name, false, false, attr)
+                if (attr.Has("console")) {
+                    createConsole([attr["console"], attr["rom"]], false, false, attr)
+                }
+                else {
+                    createProgram(name, false, false, attr)
+                }
             }
         }
         else {

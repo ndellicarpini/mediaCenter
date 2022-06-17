@@ -1,0 +1,12 @@
+{
+    "id": "gamecube",
+    "romDir": "D:\\Roms\\Gamecube",
+    "romNameIndex": 0,
+
+    "emulators": ["dolphin"],
+    "extensions": [".iso", ".rvz"],
+
+    "romVersions": [
+        
+    ]
+}

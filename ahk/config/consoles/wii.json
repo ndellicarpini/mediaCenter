@@ -1,0 +1,12 @@
+{
+    "id": "wii",
+    "romDir": "D:\\Roms\\Wii",
+    "romNameIndex": 0,
+
+    "emulators": ["dolphin"],
+    "extensions": [".iso", ".rvz"],
+
+    "romVersions": [
+        
+    ]
+}

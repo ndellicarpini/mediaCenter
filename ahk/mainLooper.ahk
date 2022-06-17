@@ -2,7 +2,7 @@
 
 #SingleInstance Force
 
-setCurrentWinTitle(MAINLOOP)
+SetCurrentWinTitle(MAINLOOP)
 
 hungCount     := 0
 resetCount    := 0

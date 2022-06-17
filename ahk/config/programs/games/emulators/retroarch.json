@@ -1,33 +1,37 @@
 {
-    ; might need a way to make certain like pauseOptions optionally enabled? like specific games might not have manual
-
-    ; IDEAS:
-    ;  all referenced functions should have default versions if not in config (exit, launch, enablePause, etc)
-    ;  if & in button -> button AND, if | -> button OR
-    ;  if ? in key -> split by ?, run [1] as function that returns boolean whether or not to show [2]
     "id": "retroarch",
     "name": "RetroArch",
 
     "exe": "retroarch.exe",
-    "dir": "C:\retroarch",
+    "dir": "C:\\Emulators\\RetroArch",
 
-    "launch": "raLaunch",
+    "requireFullscreen": true,
 
-    "pause": "raPause",
-    "resume": "raResume",
+    "launch": "retroarchLaunch",
 
-    "exit": "raExit",
+    "pause": "SendSafe p",
+    "resume": "SendSafe p",
+
+    "reset": "SendSafe h",
+
+    "numStates": 1,
+    "saveState": "retroarchSaveState",
+    "loadState": "retroarchLoadState",
+    "rewind": "retroarchRewind",
+    "fastForward": "SendSafe {Space}",
+
+    "controls": ["Xbox Controller"],
 
     "hotkeys": {
-        "HOME&SELECT": "raLoad",
-        "HOME&START":  "raSave",
-        "HOME&LT":     "raRewind",
-        "HOME&RT":     "raFForward"
+        "HOME&START": "program.saveState",
+        "HOME&SELECT": "program.loadState",
+        "HOME&LT>0.3": "program.rewind",
+        "HOME&RT>0.3": "program.fastForward",
     },
+
     "pauseOptions": {
-        "checkGameManual?View Manual": "showGameManual",
-        "Controls":   "raControls",
-        "Save State": "raSave",
-        "Load State": "raLoad"
-    }
+        "Show/Hide MAME Menu": "retroarchToggleMAMEMenu"
+    },
+
+    "pauseOrder": ["Save State", "Load State", "retroarchMAMECheck?Show/Hide MAME Menu", "Reset Game"]
 }

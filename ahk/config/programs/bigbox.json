@@ -10,6 +10,8 @@
 
     "restore": "bigBoxRestore",
 
+    "hotkeyButtonTime": 0,
+
     "hotkeys": {
         "A": {
             "down": "Send '{Enter down}'",
@@ -39,19 +41,19 @@
             "down": "Send '{PgDn down}'",
             "up": "Send '{PgDn up}'",
         },
-        "[REPEAT]DU|LSY>0.2": {
+        "[REPEAT]DU|LSY>0.4": {
             "down": "Send '{Up down}'",
             "up": "Send '{Up up}'",
         },
-        "[REPEAT]DD|LSY<-0.2": {
+        "[REPEAT]DD|LSY<-0.4": {
             "down": "Send '{Down down}'",
             "up": "Send '{Down up}'",
         },
-        "[REPEAT]DL|LSX<-0.2": {
+        "[REPEAT]DL|LSX<-0.4": {
             "down": "Send '{Left down}'",
             "up": "Send '{Left up}'",
         },
-        "[REPEAT]DR|LSX>0.2": {
+        "[REPEAT]DR|LSX>0.4": {
             "down": "Send '{Right down}'",
             "up": "Send '{Right up}'",
         },

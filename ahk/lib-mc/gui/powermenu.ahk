@@ -1,10 +1,10 @@
 global GUIPOWERTITLE := "AHKGUIPOWER"
 
-createPowerMenu() {
+guiPowerMenu() {
     global globalConfig
     global globalGuis
 
-    destroyPauseMenu(false)
+    destroyPauseMenu()
     
     createInterface(GUIPOWERTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,, "destroyPowerMenu")    
     powerInt := globalGuis[GUIPOWERTITLE]
@@ -50,14 +50,8 @@ destroyPowerMenu() {
 
     if (getGUI(GUIPOWERTITLE)) {
         globalGuis[GUIPOWERTITLE].guiObj.Destroy()
-
-        currProgram := getStatusParam("currProgram")
-    
-        ; set pause & activate currProgram resume
+        
         setStatusParam("pause", false)
-        if (currProgram != "") {
-            globalRunning[currProgram].resume()
-        }
     }
 }
 

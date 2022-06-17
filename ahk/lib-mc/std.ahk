@@ -64,6 +64,7 @@ ProcessWinClose(window) {
 ; returns null
 ProcessKill(process, includeChildren := true) {
 	PID := 0
+	
 	if (IsInteger(process)) {
 		PID := process
 	}
@@ -105,6 +106,45 @@ WinHidden(window) {
 	return retVal
 }
 
+; sets the current script's window title to the string in name
+;  name - new window name for current script
+;
+; returns null
+SetCurrentWinTitle(name) {
+	resetDHW := A_DetectHiddenWindows
+
+	DetectHiddenWindows(true)
+	WinSetTitle(name, "ahk_pid" . DllCall("GetCurrentProcessId"))
+	DetectHiddenWindows(resetDHW)
+}
+
+; holds a keybinding for x ms
+;  key - key to press/hold (must be single key, can't be combo)
+;  time - time in ms to hold key
+;
+; returns null
+SendSafe(key, time := 85) {
+	if (StrSplit(key, A_Space).Length > 2) {
+		ErrorMsg("Can't SendSafe a multi key bind")
+		return
+	}
+
+	firstChar := SubStr(key, 1, 1)
+    if (firstChar != "{" && firstChar != "^"
+		&& firstChar != "+" && firstChar != "!" && firstChar != "#") {
+        
+		key := "{" . key
+    }
+
+	if (SubStr(key, -1, 1) = "}") {
+        key := SubStr(key, 1, StrLen(key) - 1)
+    }
+
+	Send(key . " down}")
+	Sleep(time)
+	Send(key . " up}")
+}
+
 ; sums all values in each list
 ;  lists - args lists
 ;
@@ -143,6 +183,36 @@ Sum(lists*) {
 	}
 
 	return retVal
+}
+
+; deep clones an object, supporting Maps & Arrays
+; obj - obj to deep clone
+;
+; returns cloned object
+ObjDeepClone(obj) {
+	if (!IsObject(obj)) {
+		return obj
+	}
+
+	retObj := obj.Clone()
+
+	if (Type(obj) = "Map") {
+		for key, value in obj {
+			retObj[key] := ObjDeepClone(value)
+		}
+	}
+	else if (Type(obj) = "Array") {
+		loop obj.Length {
+			retObj[A_Index] := ObjDeepClone(obj[A_Index])
+		}
+	}
+	else {
+		for key, value in obj.OwnProps() {
+			retObj[key] := ObjDeepClone(value)
+		}
+	}
+
+	return retObj
 }
 
 ; converts the value to a string by appending it to empty string
@@ -624,18 +694,6 @@ runFunction(text, params := "") {
 	else {
 		return %func%()
 	}
-}
-
-; sets the current script's window title to the string in name
-;  name - new window name for current script
-;
-; returns null
-setCurrentWinTitle(name) {
-	resetDHW := A_DetectHiddenWindows
-
-	DetectHiddenWindows(true)
-	WinSetTitle(name, "ahk_pid" . DllCall("GetCurrentProcessId"))
-	DetectHiddenWindows(resetDHW)
 }
 
 ; returns the string containing the dynamic includes if it exists

@@ -31,7 +31,7 @@ chromeControls() {
 chromePIP() {
     global globalRunning
 
-    this := globalRunning["chrome"].restore()
+    this := globalRunning["chrome"]
         
     Send("{Alt Down}p{Alt Up}")
         

@@ -29,8 +29,10 @@ class Program {
     background         := false
     minimized          := false
     fullscreened       := false
-
+    paused             := false
+    
     allowQuickAccess  := false
+    allowHungCheck    := false
     allowPause        := true
     allowExit         := true
     requireInternet   := false
@@ -40,6 +42,8 @@ class Program {
     pauseOptions := Map()
     hotkeys      := Map()
     mouse        := Map()
+
+    hotkeyButtonTime := 70
 
     ; functions
     customLaunch     := ""
@@ -61,7 +65,9 @@ class Program {
     currEXE  := ""
     currWNDW := ""
 
-    __New(exeConfig) {
+    __New(exeConfigRef) {
+        exeConfig := ObjDeepClone(exeConfigRef)
+
         this.id   := exeConfig["id"]
 
         ; set basic attributes
@@ -77,6 +83,7 @@ class Program {
         this.allowPause         := (exeConfig.Has("allowPause"))         ? exeConfig["allowPause"]         : this.allowPause
         this.allowExit          := (exeConfig.Has("allowExit"))          ? exeConfig["allowExit"]          : this.allowExit
         this.allowQuickAccess   := (exeConfig.Has("allowQuickAccess"))   ? exeConfig["allowQuickAccess"]   : this.allowQuickAccess
+        this.allowHungCheck     := (exeConfig.Has("allowHungCheck"))     ? exeConfig["allowHungCheck"]     : this.allowHungCheck
         this.requireInternet    := (exeConfig.Has("requireInternet"))    ? exeConfig["requireInternet"]    : this.requireInternet
         this.requireFullscreen  := (exeConfig.Has("requireFullscreen"))  ? exeConfig["requireFullscreen"]  : this.requireFullscreen
 
@@ -91,13 +98,36 @@ class Program {
         this.customMinimize   := (exeConfig.Has("minimize"))   ? exeConfig["minimize"]   : this.customMinimize
         this.customFullscreen := (exeConfig.Has("fullscreen")) ? exeConfig["fullscreen"] : this.customFullscreen
 
+        this.hotkeyButtonTime := (exeConfig.Has("hotkeyButtonTime")) ? exeConfig["hotkeyButtonTime"] : this.hotkeyButtonTime
+
         this.hotkeys := (exeConfig.Has("hotkeys")) ? exeConfig["hotkeys"] : this.hotkeys
         this.mouse   := (exeConfig.Has("mouse"))   ? exeConfig["mouse"]   : this.mouse
 
         ; set pause contents if appropriate
         if (this.allowPause) {
-            this.pauseOptions := (exeConfig.Has("pauseOptions")) ? exeConfig["pauseOptions"]        : this.pauseOptions
-            this.pauseOrder   := (exeConfig.Has("pauseOrder"))   ? toArray(exeConfig["pauseOrder"]) : this.pauseOrder
+            if (exeConfig.Has("pauseOptions")) {
+                if (Type(exeConfig["pauseOptions"]) = "Map" && this.pauseOptions.Count > 0) {
+                    for key, value in exeConfig["pauseOptions"] {
+                        this.pauseOptions[key] := value
+                    }
+                }
+                else {
+                    this.pauseOptions := exeConfig["pauseOptions"]
+                }
+            }
+
+            if (exeConfig.Has("pauseOrder")) {
+                if (Type(exeConfig["pauseOrder"]) = "Map" && this.pauseOrder.Length > 0) {
+                    for item in exeConfig["pauseOrder"] {
+                        if (!inArray(item, this.pauseOrder)) {
+                            this.pauseOrder.Push(item)
+                        }
+                    }
+                }
+                else {
+                    this.pauseOrder := exeConfig["pauseOrder"]
+                }
+            }
         }
     }
 
@@ -128,8 +158,21 @@ class Program {
         }
         ; run dir\exe
         else if (!IsObject(this.exe) && this.exe != "") {
-            if ((Type(args) = "String" && args != "") || (Type(args) = "Array" && args.Length > 0)) {
-                Run validateDir(this.dir) . this.exe . " " . joinArray(args), validateDir(this.dir), ((this.background) ? "Hide" : "Max")
+            if (Type(args) = "Array" && args.Length > 0) {
+                argString := ""
+                for item in args {
+                    if (InStr(item, A_Space)) {
+                        argString .= '"' . item . '"' . A_Space
+                    }
+                    else {
+                        argString .= item . A_Space
+                    }
+                }
+
+                Run validateDir(this.dir) . this.exe . A_Space . RTrim(argString, A_Space), validateDir(this.dir), ((this.background) ? "Hide" : "Max")
+            }
+            else if (Type(args) = "String" && args != "") {
+                Run validateDir(this.dir) . this.exe . A_Space . args, validateDir(this.dir), ((this.background) ? "Hide" : "Max")
             }
             else {
                 Run validateDir(this.dir) . this.exe, validateDir(this.dir), ((this.background) ? "Hide" : "Max")
@@ -212,6 +255,11 @@ class Program {
         ; run custom restore
         if (this.customRestore != "") {
             if (runFunction(this.customRestore) = -1) {
+                if (!this.waitingPostLaunchTimer) {
+                    SetTimer(DelayPostLauch.Bind(this.id), -1000)
+                    this.waitingPostLaunchTimer := true
+                }
+                
                 if (this.requireFullscreen && !this.fullscreened && !this.waitingFullscreenTimer) {
                     SetTimer(DelayFullscreen.Bind(this.id), -2000)
                     this.waitingFullscreenTimer := true
@@ -229,11 +277,6 @@ class Program {
                     }
         
                     this.waitingMouseHideTimer := true
-                }
-                
-                if (!this.waitingPostLaunchTimer) {
-                    SetTimer(DelayPostLauch.Bind(this.id), -1000)
-                    this.waitingPostLaunchTimer := true
                 }
 
                 return
@@ -270,6 +313,14 @@ class Program {
             }
         }
 
+        this.resume()
+
+        ; after first restore -> perform post launch action
+        if (!this.waitingPostLaunchTimer) {
+            SetTimer(DelayPostLauch.Bind(this.id), -1000)
+            this.waitingPostLaunchTimer := true
+        }
+
         ; after first restore -> fullscreen window if required
         if (this.requireFullscreen && !this.fullscreened && !this.waitingFullscreenTimer) {
             SetTimer(DelayFullscreen.Bind(this.id), -2000)
@@ -291,12 +342,6 @@ class Program {
             }
 
             this.waitingMouseHideTimer := true
-        }
-
-        ; after first restore -> perform post launch action
-        if (!this.waitingPostLaunchTimer) {
-            SetTimer(DelayPostLauch.Bind(this.id), -1000)
-            this.waitingPostLaunchTimer := true
         }
 
         return
@@ -428,7 +473,7 @@ class Program {
         window := this.getWND()
 
         try {
-            if (WinGetMinMax(window) = -1) {
+            if (WinGetMinMax(window) = -1 || WinGetExStyle(window) & 0x00000080) {
                 return false
             }
         
@@ -450,7 +495,12 @@ class Program {
         exeStatus := false
 
         ; skip cycle if waiting for exist timers
-        if (this.waitingExistTimer || this.waitingHungTimer) {
+        if (this.waitingExistTimer) {
+            return true
+        }
+
+        ; skip cycle if exe & waiting for user choice dialog
+        if (this.waitingHungTimer && ProcessExist("ahk_pid " this.getPID())) {
             return true
         }
 
@@ -527,14 +577,19 @@ class Program {
             }
         }
 
-        ; check if wndw hung 
-        if ((exeStatus || wndwStatus) && this.hungCount = 0 && DllCall("IsHungAppWindow", "Ptr", this.getHWND())) {
-            SetTimer(CheckHungTimer, 1000)
-            this.hungCount += 1
-        }
-        ; reset hung counter if wndw not hung
-        else if (this.hungCount > 0) {
-            this.hungCount := 0
+        if (this.allowHungCheck) {
+            ; check if wndw hung 
+            if ((exeStatus || wndwStatus) && DllCall("IsHungAppWindow", "Ptr", this.getHWND())) {
+                if (this.hungCount = 0) {
+                    SetTimer(CheckHungTimer, -1000)
+                    this.hungCount += 1
+                }
+            }
+            ; reset hung counter if wndw not hung
+            else if (this.hungCount > 0) {
+                this.hungCount := 0
+                this.waitingHungTimer := false
+            }
         }
         
         return exeStatus || wndwStatus
@@ -578,29 +633,26 @@ class Program {
         ; repeated check while program is hung
         CheckHungTimer() {
             ; if exists & hung
-            if (ProcessExist(this.getPID()) && DllCall("IsHungAppWindow", "Ptr", this.getHWND())) {
-                this.hungCount += 1
-                
+            if (ProcessExist(this.getPID()) && DllCall("IsHungAppWindow", "Ptr", this.getHWND())) {               
                 if (this.hungCount > this.maxHungCount) {
                     ; create "wait for program" gui dialog
                     if (!this.waitingHungTimer) {
-                        MsgBox(this.waitingHungTimer)
                         createChoiceDialog(this.name " has stopped responding", "Wait",,, "Exit", "ProcessKill " . this.getPID(), "FF0000")
                         this.waitingHungTimer := true
                     }
                     ; reset hung count if gui dialog doesn't exist
                     else if (!WinShown(GUICHOICETITLE)) {
                         this.hungCount := 0
-                        SetTimer(CheckHungTimer, 0)
-
                         this.waitingHungTimer := false
                     }
                 }
+
+                this.hungCount += 1
+                SetTimer(CheckHungTimer, -1000)
             }
             ; reset hung count if no longer exists/hung
             else {
                 this.hungCount := 0
-                SetTimer(CheckHungTimer, 0)
 
                 ; close gui dialog if it exists
                 hungGUI := getGUI(GUICHOICETITLE)
@@ -634,19 +686,19 @@ class Program {
 
         try {
             count := 0
-            maxCount := 250
+            maxCount := 200
             ; wait for program executable to close
             while (exeExists && count < maxCount) {
                 window := this.getWND()
 
                 if (this.customExit = "") {
-                    ; attempt to winclose again @ 15s
-                    if (count = 150 && WinShown(window)) {
+                    ; attempt to winclose again @ 10s
+                    if (count = 100 && WinShown(window)) {
                         WinClose(window)
                     }
     
-                    ; attempte to processclose @ 20s
-                    if (count = 200) {
+                    ; attempte to processclose @ 15s
+                    if (count = 150) {
                         ProcessWinClose(window)
                     }
                 }
@@ -657,7 +709,7 @@ class Program {
                 Sleep(100)
             }
 
-            ; if exists -> go nuclear @ 25s
+            ; if exists -> go nuclear @ 20s
             if (WinHidden(window)) {
                 ProcessKill(window)
             }
@@ -678,6 +730,11 @@ class Program {
     
     ; runs custom pause function on pause
     pause() {
+        if (this.paused) {
+            return
+        }
+
+        this.paused := true
         saveScreenshot(this.id)
 
         if (this.customPause != "") {
@@ -687,8 +744,15 @@ class Program {
 
     ; runs custom resume function after pause close
     resume() {
-        if (this.customRestore != "") {
-            runFunction(this.customRestore)
+        if (!this.paused) {
+            return
+        }
+        
+        Sleep(100)
+        this.paused := false
+
+        if (this.customResume != "") {
+            runFunction(this.customResume)
         }
     }
 
@@ -978,15 +1042,8 @@ createProgram(params, launchProgram := true, setCurrent := true, customAttribute
                     return
                 }
             }
-
-            ; program is emulator
-            if (value.Has("console")) {
-                globalRunning[newID] := Emulator(value)
-            }
-            ; program is abstract 
-            else {
-                globalRunning[newID] := Program(value)
-            }
+            
+            globalRunning[newID] := Program(value)
 
             ; set new program as current
             if (setCurrent) {
@@ -1070,10 +1127,24 @@ checkAllPrograms() {
     global globalConfig
     global globalRunning
     global globalPrograms
+    global globalConsoles
 
     for key, value in globalPrograms {
         if (!globalRunning.Has(key) && ((value.Has("exe") && checkEXE(value["exe"])) || (value.Has("wndw") && checkWNDW(value["wndw"])))) {
-            createProgram(key, false, false)
+            foundConsole := false
+            ; run program as console if it's an emulator
+            for key2, value2 in globalConsoles {
+                if (inArray(key, value2["emulators"])) {
+                    createConsole([key2, ""], false, false)
+                    
+                    foundConsole := true
+                    break
+                }
+            }
+
+            if (!foundConsole) {
+                createProgram(key, false, false)
+            }
         }
     }
 
@@ -1113,6 +1184,7 @@ checkRequiredPrograms() {
     global globalConfig
     global globalRunning
     global globalPrograms
+    global globalConsoles
 
     for item in toArray(globalConfig["Programs"]["Required"]) {
         if (!globalPrograms.Has(item)) {
@@ -1120,12 +1192,28 @@ checkRequiredPrograms() {
             continue
         }
 
+        launchProgram := false
         if (!globalRunning.Has(item)) {
-            if ((globalPrograms[item].Has("exe") && checkEXE(globalPrograms[item]["exe"])) || (globalPrograms[item].Has("wndw") && checkWNDW(globalPrograms[item]["wndw"]))) {
-                createProgram(item, false, false)
+            if ((globalPrograms[item].Has("exe") && checkEXE(globalPrograms[item]["exe"])) || (globalPrograms[item].Has("wndw") && checkWNDW(globalPrograms[item]["wndw"]))) {                
+                launchProgram := false
             }
             else {
-                createProgram(item, true, false)
+                launchProgram := true
+            }
+
+            foundConsole := false
+            ; run program as console if it's an emulator
+            for key, value in globalConsoles {
+                if (inArray(item, value["emulators"])) {
+                    createConsole([key, ""], launchProgram, false)
+                    
+                    foundConsole := true
+                    break
+                }
+            }
+
+            if (!foundConsole) {
+                createProgram(item, launchProgram, false)
             }
         }
     }

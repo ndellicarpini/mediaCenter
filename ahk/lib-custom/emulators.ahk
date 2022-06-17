@@ -1,9 +1,188 @@
-; console should either start the configurator, or load default settings
-; console should check defaultOverride for different controllers/emulators
-; emuobj should hold all of the settings of the emulator & controller options
-; rom & currentController passed through
+; --- CEMU --- 
+cemuLaunch(rom) {
+    global globalRunning
 
-; default override should be based on "name" rather than rom file, that way aliases like Slippi can work
-; need some way to set platform -> emulator
+    this := globalRunning["cemu"]
 
-; STUBS FINGER LICKIN GOOD
+    Run validateDir(this.dir) . this.exe . A_Space . '"-f" "-g" "' . rom . '"', validateDir(this.dir), ((this.background) ? "Hide" : "Max")
+}
+
+; --- CITRA ---
+citraSaveState(slot) {
+    Send("{Ctrl down}")
+    SendSafe("c")
+    Send("{Ctrl up}")
+}
+
+citraLoadState(slot) {
+    Send("{Ctrl down}")
+    SendSafe("v")
+    Send("{Ctrl up}")
+}
+
+citraFastForward() {
+    Send("{Ctrl down}")
+    SendSafe("z")
+    Send("{Ctrl up}")
+}
+
+; --- DESMUME ---
+desmumeReset() {
+    Send("{Ctrl down}")
+    SendSafe("r")
+    Send("{Ctrl up}")
+}
+
+desmumeSaveState(slot) {
+    Send("{Shift down}")
+    SendSafe("{F1}")
+    Send("{Shift up}")
+}
+
+desmumeLoadState(slot) {
+   SendSafe("{F1}")
+}
+
+desmumeFastForward() {
+    global globalRunning
+
+    this := globalRunning["desmume"]
+
+    if (this.fastForwarding) {
+        Send("{Tab up}")
+    }
+    else {
+        Send("{Tab down}")
+    }
+}
+
+; --- DOLPHIN ---
+dolphinSaveState(slot) {
+    Send("{Shift down}")
+    Sleep(100)
+    SendSafe("{F1}")
+    Sleep(100)
+    Send("{Shift up}")
+}
+
+dolphinLoadState(slot) {
+    SendSafe("{F1}")
+}
+
+dolphinFastForward() {
+    global globalRunning
+
+    this := globalRunning["dolphin"]
+
+    if (this.fastForwarding) {
+        Send("{Tab up}")
+    }
+    else {
+        Send("{Tab down}")
+    }
+}
+
+; --- PCSX2 --- 
+pcsx2SaveState(slot) {
+    SendSafe("{F1}")
+}
+
+pcsx2LoadState(slot) {
+    SendSafe("{F3}")
+}
+
+; --- PPSSPP --
+ppssppReset() {
+    Send("{Ctrl down}")
+    SendSafe("b")
+    Send("{Ctrl up}")
+}
+
+ppssppSaveState(slot) {
+    SendSafe("{F1}")
+}
+
+ppssppLoadState(slot) {
+    SendSafe("{F3}")
+}
+
+ppssppFastForward() {
+    global globalRunning
+
+    this := globalRunning["ppsspp"]
+
+    if (this.fastForwarding) {
+        Send("{Tab up}")
+    }
+    else {
+        Send("{Tab down}")
+    }
+}
+
+; --- RETROARCH
+retroarchLaunch(rom) {
+    global globalRunning
+
+    this := globalRunning["retroarch"]
+    core := "cores\" . this.core . "_libretro.dll"
+
+    Run validateDir(this.dir) . this.exe . A_Space . '"-L" "' . core . '" "' . rom . '"', validateDir(this.dir), "Max"
+}
+
+retroarchSaveState(slot) {
+    SendSafe("{F2}")
+}
+
+retroarchLoadState(slot) {
+    SendSafe("{F4}")
+}
+
+retroarchRewind() {
+    global globalRunning
+
+    this := globalRunning["retroarch"]
+
+    if (this.rewinding) {
+        Send("{r up}")
+    }
+    else {
+        Send("{r down}")
+    }
+}
+
+retroarchMAMECheck() {
+    global globalRunning
+    return (globalRunning["retroarch"].console = "arcade") ? true : false
+}
+
+retroarchToggleMAMEMenu() {
+    global globalRunning
+
+    this := globalRunning["retroarch"]
+
+    this.resume()
+    Sleep(50)
+    
+    SendSafe("{Tab}")
+}
+
+; --- XEMU --- 
+xemuLaunch(rom) {
+    global globalRunning
+
+    this := globalRunning["xemu"]
+
+    Run validateDir(this.dir) . this.exe . A_Space . '"-full-screen" "-dvd_path" "' . rom . '"', validateDir(this.dir), "Max"
+}
+
+xemuResume() {
+    Send("{Ctrl down}p{Ctrl up}")
+    Sleep(85)
+    SendSafe("{Escape}")
+}
+
+xemuReset() {
+    Send("{Ctrl down}")
+    SendSafe("r")
+    Send("{Ctrl up}")
+}

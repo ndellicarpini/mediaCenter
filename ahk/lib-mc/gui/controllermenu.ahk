@@ -1,6 +1,6 @@
 global GUICONTROLLERTITLE := "AHKGUICONTROLLER"
 
-createControllerMenu() {
+guiControllerMenu() {
     global globalConfig
     global globalControllers
     global globalGuis

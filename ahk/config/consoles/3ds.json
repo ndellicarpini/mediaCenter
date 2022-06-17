@@ -1,0 +1,12 @@
+{
+    "id": "3ds",
+    "romDir": "D:\\Roms\\3DS",
+    "romNameIndex": 1,
+
+    "emulators": ["citra"],
+    "extensions": [".3ds", ".cxi"],
+
+    "romVersions": [
+        
+    ]
+}

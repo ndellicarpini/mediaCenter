@@ -1,0 +1,15 @@
+{
+    "id": "xenia",
+    "name": "Xenia",
+
+    "exe": "xenia_canary.exe",
+    "dir": "C:\\Emulators\\Xenia",
+
+    "requireFullscreen": true,
+    
+    "fullscreen": "SendSafe {F11}",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {},
+}

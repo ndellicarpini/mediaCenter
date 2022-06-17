@@ -47,7 +47,7 @@ updateLoadScreen(activate := true) {
 	
 	pauseObj := getGUI(GUIPAUSETITLE)
 	if (pauseObj) {
-		destroyPauseMenu(false)
+		destroyPauseMenu()
 	}
 
 	if (activate) {

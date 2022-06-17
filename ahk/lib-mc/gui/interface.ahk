@@ -354,18 +354,23 @@ class Interface {
 
         currGuiCount := globalGuis.Count
 
-        if (this.control2D[this.currentX][this.currentY].function != "") {
+        if (SubStr(StrLower(this.control2D[this.currentX][this.currentY].function), 1, 3) = "gui") {
             runFunction(this.control2D[this.currentX][this.currentY].function)
         }
-
-        if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount >= globalGuis.Count)) {
-            for key, value in globalGuis {
-                value.Destroy()
-                globalGuis.Delete(key)
+        else {
+            if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount >= globalGuis.Count)) {
+                for key, value in globalGuis {
+                    value.Destroy()
+                    globalGuis.Delete(key)
+                }
             }
-        }
-        else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount >= globalGuis.Count)) {
-            this.Destroy()
+            else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount >= globalGuis.Count)) {
+                this.Destroy()
+            }
+
+            if (this.control2D[this.currentX][this.currentY].function != "") {
+                runFunction(this.control2D[this.currentX][this.currentY].function)
+            }
         }
     }
 

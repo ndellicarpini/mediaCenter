@@ -5,13 +5,22 @@
 defaultHotkeys(config) {
     newHotkeys := Map()
 
+    buttonTime := (config["Hotkeys"].Has("ButtonTime")) ? config["Hotkeys"]["ButtonTime"] : 70
+
     for key in config["Hotkeys"] {
+        if (key = "ButtonTime") {
+            continue
+        }
+
         ; only add pause hotkey if pausing is enabled
-        if (StrLower(key) = "pausemenu" && config["General"].Has("EnablePause") && config["General"]["EnablePause"]) {    
-            newHotkeys[config["Hotkeys"][key]] := key
+        if (StrLower(key) = "pausemenu" && config["GUI"].Has("EnablePauseMenu") && config["GUI"]["EnablePauseMenu"]) {  
+            newHotkeys[config["Hotkeys"][key]] := Map("down", key, "time", buttonTime)
+        }
+        else if (StrLower(key) = "exitprogram") {
+            newHotkeys[config["Hotkeys"][key]] := Map("down", key, "time", buttonTime * 1.5)
         }
         else {
-            newHotkeys[config["Hotkeys"][key]] := key
+            newHotkeys[config["Hotkeys"][key]] := Map("down", key, "time", buttonTime)
         }
     }
 
@@ -73,14 +82,15 @@ optimizeHotkeys(currHotkeys) {
     }
 
     ; --- FUNCTION ---
-    cleanHotkeys := Map()
-    buttonRefs := Map()
-    modifiers := Map()
+    buttonRefs     := Map()
+    buttonRefTimes := Map()
+    cleanHotkeys   := Map()
+    modifiers      := Map()
 
     ; clean new hotkeys from program to put into proper format
     for key, value in currHotkeys {
         currModifier := checkHotkeyModifier(key)
-        currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")            
+        currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")         
 
         if (InStr(currKey, "&")) {
             addItem := ""
@@ -107,6 +117,19 @@ optimizeHotkeys(currHotkeys) {
                     else {
                         buttonRefs[refs[A_Index]].Push(cleanItem)
                     }
+
+                    if (value["time"] != "") {
+                        valueInt := Integer(value["time"])
+    
+                        if (buttonRefTimes.Has(refs[A_Index])) {
+                            if (valueInt < buttonRefTimes[refs[A_Index]]) {
+                                buttonRefTimes[refs[A_Index]] := valueInt
+                            }
+                        }
+                        else {
+                            buttonRefTimes[refs[A_Index]] := valueInt
+                        }
+                    }
                 }
             }
         }
@@ -127,6 +150,19 @@ optimizeHotkeys(currHotkeys) {
                     else {
                         buttonRefs[currItem].Push(currItem)
                     }
+
+                    if (value["time"] != "") {
+                        valueInt := Integer(value["time"])
+    
+                        if (buttonRefTimes.Has(currItem)) {
+                            if (valueInt < buttonRefTimes[currItem]) {
+                                buttonRefTimes[currItem] := valueInt
+                            }
+                        }
+                        else {
+                            buttonRefTimes[currItem] := valueInt
+                        }
+                    }
                 }
             }
         }
@@ -142,6 +178,19 @@ optimizeHotkeys(currHotkeys) {
                 }
                 else {
                     buttonRefs[currItem].Push(currItem)
+                }
+
+                if (value["time"] != "") {
+                    valueInt := Integer(value["time"])
+
+                    if (buttonRefTimes.Has(currItem)) {
+                        if (valueInt < buttonRefTimes[currItem]) {
+                            buttonRefTimes[currItem] := valueInt
+                        }
+                    }
+                    else {
+                        buttonRefTimes[currItem] := valueInt
+                    }
                 }
             }
         }
@@ -182,7 +231,8 @@ optimizeHotkeys(currHotkeys) {
     return {
         hotkeys: cleanHotkeys,
         modifiers: modifiers,
-        buttonTree: sortedButtonRefs
+        buttonTree: sortedButtonRefs,
+        buttonTimes: buttonRefTimes,
     }
 }
 
@@ -196,28 +246,28 @@ optimizeHotkeys(currHotkeys) {
 checkHotkeys(currButton, currHotkeys, port, ptr) {
     ; creates the hotkeyData in the appropriate format
     createHotkeyData(hotkey) {
-        downFunction := ""
-        upFunction   := ""
+        down := ""
+        up   := ""
+        time := ""
 
-        if (IsObject(currHotkeys.hotkeys[hotkey])) {
-            for key, value in currHotkeys.hotkeys[hotkey] {
-                if (StrLower(key) = "down") {
-                    downFunction := value
-                }
-                else if (StrLower(key) = "up") {
-                    upFunction := value
-                }
+        for key, value in currHotkeys.hotkeys[hotkey] {
+            if (StrLower(key) = "down") {
+                down := value
             }
-        }
-        else {
-            downFunction := currHotkeys.hotkeys[hotkey]
+            else if (StrLower(key) = "up") {
+                up := value
+            }
+            else if (StrLower(key) = "time") {
+                time := value
+            }
         }
 
         return {
             hotkey: StrSplit(hotkey, ["&", "|"]), 
             modifier: currHotkeys.modifiers[hotkey],
-            function: downFunction, 
-            release: upFunction, 
+            function: down,
+            release: up, 
+            time: time,
         }
     }
 

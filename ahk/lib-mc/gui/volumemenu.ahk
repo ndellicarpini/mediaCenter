@@ -4,7 +4,7 @@ global MASTERMUTE := false
 
 global CHANGEVOLUME := false
 
-createVolumeMenu() {
+guiVolumeMenu() {
     global globalConfig
     global globalRunning
     global globalGuis

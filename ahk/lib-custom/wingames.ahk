@@ -5,14 +5,6 @@
 ;  delay - delay before keypress(es)
 ;  numPress - number of times to press key
 delayedKeypress(key, delay := 2000, numPress := 1) {
-    keyDown := key . " down"
-    keyUp := key . " up"
-
-    if (SubStr(key, -1, 1) = "}") {
-        keyDown := SubStr(key, 1, StrLen(key) - 1) . " down}"
-        keyUp := SubStr(key, 1, StrLen(key) - 1) . " up}"
-    }
-
     if (delay = 0 && A_Index = 1) {
         SendKey((numPress - 1))
         return
@@ -23,9 +15,7 @@ delayedKeypress(key, delay := 2000, numPress := 1) {
     return
 
     SendKey(repeat) {
-        Send keyDown 
-        Sleep(100)
-        Send keyUp
+        SendSafe(key)
 
         if (repeat > 0) {
             SetTimer(SendKey.Bind((repeat - 1)), -1 * delay)
@@ -144,6 +134,8 @@ winGameLaunch(game, args*) {
             this.allowPause := false
             this.requireFullscreen := false
             this.customExit := "ProcessClose SorR.exe"
+        case "D:\Steam\steamapps\common\Morrowind\OpenMW 0.46.0\openmw.exe":
+            this.mouse := Map("initialPos", [0.5, 0.5])
     }
 }
 
@@ -179,8 +171,7 @@ originGameLaunch(game, args*) {
         if (WinShown("Origin")) {
             WinActivate("Origin")
             
-            Sleep(1000)
-            continue
+            Sleep(1500)
         }
 
         count += 1
@@ -210,8 +201,7 @@ amazonGameLaunch(URI, args*) {
         if (WinShown("Amazon Games")) {
             WinActivate("Amazon Games")
             
-            Sleep(1000)
-            continue
+            Sleep(1500)
         }
 
         count += 1
@@ -269,6 +259,12 @@ steamGameLaunch(URI, args*) {
             else if (Integer(args[1]) = 2) {
                 skipLauncherMouse("steamgame", "SteamLauncher.exe", [0.625, 0.39])
             }
+        case "steam://rungameid/107100": ; Bastion
+            this.requireFullscreen := false
+        case "steam://rungameid/12140", "steam://rungameid/12150", "steam://rungameid/400", "steam://rungameid/220":
+            ; Max Payne / Max Payne 2 / Portal / HL2
+            this.mouse := Map("initialPos", [0.5, 0.5])
+
     }
 }
 
@@ -321,13 +317,8 @@ winGamePostLaunch() {
                 delayedKeypress("{Enter}", 500)
             case "Clustertruck.exe": ; Clustertruck
                 delayedKeypress("{Enter}", 500)
-            case "openmw.exe", "hl2.exe", "MaxPayne.exe", "maxpayne2.exe":
-                ; Morrowind / HL2 / Portal / Max Payne 1 & 2
-                program.mouse := Map("initialPos", [0.5, 0.5])
             case "Madden19.exe": ; Madden 19
                 SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -10000)
-            case "Bastion.exe": ; Bastion
-                program.requireFullscreen := false
             case "braid.exe": ; Braid
                 if (program.checkFullscreen()) {
                     Send("!{Enter}")

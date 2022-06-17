@@ -1,0 +1,17 @@
+{
+    "id": "cemu",
+    "name": "Cemu",
+
+    "exe": "Cemu.exe",
+    "dir": "C:\\Emulators\\Cemu",
+
+    "requireFullscreen": true,
+    
+    "launch": "cemuLaunch",
+
+    "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {},
+}

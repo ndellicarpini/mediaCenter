@@ -1,6 +1,6 @@
 global GUIPAUSETITLE := "AHKGUIPAUSE"
 
-createPauseMenu() {
+guiPauseMenu() {
     global globalConfig
     global globalRunning
     global globalPrograms
@@ -67,19 +67,19 @@ createPauseMenu() {
         buttonSpacing := percentWidth(0.0097)
 
         pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
-        pauseInt.Add("Picture", "vVolume f(createVolumeMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
-        pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-        pauseInt.Add("Picture", "vMulti f(createProgramMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
-        pauseInt.Add("Picture", "vPower f(createPowerMenu) xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+        pauseInt.Add("Picture", "vVolume f(guiVolumeMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers f(guiControllerMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti f(guiProgramMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vPower f(guiPowerMenu) xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     
     }
     else {
         buttonSpacing := percentWidth(0.0257)
 
-        pauseInt.Add("Picture", "vVolume Section f(createVolumeMenu) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
-        pauseInt.Add("Picture", "vControllers f(createControllerMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-        pauseInt.Add("Picture", "vMulti f(createProgramMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
-        pauseInt.Add("Picture", "vPower f(createPowerMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+        pauseInt.Add("Picture", "vVolume Section f(guiVolumeMenu) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers f(guiControllerMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vMulti f(guiProgramMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+        pauseInt.Add("Picture", "vPower f(guiPowerMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     }
 
 
@@ -133,7 +133,7 @@ createPauseMenu() {
 ;  resume - if to resume after destroy
 ;
 ; returns null
-destroyPauseMenu(resume := true) {
+destroyPauseMenu() {
     global globalRunning
     global globalGuis
 
@@ -143,17 +143,6 @@ destroyPauseMenu(resume := true) {
     if (getGUI(GUIPAUSETITLE)) {
         SetTimer(PauseSecondTimer, 0)
         globalGuis[GUIPAUSETITLE].guiObj.Destroy()
-    }
-
-    if (resume) {
-        currProgram := getStatusParam("currProgram")
-
-        setStatusParam("pause", false)
-
-        ; set currProgram resume
-        if (currProgram != "") {
-            globalRunning[currProgram].resume()
-        }
     }
 }
 
@@ -215,6 +204,15 @@ programPauseOptions(currProgram) {
     if (currProgram.pauseOrder.Length > 0) {
         for item in currProgram.pauseOrder {
             for key, value in programOptions {
+                if (InStr(item, "?") && InStr(item, value.title)) {
+                    nameArr := StrSplit(item, "?",, 2)
+
+                    if (runFunction(nameArr[1])) {
+                        programOrder.Push(key)
+                        break
+                    }
+                }
+
                 if (item = value.title) {
                     programOrder.Push(key)
                     break

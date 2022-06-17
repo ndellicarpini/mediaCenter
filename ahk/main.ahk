@@ -39,7 +39,7 @@ Critical "Off"
 ; set dpi scaling per window
 prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
 
-setCurrentWinTitle(MAINNAME)
+SetCurrentWinTitle(MAINNAME)
 global MAINSCRIPTDIR := A_ScriptDir
 
 global globalConfig
@@ -137,7 +137,7 @@ setStatusParam("loadText", (mainConfig["GUI"].Has("DefaultLoadText")) ? mainConf
 setStatusParam("errorShow", false, mainStatus.Ptr)
 setStatusParam("errorHwnd", 0, mainStatus.Ptr)
 ; time to hold a hotkey for it to trigger
-setStatusParam("buttonTime", 70, mainStatus.Ptr)
+setStatusParam("buttonTime", (mainConfig["Hotkeys"].Has("ButtonTime")) ? mainConfig["Hotkeys"]["ButtonTime"] : 70, mainStatus.Ptr)
 ; current hotkeys
 setStatusParam("currHotkeys", Map(), mainStatus.Ptr)
 ; current active gui
@@ -150,14 +150,15 @@ setStatusParam("internalMessage", "", mainStatus.Ptr)
 mainControllers  := xInitBuffer(mainConfig["General"]["MaxXInputControllers"])
 
 
-; ----- INITIALIZE PROGRAM CONFIGS -----
+; ----- INITIALIZE PROGRAM/CONSOLE CONFIGS -----
 globalRunning  := Map()
 globalPrograms := Map()
+globalConsoles := Map()
 globalGuis     := Map()
 
 ; read program configs from ConfigDir
-if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
-    loop files validateDir(mainConfig["Programs"]["ConfigDir"]) . "*", "FR" {
+if (mainConfig["Programs"].Has("ProgramConfigDir") && mainConfig["Programs"]["ProgramConfigDir"] != "") {
+    loop files validateDir(mainConfig["Programs"]["ProgramConfigDir"]) . "*", "FR" {
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
         tempConfig.cleanAllItems(true)
 
@@ -186,6 +187,21 @@ if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir
             }
             
             globalPrograms[tempConfig.items["id"]] := tempConfig.toMap()
+        }
+        else {
+            ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
+        }
+    }
+}
+
+; read console configs from ConfigDir
+if (mainConfig["Programs"].Has("ConsoleConfigDir") && mainConfig["Programs"]["ConsoleConfigDir"] != "") {
+    loop files validateDir(mainConfig["Programs"]["ConsoleConfigDir"]) . "*", "FR" {
+        tempConfig := readConfig(A_LoopFileFullPath,, "json")
+        tempConfig.cleanAllItems(true)
+
+        if (tempConfig.items.Has("id") || tempConfig.items["id"] != "") {
+            globalConsoles[tempConfig.items["id"]] := tempConfig.toMap()
         }
         else {
             ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
@@ -265,19 +281,23 @@ loop {
     ; do something based on external message (like launching app)
     ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
     if (externalMessage.Length > 0) {
-        if (StrLower(externalMessage[1]) = "run") {
-            externalMessage.RemoveAt(1)
-            createProgram(externalMessage)
-        }
-        else if (StrLower(externalMessage[1]) = "minthenrun") {
+        if (SubStr(StrLower(externalMessage[1]), 1, 7) = "minthen") {
             currProgram := getStatusParam("currProgram")
             if (currProgram != "") {
                 globalRunning[currProgram].minimize()
                 Sleep(200)
             }
-            
+
+            externalMessage[1] := SubStr(externalMessage[1], 8)
+        }
+
+        if (StrLower(externalMessage[1]) = "run") {
             externalMessage.RemoveAt(1)
             createProgram(externalMessage)
+        }
+        else if (StrLower(externalMessage[1]) = "console") {           
+            externalMessage.RemoveAt(1)
+            createConsole(externalMessage)
         }
         else {
             runFunction(joinArray(externalMessage))
@@ -307,7 +327,7 @@ loop {
         ; update pause status & create/destroy pause menu
         if (StrLower(internalMessage) = "pausemenu") {
             if (!globalGuis.Has(GUIPAUSETITLE)) {
-                createPauseMenu()
+                guiPauseMenu()
             }
         }
 
@@ -367,17 +387,24 @@ loop {
         ; run current gui funcion
         else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
             tempArr  := StrSplit(internalMessage, A_Space)
-            tempFunc := tempArr.RemoveAt(1)
+            tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
             
-            try globalGuis[currGui].%StrReplace(tempFunc, "gui.", "")%(tempArr*)
+            try globalGuis[currGui].%tempFunc%(tempArr*)
         }
 
         ; run current program function
         else if (StrLower(SubStr(internalMessage, 1, 8)) = "program.") {
             tempArr  := StrSplit(internalMessage, A_Space)
-            tempFunc := tempArr.RemoveAt(1)
+            tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
+            
+            if (tempFunc = "pause" || tempFunc = "resume" || tempFunc = "minimize" 
+                || tempFunc = "exit" || tempFunc = "restore" || tempFunc = "launch") {
 
-            try globalRunning[currProgram].%StrReplace(tempFunc, "program.", "")%(tempArr*)
+                globalRunning[currProgram].%tempFunc%(tempArr*)
+            }
+            else {
+                SetTimer(WaitProgramResume.Bind(currProgram, tempFunc, tempArr), -50)
+            }
         }
 
         ; run function
@@ -393,22 +420,24 @@ loop {
         continue
     }
 
-    ; check that sound driver hasn't crashed
-    if (SoundGetMute()) {
-        SoundSetMute(false)
-    }
-
-    ; automatically accept firewall
-    if (bypassFirewall && WinShown("Windows Security Alert")) {
-        WinActivate("Windows Security Alert")
-        Sleep(50)
-        Send "{Enter}"
-    }
-
-    ; check that taskbar is hidden
-    if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
-        try WinHide "ahk_class Shell_TrayWnd"
-        Sleep(50)
+    if (!currSuspended) {
+        ; check that sound driver hasn't crashed
+        if (SoundGetMute()) {
+            SoundSetMute(false)
+        }
+    
+        ; automatically accept firewall
+        if (bypassFirewall && WinShown("Windows Security Alert")) {
+            WinActivate("Windows Security Alert")
+            Sleep(50)
+            Send "{Enter}"
+        }
+    
+        ; check that taskbar is hidden
+        if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
+            try WinHide "ahk_class Shell_TrayWnd"
+            Sleep(50)
+        }
     }
     
     Sleep(loopSleep)
@@ -526,7 +555,7 @@ loop {
                     }
                 }
 
-                setStatusParam("buttonTime", 25)
+                setStatusParam("buttonTime", 0)
                 hotkeySource := currGui
             }
         } 
@@ -555,8 +584,13 @@ loop {
         if (globalRunning.Has(currProgram)) {
             if (globalRunning[currProgram].exists()) {
                 if (!activeSet) {
-                    if (forceActivate && globalRunning[currProgram].hungCount = 0) {
-                        try globalRunning[currProgram].restore()
+                    if (forceActivate) {
+                        if (globalRunning[currProgram].hungCount = 0) {
+                            try globalRunning[currProgram].restore()
+                        }
+                    }
+                    else {
+                        try globalRunning[currProgram].resume()
                     }
 
                     activeSet := true
@@ -574,7 +608,7 @@ loop {
                         }
                     }
 
-                    setStatusParam("buttonTime", 70)
+                    setStatusParam("buttonTime", globalRunning[currProgram].hotkeyButtonTime)
                     hotkeySource := currProgram
                 }
             }
@@ -662,9 +696,35 @@ HandleMessage(wParam, lParam, msg, hwnd) {
     }
 
     ; force load screen to show asap on requested new program
-    if (StrLower(externalMessage[1]) = "run") {
+    if (SubStr(StrLower(externalMessage[1]), 1, 7) != "minthen") {
         setLoadScreen((mainConfig["GUI"].Has("DefaultLoadText")) ? mainConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
     }
+
+    Sleep(100)
+}
+
+; wait for current program to resume before requested program function
+WaitProgramResume(id, function, args) {
+    global globalRunning
+
+    if (!globalRunning.Has(id) || getStatusParam("currProgram") != id) {
+        return
+    }
+
+    this := globalRunning[id]
+    
+    if (!this.exists()) {
+        return
+    }
+
+    if (!this.paused) {
+        this.%function%(args*)
+    }
+    else { 
+        SetTimer(WaitProgramResume.Bind(id, function, args), -50)
+    }
+
+    return
 }
 
 ; clean shutdown of script
