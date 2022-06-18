@@ -19,17 +19,7 @@ sendMessageToMain(message, waitTime := 5000) {
 
     NumPut("Ptr", stringSize, "Ptr", StrPtr(message), stringBuffer, A_PtrSize)
 
-    if (SendMessage(MESSAGE_VAL, 0, stringBuffer,, MAINNAME,,,, waitTime) != 0) {
-        ErrorMsg(
-            (
-                "
-                Did not recieve confirmation from 
-                " MAINNAME " within " . toString(waitTime) . "ms
-                "
-            ),
-            true
-        )
-    }
+    try SendMessage(MESSAGE_VAL, 0, stringBuffer,, MAINNAME,,,, waitTime)
 }
 
 ; sends full message to main, including header & footer

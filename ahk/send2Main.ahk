@@ -1,6 +1,8 @@
 #Include lib-mc\std.ahk
 #Include lib-mc\messaging.ahk
 
+#SingleInstance Force
+
 ; check that mediacenter is actually running
 DetectHiddenWindows(true)
 if (!WinExist("MediaCenterMain")) {

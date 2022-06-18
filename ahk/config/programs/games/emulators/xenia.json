@@ -9,6 +9,9 @@
     
     "fullscreen": "SendSafe {F11}",
 
+    "pause": "xeniaPause",
+    "resume": "xeniaResume",
+
     "controls": ["Xbox Controller"],
 
     "hotkeys": {},

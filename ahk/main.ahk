@@ -243,10 +243,6 @@ if (globalConfig["Boot"]["EnableBoot"]) {
     runFunction(globalConfig["Boot"]["BootFunction"])
 }
 
-; ----- ENABLE LISTENER -----
-; message sent from send2Main
-global externalMessage := []
-
 ; enables the OnMessage listener for send2Main
 OnMessage(MESSAGE_VAL, HandleMessage)
 
@@ -277,37 +273,6 @@ loop {
     currSuspended := getStatusParam("suspendScript")
 
     ; --- CHECK MESSAGES ---
-
-    ; do something based on external message (like launching app)
-    ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
-    if (externalMessage.Length > 0) {
-        if (SubStr(StrLower(externalMessage[1]), 1, 7) = "minthen") {
-            currProgram := getStatusParam("currProgram")
-            if (currProgram != "") {
-                globalRunning[currProgram].minimize()
-                Sleep(200)
-            }
-
-            externalMessage[1] := SubStr(externalMessage[1], 8)
-        }
-
-        if (StrLower(externalMessage[1]) = "run") {
-            externalMessage.RemoveAt(1)
-            createProgram(externalMessage)
-        }
-        else if (StrLower(externalMessage[1]) = "console") {           
-            externalMessage.RemoveAt(1)
-            createConsole(externalMessage)
-        }
-        else {
-            runFunction(joinArray(externalMessage))
-        }
-
-        ; reset message after processing
-        externalMessage := []
-
-        continue
-    }
 
     internalMessage := getStatusParam("internalMessage")
     if (internalMessage != "") {
@@ -686,21 +651,42 @@ loop {
 
 ; handle when message comes in from send2Main
 HandleMessage(wParam, lParam, msg, hwnd) {
-    global externalMessage
     global globalConfig
+    global globalRunning
 
-    externalMessage := getMessage(wParam, lParam, msg, hwnd)
+    message := getMessage(wParam, lParam, msg, hwnd)
 
-    if (externalMessage.Length = 0) {
+    if (message.Length = 0) {
         return
     }
 
-    ; force load screen to show asap on requested new program
-    if (SubStr(StrLower(externalMessage[1]), 1, 7) != "minthen") {
-        setLoadScreen((mainConfig["GUI"].Has("DefaultLoadText")) ? mainConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
+    ; do something based on external message (like launching app)
+    ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
+    if (SubStr(StrLower(message[1]), 1, 7) = "minthen") {
+        currProgram := getStatusParam("currProgram")
+        if (currProgram != "") {
+            globalRunning[currProgram].minimize()
+            Sleep(200)
+        }
+
+        message[1] := SubStr(message[1], 8)
+    }
+    else {
+        setLoadScreen((globalConfig["GUI"].Has("DefaultLoadText")) ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
+        Sleep(100)
     }
 
-    Sleep(100)
+    if (StrLower(message[1]) = "run") {
+        message.RemoveAt(1)
+        createProgram(message)
+    }
+    else if (StrLower(message[1]) = "console") {           
+        message.RemoveAt(1)
+        createConsole(message)
+    }
+    else {
+        runFunction(joinArray(message))
+    }
 }
 
 ; wait for current program to resume before requested program function

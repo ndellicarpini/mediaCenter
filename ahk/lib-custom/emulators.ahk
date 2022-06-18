@@ -7,6 +7,28 @@ cemuLaunch(rom) {
     Run validateDir(this.dir) . this.exe . A_Space . '"-f" "-g" "' . rom . '"', validateDir(this.dir), ((this.background) ? "Hide" : "Max")
 }
 
+cemuPause() {
+    global globalRunning
+
+    this := globalRunning["cemu"]
+
+    this.fullscreen()
+    Sleep(100)
+
+    ProcessSuspend(this.getPID())
+}
+
+cemuResume() {
+    global globalRunning
+
+    this := globalRunning["cemu"]
+
+    ProcessResume(this.getPID())
+
+    Sleep(100)
+    this.fullscreen()
+}
+
 ; --- CITRA ---
 citraSaveState(slot) {
     Send("{Ctrl down}")
@@ -185,4 +207,21 @@ xemuReset() {
     Send("{Ctrl down}")
     SendSafe("r")
     Send("{Ctrl up}")
+}
+
+; --- XENIA ---
+xeniaPause() {
+    global globalRunning
+
+    this := globalRunning["xenia"]
+
+    ProcessSuspend(this.getPID())
+}
+
+xeniaResume() {
+    global globalRunning
+
+    this := globalRunning["xenia"]
+
+    ProcessResume(this.getPID())
 }

@@ -11,6 +11,9 @@
 
     "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
 
+    "pause": "cemuPause",
+    "resume": "cemuResume",
+
     "controls": ["Xbox Controller"],
 
     "hotkeys": {},

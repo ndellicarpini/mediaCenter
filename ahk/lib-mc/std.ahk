@@ -78,6 +78,58 @@ ProcessKill(process, includeChildren := true) {
 	Run "taskkill " . ((includeChildren) ? "/t" : "") . " /f /pid " . PID,, "Hide"
 }
 
+; suspends a running process
+;  process - process to suspend
+;
+; returns null
+ProcessSuspend(process) {
+	PID := 0
+	
+	if (IsInteger(process)) {
+		PID := process
+	}
+	else if (ProcessExist(process)) {
+		PID := WinGetPID("ahk_exe " . process)
+	}
+	else {
+		PID := WinGetPID(WinHidden(process))
+	}
+
+	handle := DllCall("OpenProcess", "UInt", 0x1F0FFF, "Int", 0, "Int", PID)
+	if (!handle) {
+		return
+	}
+
+	DllCall("ntdll\NtSuspendProcess", "Int", handle)
+	DllCall("CloseHandle", "Int", handle)
+}
+
+; resumes a suspended process
+;  process - process to resume
+;
+; returns null
+ProcessResume(process) {
+	PID := 0
+	
+	if (IsInteger(process)) {
+		PID := process
+	}
+	else if (ProcessExist(process)) {
+		PID := WinGetPID("ahk_exe " . process)
+	}
+	else {
+		PID := WinGetPID(WinHidden(process))
+	}
+
+	handle := DllCall("OpenProcess", "UInt", 0x1F0FFF, "Int", 0, "Int", PID)
+	if (!handle) {
+		return
+	}
+
+	DllCall("ntdll\NtResumeProcess", "Int", handle)
+	DllCall("CloseHandle", "Int", handle)
+}
+
 ; returns the winexist of the window only if the window is not hidden
 ;  window - window to check based on WinTitle
 ;
