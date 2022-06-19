@@ -69,10 +69,10 @@ class Interface {
         ; add hotkeys for moving selection around gui
         ; yes these probably shouldn't be hardcoded
         if (enableAnalog) {
-            this.hotkeys["[REPEAT]LSY>0.2"] := "gui.up"
-            this.hotkeys["[REPEAT]LSY<-0.2"]  := "gui.down"
-            this.hotkeys["[REPEAT]LSX<-0.2"] := "gui.left"
-            this.hotkeys["[REPEAT]LSX>0.2"]  := "gui.right"
+            this.hotkeys["[REPEAT]LSY>0.4"] := "gui.up"
+            this.hotkeys["[REPEAT]LSY<-0.4"]  := "gui.down"
+            this.hotkeys["[REPEAT]LSX<-0.4"] := "gui.left"
+            this.hotkeys["[REPEAT]LSX>0.4"]  := "gui.right"
         }
 
         this.hotkeys["[REPEAT]DU"] := "gui.up"

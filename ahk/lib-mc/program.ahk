@@ -1032,7 +1032,7 @@ createProgram(params, launchProgram := true, setCurrent := true, customAttribute
 
             ; check if program or program w/ same name exists
             for key2, value2 in globalRunning {
-                if ((key = key2 || value["name"] = value2.name) && value2.exists()) {
+                if (key = key2 || value["name"] = value2.name) {
                     ; just set the running program as current
                     if (setCurrent || launchProgram) {
                         setCurrentProgram(key2)
@@ -1164,58 +1164,12 @@ checkAllPrograms() {
         globalRunning.Delete(item)
     }
 
-    if (globalConfig["Programs"].Has("Required") && globalConfig["Programs"]["Required"] != "") {
-        checkRequiredPrograms()
-    }
-
     if (globalConfig["Programs"].Has("Default") && globalConfig["Programs"]["Default"] != "" && numForeground = 0) {
         if (!globalPrograms.Has(globalConfig["Programs"]["Default"])) {
             ErrorMsg("Default Program" . globalConfig["Programs"]["Default"] . " has no config", true)
         }
 
         createProgram(globalConfig["Programs"]["Default"])
-    }
-}
-
-; checks & updates the running list of programs specifically for required programs
-;
-; returns null
-checkRequiredPrograms() {
-    global globalConfig
-    global globalRunning
-    global globalPrograms
-    global globalConsoles
-
-    for item in toArray(globalConfig["Programs"]["Required"]) {
-        if (!globalPrograms.Has(item)) {
-            ErrorMsg("Required Program " . item . " has no config", true)
-            continue
-        }
-
-        launchProgram := false
-        if (!globalRunning.Has(item)) {
-            if ((globalPrograms[item].Has("exe") && checkEXE(globalPrograms[item]["exe"])) || (globalPrograms[item].Has("wndw") && checkWNDW(globalPrograms[item]["wndw"]))) {                
-                launchProgram := false
-            }
-            else {
-                launchProgram := true
-            }
-
-            foundConsole := false
-            ; run program as console if it's an emulator
-            for key, value in globalConsoles {
-                if (inArray(item, value["emulators"])) {
-                    createConsole([key, ""], launchProgram, false)
-                    
-                    foundConsole := true
-                    break
-                }
-            }
-
-            if (!foundConsole) {
-                createProgram(item, launchProgram, false)
-            }
-        }
     }
 }
 

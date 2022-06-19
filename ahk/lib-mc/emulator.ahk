@@ -199,7 +199,7 @@ createConsole(params, launchProgram := true, setCurrent := true, customAttribute
                 if (StrLower(key2) = StrLower(emuProgram)) {
                     ; check if program or program w/ same name exists
                     for key3, value3 in globalRunning {
-                        if ((key2 = key3 || value2["name"] = value3.name) && value3.exists()) {
+                        if (key2 = key3 || value2["name"] = value3.name) {
                             ; just set the running program as current
                             if (setCurrent || launchProgram) {
                                 ; reset game if different rom requested

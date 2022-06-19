@@ -325,30 +325,6 @@ loop {
             }
         }
 
-        ; kills the current error or program or itself
-        else if (StrLower(internalMessage) = "nuclear") {
-            killed := false
-
-            if (!killed && getStatusParam("errorShow")) {
-                try {
-                    errorPID := WinGetPID("ahk_id " getStatusParam("errorHwnd"))
-                    ProcessKill(errorPID)
-
-                    killed := true
-                }
-            }
-
-            if (!killed && currProgram != "") {
-                ProcessKill(globalRunning[currProgram].getPID())
-                killed := true
-            }
-
-            ; TODO - gui notification that drastic measures have been taken?
-            if (!killed) {
-                ProcessKill(MAINNAME)
-            }
-        }
-
         ; run current gui funcion
         else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
             tempArr  := StrSplit(internalMessage, A_Space)
@@ -660,10 +636,11 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         return
     }
 
+    currProgram := getStatusParam("currProgram")
+
     ; do something based on external message (like launching app)
     ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
     if (SubStr(StrLower(message[1]), 1, 7) = "minthen") {
-        currProgram := getStatusParam("currProgram")
         if (currProgram != "") {
             globalRunning[currProgram].minimize()
             Sleep(200)
@@ -683,6 +660,17 @@ HandleMessage(wParam, lParam, msg, hwnd) {
     else if (StrLower(message[1]) = "console") {           
         message.RemoveAt(1)
         createConsole(message)
+    }
+    else if (StrLower(message[1]) = "nuclear") {
+        if (getStatusParam("errorShow")) {
+            try ProcessKill(WinGetPID("ahk_id " getStatusParam("errorHwnd")))
+        }
+
+        if (currProgram != "" && globalRunning[currProgram].exists()) {
+            try ProcessKill(globalRunning[currProgram].getPID())
+        }
+
+        ProcessKill(MAINNAME)
     }
     else {
         runFunction(joinArray(message))

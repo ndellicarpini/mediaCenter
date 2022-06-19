@@ -115,6 +115,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
         #Include lib-mc\hotkeys.ahk
+        #Include lib-mc\messaging.ahk
 
         #Include lib-mc\mt\status.ahk
 
@@ -300,8 +301,9 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             if (xCheckStatus(hotkeyData.hotkey, port, globalControllers)) {
                 if (status = currStatus) {
                     if (hotkeyData.function = 'ExitProgram') {
-                        if (loopCount > 150) {
-                            sendHotkey('Nuclear', true)
+                        if (loopCount > 120) {
+                            sendListToMain(['Nuclear'])
+                            Sleep(1000)
                         }
                     }
                     else if (hotkeyData.modifier = 'repeat') {

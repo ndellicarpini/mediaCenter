@@ -12,6 +12,8 @@ boot() {
             Sleep(50)
         }
 
+        createProgram("steam", true, false)
+
         resetLoadScreen()
     }
 }
