@@ -231,12 +231,17 @@ if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("En
 
 ; ----- START CONTROLLER THEAD -----
 ; this thread just updates the status of each controller in a loop
-controllerThreadRef := controllerThread(ObjShare(mainConfig), mainControllers.Ptr)
+controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
 
 ; ----- START HOTKEY THREAD -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), mainStatus.Ptr, mainControllers.Ptr)
+hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
+
+; ----- START FUNCTION THREAD -----
+; this thread runs functions requested as 'threadedFunction' in a separate thread
+; this is a sacrificial thread, used for functions that have a high chance of hanging the script
+functionThreadRef := functionThread(ObjShare(mainConfig), globalStatus)
 
 ; ----- BOOT -----
 if (globalConfig["Boot"]["EnableBoot"]) {
@@ -598,21 +603,36 @@ loop {
         statusBackup()
     }
 
-    ; --- CHECK THREADS ---
-    try {
-        controllerThreadRef.FuncPtr("")
-    }
-    catch {
-        controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
-    }
-    try {
-        hotkeyThreadRef.FuncPtr("")
-    }
-    catch {
-        hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
-    }
-
     if (delayCount > maxDelayCount) {
+        ; check that controller thread is running
+        controllerThreadHWND := WinHidden("controllerThread")
+        if (!controllerThreadHWND) {
+            controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
+        }
+        else if (DllCall("IsHungAppWindow", "Ptr", controllerThreadHWND)) {
+            ProcessKill(controllerThreadHWND)
+        }
+
+        ; check that hotkey thread is running
+        hotkeyThreadHWND := WinHidden("hotkeyThread")
+        if (!hotkeyThreadHWND) {
+            hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
+        }
+        else if (DllCall("IsHungAppWindow", "Ptr", hotkeyThreadHWND)) {
+            ProcessKill(hotkeyThreadHWND)
+            setStatusParam("internalMessage", "")
+        }
+
+        ; check that function thread is running
+        functionThreadHWND := WinHidden("functionThread")
+        if (!functionThreadHWND) {
+            functionThreadRef := functionThread(ObjShare(mainConfig), globalStatus)
+        }
+        else if (DllCall("IsHungAppWindow", "Ptr", functionThreadHWND)) {
+            ProcessKill(functionThreadHWND)
+            setStatusParam("threadedFunction", "")
+        }
+
         ; check that looper is running
         if (forceMaintain && !WinHidden(MAINLOOP)) {
             Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
@@ -711,6 +731,7 @@ ShutdownScript() {
     ; tell the threads to close
     controllerThreadRef.exitThread := true
     hotkeyThreadRef.exitThread     := true
+    functionThreadRef.exitThread   := true
 
     Sleep(100)
     

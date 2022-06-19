@@ -710,7 +710,13 @@ runFunction(text, params := "") {
 		
 		; handle function param strings w/ spaces
 		if (!stringType) {
-			if (SubStr(item, 1, 1) = '"') {
+			if (SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"') {
+				funcArr.Push(Trim(item, '"'))
+			}
+			else if (SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'") {
+				funcArr.Push(Trim(item, "'"))
+			}
+			else if (SubStr(item, 1, 1) = '"') {
 				tempString .= LTrim(item, '"') . A_Space
 				stringType := '"'
 			}

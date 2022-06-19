@@ -290,14 +290,16 @@ class Program {
                 maxCount := 150
                 ; try to maximize window
                 while (WinGetMinMax(window) = -1 && count < maxCount) {
-                    WinMaximize(window)
-    
+                    setStatusParam("threadedFunction", 'WinMaximize "' . window . '"')
+
                     Sleep(100)
                     count += 1
                 }
     
-                WinMoveTop(window)
-                Sleep(100)
+                if (!WinActive(window)) {
+                    setStatusParam("threadedFunction", 'WinMoveTop "' . window . '"')
+                    Sleep(100)
+                }
             }
         }
         
@@ -306,7 +308,7 @@ class Program {
             maxCount := 150
             ; try to activate window
             while (!WinActive(window) && count < maxCount) {
-                WinActivate(window)
+                setStatusParam("threadedFunction", 'WinActivate "' . window . '"')
                 
                 Sleep(100)
                 count += 1
@@ -412,7 +414,7 @@ class Program {
             }
         }
 
-        WinMinimize(this.getWND())
+        setStatusParam("threadedFunction", 'WinMinimize "' . this.getWND() . '"')
     }
 
     ; fullscreen window if not fullscreened
@@ -434,9 +436,10 @@ class Program {
         }
 
         ; remove border around window
-        WinSetStyle(-0xC40000, window)
-        WinSetExStyle(-0x00000200, window)
-        
+        setStatusParam("threadedFunction", 'WinSetStyle ' . -0xC40000 . ' "' . window . '"')
+        Sleep(50)
+
+        setStatusParam("threadedFunction", 'WinSetExStyle ' . -0x00000200 . ' "' . window . '"')        
         Sleep(50)
 
         ; TODO - GET BETTER WAY TO CALCULATE FULLSCREEN ASPECT RATIO
@@ -462,7 +465,9 @@ class Program {
         newW := validWidths[aspectIndex]  * multiplier
         newH := validHeights[aspectIndex] * multiplier
 
-        WinMove(MONITORX + ((MONITORW - newW) / 2), MONITORY + ((MONITORH - newH) / 2), newW, newH, window)
+        setStatusParam("threadedFunction", 'WinMove '  
+            . MONITORX + ((MONITORW - newW) / 2) . ' ' . MONITORY + ((MONITORH - newH) / 2) 
+            . ' ' . newW . ' ' . newH . ' "' . window . '"')  
 
         Sleep(50)
         this.checkFullscreen()
@@ -681,7 +686,7 @@ class Program {
             }
         }
         else {
-            WinClose(window)
+            setStatusParam("threadedFunction", 'WinClose "' . window . '"')
         }
 
         try {
@@ -694,7 +699,7 @@ class Program {
                 if (this.customExit = "") {
                     ; attempt to winclose again @ 10s
                     if (count = 100 && WinShown(window)) {
-                        WinClose(window)
+                        setStatusParam("threadedFunction", 'WinClose "' . window . '"')
                     }
     
                     ; attempte to processclose @ 15s

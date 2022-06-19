@@ -342,3 +342,55 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 
     return ref
 }
+
+; run function in separate thread
+;  text - string name of function to run
+;  params - spread args to pass to function
+;
+; returns null
+functionThread(globalConfig, globalStatus) {
+    ref := ThreadObj(
+    (
+        "
+            #Include lib-mc\std.ahk
+
+            #Include lib-mc\mt\status.ahk
+            
+            SetCurrentWinTitle('functionThread')
+
+            ; --- GLOBAL VARIABLES ---
+
+            global exitThread := false
+
+            ; variables are global to be accessed in timers
+            global globalConfig      := ObjShare(" globalConfig ")
+            global globalStatus      := " globalStatus "
+
+            loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 3)
+
+            loop {
+                function := getStatusParam('threadedFunction')
+
+                if (function != '') {
+                    runFunction(function)
+
+                    if (function = getStatusParam('threadedFunction')) {
+                        setStatusParam('threadedFunction', '')
+                    }
+                }
+
+                ; close if main is no running
+                if (!WinHidden(MAINNAME) || exitThread) {
+                    ExitApp()
+                }
+
+                Sleep(loopSleep)
+            }
+        "
+    ))
+
+    global MAINSCRIPTDIR
+    SetWorkingDir(MAINSCRIPTDIR)
+
+    return ref
+}
