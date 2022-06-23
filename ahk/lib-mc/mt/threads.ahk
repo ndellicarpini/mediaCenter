@@ -115,7 +115,6 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
         #Include lib-mc\hotkeys.ahk
-        #Include lib-mc\messaging.ahk
 
         #Include lib-mc\mt\status.ahk
 
@@ -302,7 +301,16 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                 if (status = currStatus) {
                     if (hotkeyData.function = 'ExitProgram') {
                         if (loopCount > 120) {
-                            sendListToMain(['Nuclear'])
+                            ; A_ScriptDir is the location of the dlls
+                            ; need to trim out bin\x64w
+                            directory := ''
+                            
+                            dirArr := StrSplit(A_ScriptDir, '\')
+                            loop (dirArr.Length - 2) {
+                                directory .= dirArr[A_Index] . '\'
+                            }
+
+                            Run A_AhkPath . A_Space . 'send2Main.ahk Nuclear', directory, 'Hide'
                             Sleep(1000)
                         }
                     }

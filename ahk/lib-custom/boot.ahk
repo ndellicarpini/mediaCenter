@@ -11,9 +11,8 @@ boot() {
             count += 1
             Sleep(50)
         }
-
-        createProgram("steam", true, false)
-
-        resetLoadScreen()
     }
+
+    createProgram("steam", true, false)
+    resetLoadScreen()
 }

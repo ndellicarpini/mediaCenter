@@ -232,16 +232,19 @@ if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("En
 ; ----- START CONTROLLER THEAD -----
 ; this thread just updates the status of each controller in a loop
 controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
+Sleep(100)
 
 ; ----- START HOTKEY THREAD -----
 ; this thread reads controller & status to determine what actions needing to be taken
 ; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
 hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
+Sleep(100)
 
 ; ----- START FUNCTION THREAD -----
 ; this thread runs functions requested as 'threadedFunction' in a separate thread
 ; this is a sacrificial thread, used for functions that have a high chance of hanging the script
 functionThreadRef := functionThread(ObjShare(mainConfig), globalStatus)
+Sleep(100)
 
 ; ----- BOOT -----
 if (globalConfig["Boot"]["EnableBoot"]) {
@@ -608,6 +611,7 @@ loop {
         controllerThreadHWND := WinHidden("controllerThread")
         if (!controllerThreadHWND) {
             controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
+            Sleep(100)
         }
         else if (DllCall("IsHungAppWindow", "Ptr", controllerThreadHWND)) {
             ProcessKill(controllerThreadHWND)
@@ -616,21 +620,23 @@ loop {
         ; check that hotkey thread is running
         hotkeyThreadHWND := WinHidden("hotkeyThread")
         if (!hotkeyThreadHWND) {
+            setStatusParam("internalMessage", "")
             hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
+            Sleep(100)
         }
         else if (DllCall("IsHungAppWindow", "Ptr", hotkeyThreadHWND)) {
             ProcessKill(hotkeyThreadHWND)
-            setStatusParam("internalMessage", "")
         }
 
         ; check that function thread is running
         functionThreadHWND := WinHidden("functionThread")
         if (!functionThreadHWND) {
+            setStatusParam("threadedFunction", "")
             functionThreadRef := functionThread(ObjShare(mainConfig), globalStatus)
+            Sleep(100)
         }
         else if (DllCall("IsHungAppWindow", "Ptr", functionThreadHWND)) {
             ProcessKill(functionThreadHWND)
-            setStatusParam("threadedFunction", "")
         }
 
         ; check that looper is running
@@ -690,7 +696,9 @@ HandleMessage(wParam, lParam, msg, hwnd) {
             try ProcessKill(globalRunning[currProgram].getPID())
         }
 
-        ProcessKill(MAINNAME)
+        ; need to think about if this is necessary?
+        ; i mean if this is working main isn't crashed right?
+        ; ProcessKill(MAINNAME)
     }
     else {
         runFunction(joinArray(message))
@@ -725,16 +733,17 @@ WaitProgramResume(id, function, args) {
 ShutdownScript() {
     ; disable message listener
     OnMessage(MESSAGE_VAL, HandleMessage, 1)
-    
+
     setLoadScreen("Please Wait...")
 
     ; tell the threads to close
-    controllerThreadRef.exitThread := true
-    hotkeyThreadRef.exitThread     := true
     functionThreadRef.exitThread   := true
-
     Sleep(100)
-    
+    hotkeyThreadRef.exitThread     := true
+    Sleep(100)
+    controllerThreadRef.exitThread := true
+    Sleep(100)
+
     dllFreeLib(processLib)
     
     DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
