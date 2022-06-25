@@ -134,8 +134,6 @@ winGameLaunch(game, args*) {
             this.allowPause := false
             this.requireFullscreen := false
             this.customExit := "ProcessClose SorR.exe"
-        case "D:\Steam\steamapps\common\Morrowind\OpenMW 0.46.0\openmw.exe":
-            this.mouse := Map("initialPos", [0.5, 0.5])
     }
 }
 
@@ -319,6 +317,8 @@ winGamePostLaunch() {
                 delayedKeypress("{Enter}", 500)
             case "Madden19.exe": ; Madden 19
                 SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -10000)
+            case "openmw.exe": ; Madden 19
+                SetTimer(MouseMove.Bind(percentWidth(0.5, false), percentHeight(0.5, false)), -2000)
             case "braid.exe": ; Braid
                 if (program.checkFullscreen()) {
                     Send("!{Enter}")
@@ -329,7 +329,7 @@ winGamePostLaunch() {
                 while (!program.checkFullscreen()) {
                     Send("{F4}")
                     Sleep(500)
-                }
+                }            
         }
     }
 }

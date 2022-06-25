@@ -6,10 +6,10 @@ controllerThread(globalConfig, globalControllers) {
     ref := ThreadObj(
     (
         "
+        #SingleInstance Force
+
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
-        
-        SetCurrentWinTitle('controllerThread')
 
         global exitThread := false
         
@@ -94,7 +94,7 @@ controllerThread(globalConfig, globalControllers) {
             Sleep(loopSleep)
         }
         "
-    ))
+    ),, "controllerThread")
 
     global MAINSCRIPTDIR
     SetWorkingDir(MAINSCRIPTDIR)
@@ -112,15 +112,16 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
     ref := ThreadObj(
     (
         "
+        #SingleInstance Force
+
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
         #Include lib-mc\hotkeys.ahk
 
         #Include lib-mc\mt\status.ahk
 
-        SetCurrentWinTitle('hotkeyThread')
-
         SetKeyDelay 50, 100
+        CoordMode 'Mouse', 'Screen'
         Critical 'Off'
 
         ; --- GLOBAL VARIABLES ---
@@ -132,13 +133,19 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         global globalStatus      := " globalStatus "
         global globalControllers := " globalControllers "
 
-        ; time user needs to hold button to trigger hotkey function
-        global buttonTime  := getStatusParam('buttonTime')
         global currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
+        global buttonTime  := getStatusParam('buttonTime')
 
-        global hotkeyBuffer  := []
-        global runningTimers := []
-        global currStatus    := ''
+        global hotkeyBuffer := []
+        global hotkeyTimers := []
+
+        global mouseStatus := Map('lclick', 0, 'rclick', 0, 'mclick', 0)
+        global hscrollCount  := 0
+        global vscrollCount  := 0
+
+        global currStatus := ''
+
+        ; --- FUNCTIONS ---
 
         ; removes timer id from running timers
         ;  port - port of controller
@@ -146,11 +153,11 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
         ;
         ; returns null
         removeTimer(port, button) {
-            global runningTimers
+            global hotkeyTimers
 
-            loop runningTimers.Length {
-                if (runningTimers[A_Index] = port . button) {
-                    runningTimers.RemoveAt(A_Index)
+            loop hotkeyTimers.Length {
+                if (hotkeyTimers[A_Index] = port . button) {
+                    hotkeyTimers.RemoveAt(A_Index)
                     break
                 }
             }
@@ -195,6 +202,25 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
         }
 
+        ; adjusts an axis value to be 0-1.0 respecting deadzone
+        ;  axisVal - value of axis
+        ;  deadzone - size of deadzone
+        ;
+        ; returns adjusted value
+        adjustAxis(axisVal, deadzone) {
+            if (axisVal > 0) {
+                return ((axisVal - deadzone) * (1 / (1 - deadzone)))
+            }
+            else if (axisVal < 0) {
+                return ((axisVal + deadzone) * (1 / (1 - deadzone)))
+            }
+            else {
+                return 0
+            }
+        }
+
+        mouseTimerRunning := false
+
         maxControllers := globalConfig['General']['MaxXInputControllers']
         loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 4)
 
@@ -210,10 +236,26 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                 continue
             }
 
+            ; enable/disable the mouse listener timer if the program uses the mouse
+            if (getStatusParam('currMouse').Count > 0) {
+                if (!mouseTimerRunning) {
+                    SetTimer(MouseTimer, 15)
+                    mouseTimerRunning := true
+                }
+            }
+            else {
+                if (mouseTimerRunning) {
+                    hscrollCount := 0
+                    vscrollCount := 0
+
+                    SetTimer(MouseTimer, 0)
+                    mouseTimerRunning := false
+                }
+            }
+            
             currHotkeys := optimizeHotkeys(getStatusParam('currHotkeys'))
             buttonTime  := getStatusParam('buttonTime')
 
-            ; check hotkeys
             for key, value in currHotkeys.buttonTree {
                 currButton := key
                 currButtonTime := (currHotkeys.buttonTimes.Has(currButton)) ? currHotkeys.buttonTimes[currButton] : buttonTime
@@ -221,7 +263,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                 loop maxControllers {
                     currController := A_Index - 1
 
-                    if (!inArray(currController . currButton, runningTimers) && xCheckStatus(currButton, currController, globalControllers)) {                       
+                    if (!inArray(currController . currButton, hotkeyTimers) && xCheckStatus(currButton, currController, globalControllers)) {                       
                         if (currButtonTime > 0) {
                             SetTimer(ButtonTimer.Bind(currButton, currButtonTime, currController, loopStatus), (-1 * currButtonTime))
                         }
@@ -229,7 +271,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                             ButtonTimer(currButton, currButtonTime, currController, loopStatus)
                         }
 
-                        runningTimers.Push(currController . currButton)
+                        hotkeyTimers.Push(currController . currButton)
                     }
                 }
             }
@@ -258,7 +300,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             global buttonTime
 
             global hotkeyBuffer
-            global runningTimers
+            global hotkeyTimers
 
             if (!xCheckStatus(button, port, globalControllers)) {
                 removeTimer(port, button)
@@ -292,7 +334,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             global globalControllers
 
             global hotkeyBuffer
-            global runningTimers
+            global hotkeyTimers
             global currStatus
 
             Critical 'On'
@@ -342,8 +384,202 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             return
         }
 
+        MouseTimer() {
+            global mouseStatus
+            global hscrollCount
+            global vscrollCount
+
+            Critical 'Off'
+
+            currMouse := getStatusParam('currMouse')
+            deadzone := (currMouse.Has('deadzone')) ? currMouse['deadzone'] : 0.2
+            
+            xvel    := 0
+            yvel    := 0
+            hscroll := 0
+            vscroll := 0
+
+            MouseGetPos(&xpos, &ypos)
+            monitorW := 0
+
+            ; get width of monitor mouse is in to keep motion smooth between monitors
+            loop MonitorGetCount() {
+                MonitorGet(A_Index, &ML, &MT, &MR, &MB)
+
+                if (xpos >= ML && xpos <= MR && ypos >= MT && ypos <= MB) {
+                    monitorW := Floor(Abs(MR - ML))
+                    break
+                }
+            }
+
+            checkX := currMouse.Has('x')
+            checkY := currMouse.Has('y')
+            checkH := currMouse.Has('hscroll')
+            checkV := currMouse.Has('vscroll')
+
+            checkL := currMouse.Has('lclick')
+            checkR := currMouse.Has('rclick')
+            checkM := currMouse.Has('mclick')
+
+            loop maxControllers {
+                currController := A_Index - 1
+                if (!xGetConnected(currController, globalControllers)) {
+                    continue
+                }
+
+                currStatusData := xGetPortBuffer(currController, globalControllers)
+
+                ; check mouse move x axis
+                if (checkX) {
+                    currAxis := currMouse['x']
+                    inverted := false
+
+                    if (SubStr(currAxis, 1, 1) = '-') {
+                        currAxis := SubStr(currAxis, 2)
+                        inverted := true
+                    }
+
+                    axis := xCheckAxis(currStatusData, currAxis)
+                    if (Abs(axis) > deadzone) {
+                        xvel := (inverted) ? (xvel - axis) : (xvel + axis)
+                    }
+                }
+                ; check mouse move y axis
+                if (checkY) {
+                    currAxis := currMouse['y']
+                    inverted := false
+
+                    if (SubStr(currAxis, 1, 1) = '-') {
+                        currAxis := SubStr(currAxis, 2)
+                        inverted := true
+                    }
+
+                    axis := xCheckAxis(currStatusData, currAxis)
+                    if (Abs(axis) > deadzone) {
+                        yvel := (inverted) ? (yvel - axis) : (yvel + axis)
+                    }
+                }
+
+                ; check mouse horizontal scroll axis
+                if (checkH) {
+                    currAxis := currMouse['hscroll']
+                    inverted := false
+
+                    if (SubStr(currAxis, 1, 1) = '-') {
+                        currAxis := SubStr(currAxis, 2)
+                        inverted := true
+                    }
+
+                    axis := xCheckAxis(currStatusData, currAxis)
+                    if (Abs(axis) > deadzone) {
+                        hscroll := (inverted) ? (hscroll - axis) : (hscroll + axis)
+                    }
+                }
+                ; check mouse vertical scroll axis
+                if (checkV) {
+                    currAxis := currMouse['vscroll']
+                    inverted := false
+
+                    if (SubStr(currAxis, 1, 1) = '-') {
+                        currAxis := SubStr(currAxis, 2)
+                        inverted := true
+                    }
+
+                    axis := xCheckAxis(currStatusData, currAxis)
+                    if (Abs(axis) > deadzone) {
+                        vscroll := (inverted) ? (vscroll - axis) : (vscroll + axis)
+                    }
+                }
+
+                ; check left click button
+                if (checkL) {
+                    if (xCheckButton(currStatusData, currMouse['lclick'])) {
+                        if (!(mouseStatus['lclick'] & (2 ** currController))) {
+                            MouseClick('Left',,,,, 'D')
+                            mouseStatus['lclick'] := mouseStatus['lclick'] | (2 ** currController)
+                        }
+                    }
+                    else {
+                        if (mouseStatus['lclick'] & (2 ** currController)) {
+                            MouseClick('Left',,,,, 'U')
+                            mouseStatus['lclick'] := mouseStatus['lclick'] ^ (2 ** currController)
+                        }
+                    }
+                }
+                ; check right click button
+                if (checkR) {
+                    if (xCheckButton(currStatusData, currMouse['rclick'])) {
+                        if (!(mouseStatus['rclick'] & (2 ** currController))) {
+                            MouseClick('Right',,,,, 'D')
+                            mouseStatus['rclick'] := mouseStatus['rclick'] | (2 ** currController)
+                        }
+                    }
+                    else {
+                        if (mouseStatus['rclick'] & (2 ** currController)) {
+                            MouseClick('Right',,,,, 'U')
+                            mouseStatus['rclick'] := mouseStatus['rclick'] ^ (2 ** currController)
+                        }
+                    }
+                }
+                ; check middle click button
+                if (checkM) {
+                    if (xCheckButton(currStatusData, currMouse['mclick'])) {
+                        if (!(mouseStatus['mclick'] & (2 ** currController))) {
+                            MouseClick('Middle',,,,, 'D')
+                            mouseStatus['mclick'] := mouseStatus['mclick'] | (2 ** currController)
+                        }
+                    }
+                    else {
+                        if (mouseStatus['mclick'] & (2 ** currController)) {
+                            MouseClick('Middle',,,,, 'U')
+                            mouseStatus['mclick'] := mouseStatus['mclick'] ^ (2 ** currController)
+                        }
+                    }
+                }
+            }
+
+            ; move the mouse
+            xvel := Round((adjustAxis(xvel, deadzone) * (0.015 * monitorW)))
+            yvel := Round((adjustAxis(yvel, deadzone) * (0.015 * monitorW)))
+
+            if (xvel != 0 || yvel != 0) {
+                MouseMove(xvel, yvel,, 'R')
+            }
+            
+            ; only send scroll actions every x timer cycles
+            ; otherwise it will scroll way too fast
+            hscroll := Round(adjustAxis(hscroll, deadzone) * 3)
+            vscroll := Round(adjustAxis(vscroll, deadzone) * 3)
+            
+            if (Abs(hscrollCount * hscroll) > 6) {
+                if (hscroll > 0) {
+                    MouseClick('WheelRight')
+                }
+                else if (hscroll < 0) {
+                    MouseClick('WheelLeft')
+                }
+                
+                hscrollCount := 0
+            }
+            if (Abs(vscrollCount * vscroll) > 6) {
+                if (vscroll > 0) {
+                    MouseClick('WheelDown')
+                }
+                else if (vscroll < 0) {
+                    MouseClick('WheelUp')
+                }
+
+                vscrollCount := 0
+            }
+
+            hscrollCount += 1
+            vscrollCount += 1
+
+            return
+        }
+
         "
-    ))
+    ),, "hotkeyThread")
 
     global MAINSCRIPTDIR
     SetWorkingDir(MAINSCRIPTDIR)
@@ -360,42 +596,41 @@ functionThread(globalConfig, globalStatus) {
     ref := ThreadObj(
     (
         "
-            #Include lib-mc\std.ahk
+        #SingleInstance Force
+        
+        #Include lib-mc\std.ahk
+        #Include lib-mc\mt\status.ahk
 
-            #Include lib-mc\mt\status.ahk
-            
-            SetCurrentWinTitle('functionThread')
+        ; --- GLOBAL VARIABLES ---
 
-            ; --- GLOBAL VARIABLES ---
+        global exitThread := false
 
-            global exitThread := false
+        ; variables are global to be accessed in timers
+        global globalConfig      := ObjShare(" globalConfig ")
+        global globalStatus      := " globalStatus "
 
-            ; variables are global to be accessed in timers
-            global globalConfig      := ObjShare(" globalConfig ")
-            global globalStatus      := " globalStatus "
+        loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 3)
 
-            loopSleep := Round(globalConfig['General']['AvgLoopSleep'] / 3)
+        loop {
+            function := getStatusParam('threadedFunction')
 
-            loop {
-                function := getStatusParam('threadedFunction')
+            if (function != '') {
+                try runFunction(function)
 
-                if (function != '') {
-                    runFunction(function)
-
-                    if (function = getStatusParam('threadedFunction')) {
-                        setStatusParam('threadedFunction', '')
-                    }
+                if (function = getStatusParam('threadedFunction')) {
+                    setStatusParam('threadedFunction', '')
                 }
-
-                ; close if main is no running
-                if (!WinHidden(MAINNAME) || exitThread) {
-                    ExitApp()
-                }
-
-                Sleep(loopSleep)
             }
+
+            ; close if main is no running
+            if (!WinHidden(MAINNAME) || exitThread) {
+                ExitApp()
+            }
+
+            Sleep(loopSleep)
+        }
         "
-    ))
+    ),, "functionThread")
 
     global MAINSCRIPTDIR
     SetWorkingDir(MAINSCRIPTDIR)

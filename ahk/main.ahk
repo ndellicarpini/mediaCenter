@@ -140,6 +140,8 @@ setStatusParam("errorHwnd", 0, mainStatus.Ptr)
 setStatusParam("buttonTime", (mainConfig["Hotkeys"].Has("ButtonTime")) ? mainConfig["Hotkeys"]["ButtonTime"] : 70, mainStatus.Ptr)
 ; current hotkeys
 setStatusParam("currHotkeys", Map(), mainStatus.Ptr)
+; current mouse
+setStatusParam("currMouse", Map(), mainStatus.Ptr)
 ; current active gui
 setStatusParam("currGui", "", mainStatus.Ptr)
 ; some function that should be digested by a thread
@@ -393,7 +395,9 @@ loop {
 
     activeSet := false
     hotkeySource := ""
+
     currHotkeys := defaultHotkeys(globalConfig)
+    currMouse   := Map()
 
     ; --- CHECK OVERRIDE ---
     currError := getStatusParam("errorShow")
@@ -548,6 +552,7 @@ loop {
                 if (hotkeySource = "") {
                     if (globalRunning[currProgram].hotkeys.Count > 0) {
                         currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys)
+                        setStatusParam("buttonTime", globalRunning[currProgram].hotkeyButtonTime)
                     }
 
                     for key, value in currHotkeys {
@@ -557,7 +562,10 @@ loop {
                         }
                     }
 
-                    setStatusParam("buttonTime", globalRunning[currProgram].hotkeyButtonTime)
+                    if (globalRunning[currProgram].mouse.Count > 0) {
+                        currMouse := globalRunning[currProgram].mouse
+                    }
+                                            
                     hotkeySource := currProgram
                 }
             }
@@ -580,25 +588,14 @@ loop {
         }
     }
 
-    ; --- CHECK HOTKEYS ---
-    statusHotkeys := getStatusParam("currHotkeys")
-
-    statusKeys := []
-    statusVals := []
-    for key, value in statusHotkeys {
-        statusKeys.Push(key)
-        statusVals.Push(value)
-    }
-
-    currKeys := []
-    currVals := []
-    for key, value in currHotkeys {
-        currKeys.Push(key)
-        currVals.Push(value)
-    }
-
-    if (!arrayEquals(statusKeys, currKeys) || !arrayEquals(statusVals, currVals)) {
+    ; --- UPDATE HOTKEYS ---
+    if (!mapEquals(getStatusParam("currHotkeys"), currHotkeys)) {
         setStatusParam("currHotkeys", currHotkeys)
+    }
+    
+    ; ---- UPDATE MOUSE --- 
+    if (!mapEquals(getStatusParam("currMouse"), currMouse)) {
+        setStatusParam("currMouse", currMouse)
     }
 
     ; --- BACKUP ---

@@ -166,7 +166,7 @@ SetCurrentWinTitle(name) {
 	resetDHW := A_DetectHiddenWindows
 
 	DetectHiddenWindows(true)
-	WinSetTitle(name, "ahk_pid" . DllCall("GetCurrentProcessId"))
+	WinSetTitle(name, "ahk_pid " DllCall("GetCurrentProcessId"))
 	DetectHiddenWindows(resetDHW)
 }
 
@@ -336,15 +336,15 @@ fromString(value, trimString := false) {
 
 	; try to convert the item into a float, if successful save as number
 	try {
-		retVal := Float(value)
+		retVal := Float(Trim(value, A_Space))
 		return retVal
 	}
 	catch {
 		; check if value is a string representing a bool, convert to bool
-		if (StrLower(value) = "true") {
+		if (StrLower(Trim(value, A_Space)) = "true") {
 			return true
 		}
-		else if (StrLower(value) = "false") {
+		else if (StrLower(Trim(value, A_Space)) = "false") {
 			return false
 		}
 		
@@ -445,6 +445,29 @@ arrayEquals(arr1, arr2, checkOrder := true) {
 	}
 	
 	return inArray(arr1, arr2)
+}
+
+; checks if 2 maps have the same contents
+;  map1 - first map
+;  map2 - second map
+;
+; returns true if the maps are equal
+mapEquals(map1, map2) {
+    map1Keys := []
+    map1Vals := []
+    for key, value in map1 {
+        map1Keys.Push(key)
+        map1Vals.Push(value)
+    }
+
+    map2Keys := []
+    map2Vals := []
+    for key, value in map2 {
+        map2Keys.Push(key)
+        map2Vals.Push(value)
+    }
+
+    return (arrayEquals(map1Keys, map2Keys) && arrayEquals(map1Vals, map2Vals))
 }
 
 ; cleans text to have special characters set to match identical in regex

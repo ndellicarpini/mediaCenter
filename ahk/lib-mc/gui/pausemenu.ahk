@@ -124,6 +124,9 @@ guiPauseMenu() {
 
     ; --- SHOW GUI ---
     pauseInt.Show("y0 x0 w" . guiWidth . " h" . guiHeight)
+    
+    ; hide the mouse in gui
+    MouseMove(percentWidth(1), percentHeight(1))
 
     SetTimer(PauseSecondTimer, 1000)
     PauseSecondTimer()

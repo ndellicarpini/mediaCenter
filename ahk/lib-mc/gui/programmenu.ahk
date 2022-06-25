@@ -129,6 +129,9 @@ guiProgramMenu() {
     }
 
     programInt.Show("Center w" . guiWidth . " h" . guiHeight)
+    
+    ; hide the mouse in the gui
+    MouseMove(percentWidth(1), percentHeight(1))
 }
 
 ; destroys the program menu & resumes current program

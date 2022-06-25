@@ -38,10 +38,11 @@ class Program {
     requireInternet   := false
     requireFullscreen := false
 
-    pauseOrder   := []
-    pauseOptions := Map()
-    hotkeys      := Map()
-    mouse        := Map()
+    pauseOrder    := []
+    pauseMousePos := []
+    pauseOptions  := Map()
+    hotkeys       := Map()
+    mouse         := Map()
 
     hotkeyButtonTime := 70
 
@@ -255,30 +256,7 @@ class Program {
         ; run custom restore
         if (this.customRestore != "") {
             if (runFunction(this.customRestore) = -1) {
-                if (!this.waitingPostLaunchTimer) {
-                    SetTimer(DelayPostLauch.Bind(this.id), -1000)
-                    this.waitingPostLaunchTimer := true
-                }
-                
-                if (this.requireFullscreen && !this.fullscreened && !this.waitingFullscreenTimer) {
-                    SetTimer(DelayFullscreen.Bind(this.id), -2000)
-                    this.waitingFullscreenTimer := true
-                }
-
-                if (!this.waitingMouseHideTimer) {
-                    if (this.mouse.Count = 0) {
-                        SetTimer(DelayMouseMove.Bind(this.id, percentWidth(1, false), percentHeight(1, false)), -3500)
-                    }
-                    else if (this.mouse.Has("initialPos")) {
-                        x := percentWidth(this.mouse["initialPos"][1], false)
-                        y := percentHeight(this.mouse["initialPos"][2], false)
-            
-                        SetTimer(DelayMouseMove.Bind(this.id, x, y), -3500)
-                    }
-        
-                    this.waitingMouseHideTimer := true
-                }
-
+                this.postRestore()
                 return
             }
         }
@@ -315,6 +293,11 @@ class Program {
             }
         }
 
+        this.postRestore()
+    }
+
+    ; resumes & activates first restore timers
+    postRestore() {
         this.resume()
 
         ; after first restore -> perform post launch action
@@ -333,14 +316,14 @@ class Program {
         if (!this.waitingMouseHideTimer) {
             ; hide mouse
             if (this.mouse.Count = 0) {
-                SetTimer(DelayMouseMove.Bind(this.id, percentWidth(1, false), percentHeight(1, false)), -3500)
+                SetTimer(DelayMouseMove.Bind(this.id, percentWidth(1, false), percentHeight(1, false)), -3000)
             }
             ; move mouse to starting position
             else if (this.mouse.Has("initialPos")) {
                 x := percentWidth(this.mouse["initialPos"][1], false)
                 y := percentHeight(this.mouse["initialPos"][2], false)
     
-                SetTimer(DelayMouseMove.Bind(this.id, x, y), -3500)
+                SetTimer(DelayMouseMove.Bind(this.id, x, y), -500)
             }
 
             this.waitingMouseHideTimer := true
@@ -391,7 +374,7 @@ class Program {
             if (!globalRunning.Has(id)) {
                 return
             }
-
+            
             MouseMove(x, y)
             return
         }
@@ -400,7 +383,10 @@ class Program {
     ; minimize program window
     minimize() {
         this.minimized := true
+
+        ; reset fullscreen status on minimize
         this.fullscreened := false
+        this.waitingFullscreenTimer := false
 
         ; get new thumbnail
         if (this.id = getStatusParam("currProgram")) {
@@ -738,8 +724,15 @@ class Program {
         if (this.paused) {
             return
         }
-
+        
         this.paused := true
+
+        ; save mouse position to be restored on resume
+        if (this.mouse.Has("x") || this.mouse.Has("y")) {
+            MouseGetPos(&x, &y)
+            this.pauseMousePos := [x, y]
+        }
+
         saveScreenshot(this.id)
 
         if (this.customPause != "") {
@@ -755,6 +748,10 @@ class Program {
         
         Sleep(100)
         this.paused := false
+        
+        if (this.pauseMousePos.Length = 2) {
+            MouseMove(this.pauseMousePos[1], this.pauseMousePos[2])
+        }
 
         if (this.customResume != "") {
             runFunction(this.customResume)
@@ -1085,16 +1082,19 @@ setCurrentProgram(id) {
         MsgBox("Requested current program doesn't exist / is background")
         return
     }
+    
+    if (getStatusParam("currProgram") != id) {
+        activateLoadScreen()
+        MouseMove(percentWidth(1), percentHeight(1))
 
-    activateLoadScreen()
+        globalRunning[id].time := A_TickCount
+        globalRunning[id].minimized := false
 
-    globalRunning[id].time := A_TickCount
-    globalRunning[id].minimized := false
+        setStatusParam("currProgram", id)
+        Sleep(200)
 
-    setStatusParam("currProgram", id)
-    Sleep(200)
-
-    resetLoadScreen()
+        resetLoadScreen()
+    }
 
     if (globalRunning[id].exists(true) && !getStatusParam("suspendScript")) {
         globalRunning[id].restore()

@@ -23,6 +23,8 @@ global MT_STATUS_KEYS := {
 
     ; support for up to ~32 hotkeys
     currHotkeys: MT_KEY_SIZE * 256,
+    ; support for up to ~8 mouse items
+    currMouse: MT_KEY_SIZE * 16,
 }
 
 ; creates the status buffer based on the data in MT_STATUS_KEYS
@@ -124,6 +126,24 @@ getStatusParam(param, ptr := "") {
             }
 
             return retMap
+        case "currMouse": 
+            ptrOffset := calcStatusPtrOffset(param, ptr)
+
+            retMap := Map()
+            loop 8 {
+                key := StrGet(ptrOffset, MT_KEY_SIZE)
+                val := StrGet(ptrOffset + MT_KEY_SIZE, MT_KEY_SIZE)
+
+                if (key = "") {
+                    break
+                }
+
+                retMap[key] := val
+
+                ptrOffset += (MT_KEY_SIZE * 2)
+            }
+
+            return retMap
     }
 }
 
@@ -205,6 +225,35 @@ setStatusParam(param, newVal, ptr := "") {
                         , ptrOffset + MT_KEY_SIZE, (MT_KEY_SIZE * 7))
                     
                     ptrOffset += HOTKEY_SIZE
+                }
+            }
+        case "currMouse":
+            ptrOffset := calcStatusPtrOffset(param, ptr)
+
+            MOUSE_SIZE := MT_KEY_SIZE * 2
+
+            keys := []
+            vals := []
+
+            for key, val in newVal {
+                if (key = "initialPos") {
+                    continue
+                }
+
+                keys.Push(key)
+                vals.Push(val)
+            }
+
+            loop 8 {                
+                if (A_Index > keys.Length) {
+                    StrPut("", ptrOffset, MOUSE_SIZE)
+                    ptrOffset += MOUSE_SIZE
+                }
+                else {
+                    StrPut(keys[A_Index], ptrOffset, MT_KEY_SIZE)
+                    StrPut(vals[A_Index], ptrOffset + MT_KEY_SIZE, MT_KEY_SIZE)
+                    
+                    ptrOffset += MOUSE_SIZE
                 }
             }
     }

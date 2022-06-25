@@ -39,6 +39,9 @@ guiPowerMenu() {
     }
 
     powerInt.Show("Center w" . (buttonSize * index) + (buttonSpacing * (index - 1)) + (marginSize * 2) . " h" . percentHeight(0.2))
+    
+    ; hide the mouse in the gui
+    MouseMove(percentWidth(1), percentHeight(1))
 }
 
 ; destroys the power menu & resumes current program

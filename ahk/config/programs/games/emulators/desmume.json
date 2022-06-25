@@ -20,6 +20,14 @@
     "fastForward": "desmumeFastForward",
 
     "controls": ["Xbox Controller"],
+
+    "mouse": {
+        "x": "RSX",
+        "y": "-RSY",
+        "lclick": "RSB",
+        "initialPos": [0.5, 0.5],
+        "deadzone": 0.15,
+    },
     
     "hotkeyButtonTime": 0,
 
