@@ -5,7 +5,7 @@ guiControllerMenu() {
     global globalControllers
     global globalGuis
 
-    createInterface(GUICONTROLLERTITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy", "[HOLD]A", Map("down", "controllerMenuVibrate 1", "up", "controllerMenuVibrate 0")), true, false,, "destroyControllerMenu")
+    createInterface(GUICONTROLLERTITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy", "[HOLD]A", Map("down", "controllerMenuVibrate 1", "up", "controllerMenuVibrate 0")), true, false,,, "destroyControllerMenu")
     controllerInt := globalGuis[GUICONTROLLERTITLE]
 
     controllerInt.unselectColor := COLOR1

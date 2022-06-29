@@ -13,7 +13,7 @@ createChoiceDialog(text, lText := "Cancel", lFunc := "", lColor := "", rText := 
         rColor := "30BF30"
     }
 
-    createInterface(GUICHOICETITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",,, true, false, "current")
+    createInterface(GUICHOICETITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",,, true, false,, "current")
     choiceInt := globalGuis[GUICHOICETITLE]
 
     choiceInt.unselectColor := COLOR1

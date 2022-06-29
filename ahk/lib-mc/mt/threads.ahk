@@ -392,7 +392,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             Critical 'Off'
 
             currMouse := getStatusParam('currMouse')
-            deadzone := (currMouse.Has('deadzone')) ? currMouse['deadzone'] : 0.2
+            deadzone := (currMouse.Has('deadzone')) ? currMouse['deadzone'] : 0.15
             
             xvel    := 0
             yvel    := 0

@@ -18,6 +18,7 @@
 #Include lib-mc\emulator.ahk
 #Include lib-mc\data.ahk
 #Include lib-mc\hotkeys.ahk
+#Include lib-mc\desktop.ahk
 
 #Include lib-mc\gui\std.ahk
 #Include lib-mc\gui\interface.ahk
@@ -28,6 +29,7 @@
 #Include lib-mc\gui\controllermenu.ahk
 #Include lib-mc\gui\programmenu.ahk
 #Include lib-mc\gui\powermenu.ahk
+#Include lib-mc\gui\keyboard.ahk
 
 #Include lib-mc\mt\status.ahk
 #Include lib-mc\mt\threads.ahk
@@ -127,7 +129,9 @@ setStatusParam("pause", false, mainStatus.Ptr)
 ; whether or not script is suspended (no actions running, changable in pause menu)
 setStatusParam("suspendScript", false, mainStatus.Ptr)
 ; whether or not script is in keyboard & mouse mode
-setStatusParam("kbbmode", false, mainStatus.Ptr)
+setStatusParam("kbmmode", false, mainStatus.Ptr)
+; whether or not script is in desktop mode
+setStatusParam("desktopmode", false, mainStatus.Ptr)
 ; current name of programs focused & running, used to get config -> setup hotkeys & background actions
 setStatusParam("currProgram", "", mainStatus.Ptr)
 ; load screen info
@@ -290,10 +294,15 @@ loop {
         currGui     := getStatusParam("currGui")
         currLoad    := getStatusParam("loadShow")
         currError   := getStatusParam("errorShow")
+        currKBMM    := getStatusParam("kbmmode")
+        currDesktop := getStatusParam("desktopmode")
 
         ; mismatched currHotkeys & status, ignore message
-        if ((hotkeySource != currProgram && hotkeySource != currGui) 
-            || (hotkeySource = "load" && !currLoad) || (hotkeySource = "error" && !currError)) {
+        if ((hotkeySource != currProgram && hotkeySource != currGui)
+            && (hotkeySource = "load" && !currLoad) 
+            && (hotkeySource = "error" && !currError) 
+            && (hotkeySource = "kbmmode" && !currKBMM) 
+            && (hotkeySource = "desktopmode" && !currDesktop)) {
 
             setStatusParam("internalMessage", "")
             continue
@@ -317,13 +326,6 @@ loop {
                 }
                 else {
                     CloseErrorMsg(errorHwnd)
-                }
-            }
-            else if (currGui != "") {
-                try globalGuis[currGui].Destroy()
-                
-                if (!WinShown(currGui)) {
-                    setStatusParam("currGui", "")
                 }
             }
             else if (currProgram != "" && globalRunning[currProgram].allowExit) {
@@ -399,6 +401,15 @@ loop {
     currHotkeys := defaultHotkeys(globalConfig)
     currMouse   := Map()
 
+    ; --- CHECK DESKTOP MODE ---
+    if (getStatusParam("desktopmode")) {
+        currHotkeys := addHotkeys(kbmmodeHotkeys(), Map("HOME", "disableDesktopMode"))
+        currMouse   := kbmmodeMouse()
+
+        activeSet := true
+        hotkeySource := "desktopmode"
+    }
+
     ; --- CHECK OVERRIDE ---
     currError := getStatusParam("errorShow")
 
@@ -438,8 +449,8 @@ loop {
 
             ; REPLACE THIS W/ KB & M MODE
             if (hotkeySource = "") {
-                ; currHotkeys := addHotkeys(currHotkeys, errorHotkeys())
-                ; setStatusParam("buttonTime", 25)
+                currHotkeys := addHotkeys(currHotkeys, kbmmodeHotkeys())
+                currMouse   := kbmmodeMouse()
 
                 hotkeySource := "error"
             }
@@ -488,7 +499,7 @@ loop {
     ; --- CHECK OPEN GUIS ---
     if (currGui != "") {
         if (globalGuis.Has(currGui) && WinShown(currGui)) {
-            if (!activeSet) {
+            if (!activeSet && globalGuis[currGui].allowFocus) {
                 if (forceActivate && !WinActive(currGui)) {
                     try WinActivate(currGui)
                 }
@@ -499,6 +510,7 @@ loop {
             if (hotkeySource = "") {
                 if (globalGuis[currGui].hotkeys.Count > 0) {
                     currHotkeys := addHotkeys(currHotkeys, globalGuis[currGui].hotkeys)
+                    setStatusParam("buttonTime", 0)
                 }
 
                 for key, value in currHotkeys {
@@ -508,7 +520,10 @@ loop {
                     }
                 }
 
-                setStatusParam("buttonTime", 0)
+                if (globalGuis[currGui].mouse.Count > 0) {
+                    currMouse := globalGuis[currGui].mouse
+                }
+
                 hotkeySource := currGui
             }
         } 
@@ -530,6 +545,23 @@ loop {
                 setStatusParam("currGui", "")
             }
         }
+    }
+
+    ; --- CHECK KB & MOUSE MODE ---
+    if (getStatusParam("kbmmode") && hotkeySource = "" && !currSuspended) {
+        currHotkeys := addHotkeys(currHotkeys, kbmmodeHotkeys())
+        currMouse   := kbmmodeMouse()
+
+        ; don't restore currProgram if mouse is not on currProgram
+        if (!activeSet && currProgram != "" && globalRunning.Has(currProgram)) {
+            MouseGetPos(,, &mouseWin)
+            
+            if (globalRunning[currProgram].getHWND() != mouseWin) {
+                activeSet := true
+            }
+        }
+
+        hotkeySource := "kbmmode"
     }
 
     ; --- CHECK OPEN PROGRAMS ---
@@ -585,18 +617,12 @@ loop {
         } 
         else {
             createProgram(currProgram, false, false)
-        }
+        }   
     }
 
-    ; --- UPDATE HOTKEYS ---
-    if (!mapEquals(getStatusParam("currHotkeys"), currHotkeys)) {
-        setStatusParam("currHotkeys", currHotkeys)
-    }
-    
-    ; ---- UPDATE MOUSE --- 
-    if (!mapEquals(getStatusParam("currMouse"), currMouse)) {
-        setStatusParam("currMouse", currMouse)
-    }
+    ; --- UPDATE HOTKEYS & MOUSE ---
+    setStatusParam("currHotkeys", currHotkeys)
+    setStatusParam("currMouse", currMouse)
 
     ; --- BACKUP ---
     if (statusUpdated()) {
@@ -729,7 +755,7 @@ WaitProgramResume(id, function, args) {
 ; clean shutdown of script
 ShutdownScript() {
     ; disable message listener
-    OnMessage(MESSAGE_VAL, HandleMessage, 1)
+    OnMessage(MESSAGE_VAL, HandleMessage, 0)
 
     setLoadScreen("Please Wait...")
 

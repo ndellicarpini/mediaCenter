@@ -9,6 +9,7 @@ class Interface {
     deselectColor := ""
 
     allowPause := ""
+    allowFocus := true
 
     customDeselect := Map()
     customDestroy  := ""
@@ -39,9 +40,10 @@ class Interface {
 
     ; same as Program
     hotkeys := Map()
+    mouse := Map()
     time := 0
 
-    __New(title, options := "", eventObj := "", enableAnalog := false, allowPause := true, closeGuiMode := "off", customDestroy := "", additionalHotkeys := "") {
+    __New(title, options := "", eventObj := "", enableAnalog := false, allowPause := true, allowFocus := true, closeGuiMode := "off", customDestroy := "", additionalHotkeys := "") {
         customOptions := []
 
         optionsArr := StrSplit(options, A_Space)
@@ -93,6 +95,7 @@ class Interface {
         this.closeGuiMode  := closeGuiMode
         this.customDestroy := customDestroy
         this.allowPause    := allowPause
+        this.allowFocus    := allowFocus
     }
 
     ; exactly like gui.show except renders the selected item w/ the proper background
@@ -608,10 +611,10 @@ class Interface {
 ;  customTime - override the launch time
 ;
 ; returns null
-createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, allowPause := true, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
+createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, allowPause := true, allowFocus := true, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
     global globalGuis
     
-    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, allowPause, closeGuiMode, customDestroy, additionalHotkeys)
+    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, allowPause, allowFocus, closeGuiMode, customDestroy, additionalHotkeys)
 
     if (setCurrent) {
         setStatusParam("currGui", title)

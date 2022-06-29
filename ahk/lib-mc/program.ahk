@@ -246,6 +246,8 @@ class Program {
 
     ; activates the program's window
     restore() {
+        this.minimized := false
+        
         window := this.getWND()
 
         ; if window not available in alt-tab -> not real
@@ -382,6 +384,8 @@ class Program {
 
     ; minimize program window
     minimize() {
+        this.pause()
+
         this.minimized := true
 
         ; reset fullscreen status on minimize
@@ -1088,7 +1092,6 @@ setCurrentProgram(id) {
         MouseMove(percentWidth(1), percentHeight(1))
 
         globalRunning[id].time := A_TickCount
-        globalRunning[id].minimized := false
 
         setStatusParam("currProgram", id)
         Sleep(200)

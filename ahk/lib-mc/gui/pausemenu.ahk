@@ -15,7 +15,7 @@ guiPauseMenu() {
         globalRunning[currProgram].pause()
     }
 
-    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("HOME|B", "gui.Destroy"), true,, "count-current", "destroyPauseMenu")
+    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("HOME|B", "gui.Destroy"), true,,, "count-current", "destroyPauseMenu")
     pauseInt := globalGuis[GUIPAUSETITLE]
 
     pauseInt.unselectColor := COLOR1
@@ -156,19 +156,19 @@ defaultPauseOptions() {
     global globalConfig
 
     defaultOptions := Map()
-    defaultOptions["WinSettings"] := {title: "Windows Settings", function: "runWinSettings"}
-    defaultOptions["Settings"] := {title: "Script Settings", function: "createSettingsGui config\global.cfg"}
+    defaultOptions["DesktopMode"] := {title: "Enable Desktop Mode", function: "enableDesktopMode"}
+    defaultOptions["Settings"] := {title: "Consolizer Settings", function: "createSettingsGui config\global.cfg"}
     
     currKBMMode := getStatusParam("kbmmode")
     currSuspend := getStatusParam("suspendScript")
 
     defaultOptions["KBMMode"] := {
         title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
-        function: "setStatusParam kbmmode " . !currKBMMode
+        function: (!currKBMMode) ? "enableKBMMode" : "disableKBMMode"
     }
 
     defaultOptions["Suspend"] := {
-        title: (!currSuspend) ? "Suspend Program Scripts" : "Resume Program Scripts", 
+        title: (!currSuspend) ? "Suspend Consolizer" : "Resume Consolizer", 
         function: "setStatusParam suspendScript " . !currSuspend
     }
 
@@ -231,25 +231,11 @@ programPauseOptions(currProgram) {
 
     ; add exit
     if (currProgram.allowExit) {
-        programOptions["currProgramExit"] := {title: "Exit", function: "currProgramExit"}
-        programOrder.Push("currProgramExit")
+        programOptions["ExitProgram"] := {title: "Exit", function: "setStatusParam internalMessage program.exit"}
+        programOrder.Push("ExitProgram")
     }
 
     return {order: programOrder, items: programOptions}
-}
-
-; exits the current program
-;
-; returns null
-currProgramExit() {
-    global globalRunning
-    global globalGuis
-
-    if (globalGuis.Has(GUIPAUSETITLE)) {
-        destroyPauseMenu()
-    }
-
-    globalRunning[getStatusParam("currProgram")].exit()
 }
 
 ; runs/restores the default program

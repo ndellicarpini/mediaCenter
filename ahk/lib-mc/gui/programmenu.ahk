@@ -7,7 +7,7 @@ guiProgramMenu() {
 
     destroyPauseMenu()
 
-    createInterface(GUIPROGRAMTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,, "destroyProgramMenu")
+    createInterface(GUIPROGRAMTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,,, "destroyProgramMenu")
     programInt := globalGuis[GUIPROGRAMTITLE]
 
     programInt.unselectColor := COLOR1

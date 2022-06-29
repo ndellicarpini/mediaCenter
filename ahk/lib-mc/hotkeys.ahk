@@ -27,16 +27,6 @@ defaultHotkeys(config) {
     return newHotkeys 
 }
 
-; creates hotkey map for when an error message is on screen
-;
-; returns hotkey map
-errorHotkeys() {
-    retMap := Map()
-    retMap["A|B"] := "ExitProgram"
-
-    return retMap
-}
-
 addHotkeys(currHotkeys, newHotkeys) {
     for key, value in newHotkeys {
         currHotkeys[key] := value

@@ -8,6 +8,8 @@
     "exe": "chrome.exe",
     "wndw": "Google Chrome",
 
+    "exit": "chromeExit",
+
     "mouse": {
         "x": "LSX",
         "y": "-LSY",
@@ -34,7 +36,7 @@
         "LT>0.3": "Send !{Left}",
         "RT>0.3": "Send !{Right}",
 
-        "SELECT": "chromeOSK",
+        "SELECT": "toggleKeyboard",
         "START": "Send ^t",
     },
 

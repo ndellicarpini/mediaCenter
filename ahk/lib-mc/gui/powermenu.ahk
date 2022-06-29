@@ -6,7 +6,7 @@ guiPowerMenu() {
 
     destroyPauseMenu()
     
-    createInterface(GUIPOWERTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,, "destroyPowerMenu")    
+    createInterface(GUIPOWERTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,,, "destroyPowerMenu")    
     powerInt := globalGuis[GUIPOWERTITLE]
 
     powerInt.unselectColor := COLOR2

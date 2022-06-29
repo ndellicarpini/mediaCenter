@@ -11,6 +11,7 @@ global MT_STATUS_KEYS := {
     pause: MT_CHR_SIZE,
     suspendScript: MT_CHR_SIZE,
     kbmmode: MT_CHR_SIZE,
+    desktopmode: MT_CHR_SIZE,
     currProgram: MT_KEY_SIZE,
     loadShow: MT_CHR_SIZE,
     loadText: MT_STR_SIZE,
@@ -74,6 +75,8 @@ getStatusParam(param, ptr := "") {
         case "suspendScript": 
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar") 
         case "kbmmode":  
+            return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")   
+        case "desktopmode":  
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")       
         case "currProgram": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)    
@@ -160,6 +163,8 @@ setStatusParam(param, newVal, ptr := "") {
         case "suspendScript": 
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
         case "kbmmode":  
+            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
+        case "desktopmode":  
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
         case "currProgram": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)

@@ -16,8 +16,15 @@ kodiMinimize() {
 }
 
 ; --- CHROME ---
-chromeOSK() {
-    MsgBox("keyboard")
+chromeExit() {
+    global globalRunning
+    global globalGuis
+
+    if (globalGuis.Has(GUIKEYBOARDTITLE)) {
+        globalGuis[GUIKEYBOARDTITLE].Destroy()
+    }
+
+    WinClose(globalRunning["chrome"].getWND())
 }
 
 chromeNewTab() {
