@@ -1,5 +1,6 @@
 CODE
 - Fix runFunction being dogshit
+- Fix requiring admin mode (AHHHHHHHHHHHHHHHHHHHHH)
 - CONFIG
   - Add XML & INDENT parsing to readConfig()
   - create writeConfig()

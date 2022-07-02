@@ -1,5 +1,3 @@
-global GUIPROGRAMTITLE := "AHKGUIPROGRAM"
-
 guiProgramMenu() {
     global globalConfig
     global globalRunning

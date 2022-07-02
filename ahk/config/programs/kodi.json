@@ -5,9 +5,10 @@
 	"wndw": "Kodi",
     "exe": "kodi.exe",
 
-    "allowQuickAccess": false,
+    "allowQuickAccess": true,
     "allowExit": false,
 
     "launch": "Run 'C:\Kodi\kodi.exe -fs -p' C:\Kodi",
+    "exit": "kodiExit",
     "minimize": "kodiMinimize"
 }

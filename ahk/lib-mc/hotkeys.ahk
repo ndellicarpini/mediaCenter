@@ -28,11 +28,39 @@ defaultHotkeys(config) {
 }
 
 addHotkeys(currHotkeys, newHotkeys) {
+    oldHotkeys := ObjDeepClone(currHotkeys)
+
     for key, value in newHotkeys {
-        currHotkeys[key] := value
+        currModifier := checkHotkeyModifier(key)
+        currKey := (currModifier != "") ? StrReplace(key, currModifier, "") : key
+
+        if (InStr(currKey, ">")) {
+            currKey := StrSplit(currKey, ">")[1] . ">"
+        }
+        else if (InStr(currKey, "<")) {
+            currKey := StrSplit(currKey, "<")[1] . "<"
+        }
+
+        for key2, value2 in oldHotkeys {
+            currModifier2 := checkHotkeyModifier(key2)
+            currKey2 := (currModifier2 != "") ? StrReplace(key2, currModifier2, "") : key2
+
+            if (InStr(currKey2, ">")) {
+                currKey2 := StrSplit(currKey2, ">")[1] . ">"
+            }
+            else if (InStr(currKey, "<")) {
+                currKey2 := StrSplit(currKey2, "<")[1] . "<"
+            }
+
+            if (currKey = currKey2) {
+                oldHotkeys.Delete(key2)
+            }
+        }
+
+        oldHotkeys[key] := value
     }
 
-    return currHotkeys
+    return oldHotkeys
 }
 
 ; checks & returns a hotkey modifier string if it exists
@@ -108,7 +136,7 @@ optimizeHotkeys(currHotkeys) {
                         buttonRefs[refs[A_Index]].Push(cleanItem)
                     }
 
-                    if (value["time"] != "") {
+                    if (value.Has("time") && value["time"] != "") {
                         valueInt := Integer(value["time"])
     
                         if (buttonRefTimes.Has(refs[A_Index])) {
@@ -141,7 +169,7 @@ optimizeHotkeys(currHotkeys) {
                         buttonRefs[currItem].Push(currItem)
                     }
 
-                    if (value["time"] != "") {
+                    if (value.Has("time") && value["time"] != "") {
                         valueInt := Integer(value["time"])
     
                         if (buttonRefTimes.Has(currItem)) {
@@ -170,7 +198,7 @@ optimizeHotkeys(currHotkeys) {
                     buttonRefs[currItem].Push(currItem)
                 }
 
-                if (value["time"] != "") {
+                if (value.Has("time") && value["time"] != "") {
                     valueInt := Integer(value["time"])
 
                     if (buttonRefTimes.Has(currItem)) {

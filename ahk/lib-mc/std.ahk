@@ -726,24 +726,24 @@ runFunction(text, params := "") {
 	stringType := ""
 	tempString := ""
 	for item in textArr {
-		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%") {
+		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%" && StrLen(item) > 1) {
 			funcArr.Push(%Trim(item, "%")%)
 			continue
 		}
 		
 		; handle function param strings w/ spaces
 		if (!stringType) {
-			if (SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"') {
+			if (SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"' && StrLen(item) > 1) {
 				funcArr.Push(Trim(item, '"'))
 			}
-			else if (SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'") {
+			else if (SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'" && StrLen(item) > 1) {
 				funcArr.Push(Trim(item, "'"))
 			}
-			else if (SubStr(item, 1, 1) = '"') {
+			else if (SubStr(item, 1, 1) = '"' && StrLen(item) > 1) {
 				tempString .= LTrim(item, '"') . A_Space
 				stringType := '"'
 			}
-			else if (SubStr(item, 1, 1) = "'") {
+			else if (SubStr(item, 1, 1) = "'" && StrLen(item) > 1) {
 				tempString .= LTrim(item, "'") . A_Space
 				stringType := "'"
 			}

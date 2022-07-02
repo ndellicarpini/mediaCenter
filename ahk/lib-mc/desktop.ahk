@@ -10,7 +10,7 @@ kbmmodeHotkeys() {
     ; TODO - button for keyboard
     return Map(
         "SELECT", "toggleKeyboard",
-        "B", "Send {Backspace}"
+        "[REPEAT]B", "Send {Backspace}"
     )
 }
 
@@ -108,7 +108,7 @@ enableDesktopMode(showDialog := true) {
         guiSetFont(guiObj, "bold s24")
 
         guiObj.Add("Text", "0x200 Center x0 y0 w" . guiWidth . " h" . guiHeight, "Press HOME to Disable Desktop Mode")
-        guiObj.Show("w" . guiWidth . " h" . guiHeight 
+        guiObj.Show("NoActivate w" . guiWidth . " h" . guiHeight 
             . " x" . (percentWidth(1) - (guiWidth + percentWidth(0.01, false))) . " y" . (percentHeight(1) - (guiHeight + percentWidth(0.01, false))))
         
         WinSetTransparent(230, GUIDESKTOPTITLE)
@@ -145,12 +145,19 @@ disableDesktopMode() {
 ;
 ; returns null
 toggleKeyboard() {
-    global globalGuis
+    ; global globalGuis
 
-    if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-        globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; if (globalGuis.Has(GUIKEYBOARDTITLE)) {
+    ;     globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; }
+    ; else {
+    ;     guiKeyboard() 
+    ; }
+
+    if (WinShown("On-Screen Keyboard")) {
+        WinClose("On-Screen Keyboard")
     }
     else {
-        guiKeyboard()
+        Run "osk.exe"
     }
 }

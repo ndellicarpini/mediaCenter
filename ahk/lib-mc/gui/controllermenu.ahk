@@ -1,4 +1,3 @@
-global GUICONTROLLERTITLE := "AHKGUICONTROLLER"
 
 guiControllerMenu() {
     global globalConfig

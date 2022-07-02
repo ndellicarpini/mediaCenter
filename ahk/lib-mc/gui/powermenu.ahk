@@ -1,5 +1,3 @@
-global GUIPOWERTITLE := "AHKGUIPOWER"
-
 guiPowerMenu() {
     global globalConfig
     global globalGuis

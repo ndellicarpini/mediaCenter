@@ -8,6 +8,7 @@
     "exe": "chrome.exe",
     "wndw": "Google Chrome",
 
+    "restore": "chromeRestore",
     "exit": "chromeExit",
 
     "mouse": {

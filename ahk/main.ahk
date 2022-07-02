@@ -1,4 +1,4 @@
-#SingleInstance Force
+; #SingleInstance Force
 ; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
@@ -21,6 +21,7 @@
 #Include lib-mc\desktop.ahk
 
 #Include lib-mc\gui\std.ahk
+#Include lib-mc\gui\constants.ahk
 #Include lib-mc\gui\interface.ahk
 #Include lib-mc\gui\choicedialog.ahk
 #Include lib-mc\gui\loadscreen.ahk
@@ -341,7 +342,7 @@ loop {
         else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
             tempArr  := StrSplit(internalMessage, A_Space)
             tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
-            
+
             try globalGuis[currGui].%tempFunc%(tempArr*)
         }
 
@@ -353,7 +354,7 @@ loop {
             if (tempFunc = "pause" || tempFunc = "resume" || tempFunc = "minimize" 
                 || tempFunc = "exit" || tempFunc = "restore" || tempFunc = "launch") {
 
-                globalRunning[currProgram].%tempFunc%(tempArr*)
+                try globalRunning[currProgram].%tempFunc%(tempArr*)
             }
             else {
                 SetTimer(WaitProgramResume.Bind(currProgram, tempFunc, tempArr), -50)
@@ -405,6 +406,10 @@ loop {
     if (getStatusParam("desktopmode")) {
         currHotkeys := addHotkeys(kbmmodeHotkeys(), Map("HOME", "disableDesktopMode"))
         currMouse   := kbmmodeMouse()
+
+        if (globalGuis.Has(GUIKEYBOARDTITLE)) {
+            currHotkeys := addHotkeys(currHotkeys, globalGuis[GUIKEYBOARDTITLE].hotkeys)
+        }
 
         activeSet := true
         hotkeySource := "desktopmode"
@@ -556,8 +561,15 @@ loop {
         if (!activeSet && currProgram != "" && globalRunning.Has(currProgram)) {
             MouseGetPos(,, &mouseWin)
             
-            if (globalRunning[currProgram].getHWND() != mouseWin) {
-                activeSet := true
+            if (globalRunning[currProgram].getHWND() != mouseWin && WinHidden(GUILOADTITLE) != mouseWin) {
+                newSet := true
+                for key, value in globalRunning {
+                    if (!value.background) {
+                        newSet := newSet && (value.getHWND() != mouseWin)
+                    }
+                }
+
+                activeSet := newSet
             }
         }
 
@@ -743,7 +755,7 @@ WaitProgramResume(id, function, args) {
     }
 
     if (!this.paused) {
-        this.%function%(args*)
+        try this.%function%(args*)
     }
     else { 
         SetTimer(WaitProgramResume.Bind(id, function, args), -50)
@@ -864,7 +876,7 @@ Standby() {
     Sleep(500)
     
     DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
-    Sleep(2000)
+    Sleep(3000)
 
     Run A_ScriptDir . "\" . "startMain.cmd", A_ScriptDir, "Hide"
     ExitApp()

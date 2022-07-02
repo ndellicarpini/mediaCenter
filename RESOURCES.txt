@@ -14,3 +14,9 @@ USAGE
 
 SCREENSHOT
 - https://www.autohotkey.com/board/topic/91585-screen-capture-using-only-ahk-no-3rd-party-software-required/
+
+WINDOWS
+- replace shell REGEDIT: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
+
+STEAM
+- launch configs: Steam\userdata\${userid}\config\localconfig.vdf

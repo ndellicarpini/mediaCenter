@@ -1,4 +1,3 @@
-global GUIVOLUMETITLE := "AHKGUIVOLUME"
 global MASTERVOLUME := SoundGetVolume()
 global MASTERMUTE := false
 

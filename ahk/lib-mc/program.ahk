@@ -310,7 +310,7 @@ class Program {
 
         ; after first restore -> fullscreen window if required
         if (this.requireFullscreen && !this.fullscreened && !this.waitingFullscreenTimer) {
-            SetTimer(DelayFullscreen.Bind(this.id), -2000)
+            SetTimer(DelayFullscreen.Bind(this.id), -2500)
             this.waitingFullscreenTimer := true
         }
 
@@ -357,9 +357,9 @@ class Program {
             if (!globalRunning.Has(id)) {
                 return
             }
-            
-            this.waitingFullscreenTimer := false
 
+            this.waitingFullscreenTimer := false
+            
             if (!this.checkFullscreen()) {
                 this.fullscreen()
             }
@@ -681,7 +681,7 @@ class Program {
 
         try {
             count := 0
-            maxCount := 200
+            maxCount := 300
             ; wait for program executable to close
             while (exeExists && count < maxCount) {
                 window := this.getWND()
@@ -692,8 +692,8 @@ class Program {
                         setStatusParam("threadedFunction", 'WinClose "' . window . '"')
                     }
     
-                    ; attempte to processclose @ 15s
-                    if (count = 150) {
+                    ; attempte to processclose @ 20s
+                    if (count = 200) {
                         ProcessWinClose(window)
                     }
                 }
@@ -704,7 +704,7 @@ class Program {
                 Sleep(100)
             }
 
-            ; if exists -> go nuclear @ 20s
+            ; if exists -> go nuclear @ 30s
             if (WinHidden(window)) {
                 ProcessKill(window)
             }

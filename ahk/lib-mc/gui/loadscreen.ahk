@@ -1,5 +1,3 @@
-global GUILOADTITLE := "AHKGUILOAD"
-
 ; creates & shows the load screen
 ;
 ; returns null

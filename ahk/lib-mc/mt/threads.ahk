@@ -6,8 +6,6 @@ controllerThread(globalConfig, globalControllers) {
     ref := ThreadObj(
     (
         "
-        #SingleInstance Force
-
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
 
@@ -112,13 +110,13 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
     ref := ThreadObj(
     (
         "
-        #SingleInstance Force
-
         #Include lib-mc\std.ahk
         #Include lib-mc\xinput.ahk
         #Include lib-mc\hotkeys.ahk
 
         #Include lib-mc\mt\status.ahk
+
+        #Include lib-mc\gui\constants.ahk
 
         SetKeyDelay 50, 100
         CoordMode 'Mouse', 'Screen'
@@ -237,7 +235,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
             }
 
             ; enable/disable the mouse listener timer if the program uses the mouse
-            if (getStatusParam('currMouse').Count > 0) {
+            if (getStatusParam('currMouse').Count > 0 && !WinShown(GUIKEYBOARDTITLE)) {
                 if (!mouseTimerRunning) {
                     SetTimer(MouseTimer, 15)
                     mouseTimerRunning := true
@@ -595,9 +593,7 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
 functionThread(globalConfig, globalStatus) {
     ref := ThreadObj(
     (
-        "
-        #SingleInstance Force
-        
+        "        
         #Include lib-mc\std.ahk
         #Include lib-mc\mt\status.ahk
 

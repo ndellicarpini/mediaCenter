@@ -1,12 +1,12 @@
 ; steam launch
 steamLaunch() {    
-    Run "C:\Steam\steam.exe -silent", "C:\Steam", "Hide"
+    Run "C:\Steam\steam.exe -silent", "C:\Steam"
     Sleep(5000)
 }
 
 ; steam exit
 steamExit() {
-    Run "C:\Steam\steam.exe -shutdown", "C:\Steam", "Hide"
+    Run "C:\Steam\steam.exe -shutdown", "C:\Steam"
     Sleep(5000)
 }
 
@@ -54,7 +54,7 @@ steamGameLaunchHandler(programID, URI, loopCount := 0) {
     ; launch steam if it doesn't exist
     if (!globalRunning.Has("steam") || !globalRunning["steam"].exists()) {
         if (!globalRunning.Has("steam")) {
-            createProgram("steam")
+            createProgram("steam", true, false)
         }
         else if (!globalRunning["steam"].exists()) {
             globalRunning["steam"].launch()

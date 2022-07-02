@@ -1,20 +1,3 @@
-global GUIOPTIONS := "-DPIScale -Resize -Caption"
-
-global MONITORN := 0
-global MONITORH := 0
-global MONITORW := 0
-global MONITORX := 0
-global MONITORY := 0
-
-global SIZE := ""
-global FONT := ""
-global FONTCOLOR := ""
-global COLOR1 := ""
-global COLOR2 := ""
-global COLOR3 := ""
-
-global GUIMESSAGETITLE := "AHKGUIMESSAGE"
-
 ; cleans up gui config & sets default theming values if not provided in the config
 ;  guiConfig - GUI config from global.cfg
 ;

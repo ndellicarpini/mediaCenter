@@ -1,5 +1,3 @@
-global GUICHOICETITLE := "AHKGUICHOICE"
-
 createChoiceDialog(text, lText := "Cancel", lFunc := "", lColor := "", rText := "OK", rFunc := "", rColor := "") {
     global globalConfig
     global globalGuis

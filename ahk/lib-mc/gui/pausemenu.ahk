@@ -1,5 +1,3 @@
-global GUIPAUSETITLE := "AHKGUIPAUSE"
-
 guiPauseMenu() {
     global globalConfig
     global globalRunning

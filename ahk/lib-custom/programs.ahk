@@ -15,20 +15,27 @@ kodiMinimize() {
     return -1
 }
 
+kodiExit() {
+    WinClose("Kodi")
+    Sleep(5000)
+}
+
 ; --- CHROME ---
 chromeExit() {
     global globalRunning
     global globalGuis
 
-    if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-        globalGuis[GUIKEYBOARDTITLE].Destroy()
+    if (WinShown("On-Screen Keyboard")) {
+        WinClose("On-Screen Keyboard")
     }
 
     WinClose(globalRunning["chrome"].getWND())
 }
 
-chromeNewTab() {
-    MsgBox("tab")
+chromeRestore() {
+    if (WinShown("On-Screen Keyboard")) {    
+        return -1
+    }
 }
 
 chromeControls() {
