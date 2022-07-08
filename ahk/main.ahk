@@ -2,12 +2,6 @@
 ; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include LIB-CU~1\boot.ahk
-#Include LIB-CU~1\EMULAT~1.AHK
-#Include LIB-CU~1\load.ahk
-#Include LIB-CU~1\programs.ahk
-#Include LIB-CU~1\steam.ahk
-#Include LIB-CU~1\wingames.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
