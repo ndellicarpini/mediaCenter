@@ -1,10 +1,9 @@
-global GUIVOLUMETITLE := "AHKGUIVOLUME"
 global MASTERVOLUME := SoundGetVolume()
 global MASTERMUTE := false
 
 global CHANGEVOLUME := false
 
-createVolumeMenu() {
+guiVolumeMenu() {
     global globalConfig
     global globalRunning
     global globalGuis
@@ -49,7 +48,7 @@ createVolumeMenu() {
 
         ; ignore programs with no audio interface initialized
         if (!value.muted || value.volume = -1) {
-            value.updateVolume()
+            value.checkVolume()
         }
 
         if (value.volume = -1) {

@@ -2,7 +2,7 @@
 
 #SingleInstance Force
 
-setCurrentWinTitle(MAINLOOP)
+SetCurrentWinTitle(MAINLOOP)
 
 hungCount     := 0
 resetCount    := 0
@@ -15,7 +15,8 @@ if (A_Args.Length > 0 && IsNumber(A_Args[1])) {
 loop {
     mainID := WinHidden(MAINNAME)
 
-    if (!mainID) {
+    ; check for main process or pre-init crashed main
+    if (!mainID && !WinShown("main.ahk")) {
         Run A_ScriptDir . "\" . "startMain.cmd -quiet -backup", A_ScriptDir, "Hide"
 
         resetCount += 1

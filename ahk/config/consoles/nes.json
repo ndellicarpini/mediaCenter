@@ -1,0 +1,14 @@
+{
+    "id": "nes",
+    "romDir": "D:\\Roms\\NES",
+    "romNameIndex": 0,
+
+    "emulators": ["retroarch"],
+    "extensions": [".nes", ".fds"],
+
+    "core": "mesen",
+
+    "romVersions": [
+        
+    ]
+}

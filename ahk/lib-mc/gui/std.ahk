@@ -1,20 +1,3 @@
-global GUIOPTIONS := "-DPIScale -Resize -Caption"
-
-global MONITORN := 0
-global MONITORH := 0
-global MONITORW := 0
-global MONITORX := 0
-global MONITORY := 0
-
-global SIZE := ""
-global FONT := ""
-global FONTCOLOR := ""
-global COLOR1 := ""
-global COLOR2 := ""
-global COLOR3 := ""
-
-global GUIMESSAGETITLE := "AHKGUIMESSAGE"
-
 ; cleans up gui config & sets default theming values if not provided in the config
 ;  guiConfig - GUI config from global.cfg
 ;
@@ -71,7 +54,7 @@ setMonitorInfo(guiConfig) {
 ;
 ; returns proper size in pixels
 percentWidth(width, useSize := true) {
-    return width * MONITORW * ((useSize && width < 1) ? SIZE : 1)
+    return MONITORX + (width * MONITORW * ((useSize && width < 1) ? SIZE : 1))
 }
 
 ; gets the proper height in pixels based on pixel size of screen
@@ -80,7 +63,7 @@ percentWidth(width, useSize := true) {
 ;
 ; returns proper size in pixels
 percentHeight(height, useSize := true) {
-    return height * MONITORH * ((useSize && height < 1) ? SIZE : 1)
+    return MONITORY + (height * MONITORH * ((useSize && height < 1) ? SIZE : 1))
 }
 
 ; sets the font of the guiObj using the default options & param options
@@ -247,7 +230,7 @@ getNvidiaLoad() {
 	return 0
 }
 
-; creates a centered message popup that can be closed with A or B]
+; creates a centered message popup that can be closed with A or B
 ;  message - message string to show
 ;  timeout - if > 0 closes window after # of ms
 ;

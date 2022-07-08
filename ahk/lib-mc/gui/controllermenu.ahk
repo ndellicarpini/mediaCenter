@@ -1,11 +1,10 @@
-global GUICONTROLLERTITLE := "AHKGUICONTROLLER"
 
-createControllerMenu() {
+guiControllerMenu() {
     global globalConfig
     global globalControllers
     global globalGuis
 
-    createInterface(GUICONTROLLERTITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy", "[HOLD]A", Map("down", "controllerMenuVibrate 1", "up", "controllerMenuVibrate 0")), true, false,, "destroyControllerMenu")
+    createInterface(GUICONTROLLERTITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy", "[HOLD]A", Map("down", "controllerMenuVibrate 1", "up", "controllerMenuVibrate 0")), true, false,,, "destroyControllerMenu")
     controllerInt := globalGuis[GUICONTROLLERTITLE]
 
     controllerInt.unselectColor := COLOR1
@@ -40,10 +39,7 @@ createControllerMenu() {
             . (((batteryType = 2 || batteryType = 3) && connected) ? " Hidden" : ""), (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected")
         
         batteryColor := "00FF00"
-        if (batteryLevel < 100) {
-            batteryColor := "AAFF00"
-        }
-        else if (batteryLevel < 60) {
+        if (batteryLevel < 50) {
             batteryColor := "FF0000"
         }
 
@@ -123,10 +119,7 @@ ControllerSecondTimer() {
         currGui["Port" . port . "Text"].Text := (batteryType != 2 && batteryType != 3 && connected) ? "Wired" : "Disconnected"
 
         batteryColor := "00FF00"
-        if (batteryLevel < 100) {
-            batteryColor := "AAFF00"
-        }
-        else if (batteryLevel < 60) {
+        if (batteryLevel < 50) {
             batteryColor := "FF0000"
         }
 

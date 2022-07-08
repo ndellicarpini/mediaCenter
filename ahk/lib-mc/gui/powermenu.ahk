@@ -1,12 +1,10 @@
-global GUIPOWERTITLE := "AHKGUIPOWER"
-
-createPowerMenu() {
+guiPowerMenu() {
     global globalConfig
     global globalGuis
 
     destroyPauseMenu()
     
-    createInterface(GUIPOWERTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,, "destroyPowerMenu")    
+    createInterface(GUIPOWERTITLE, GUIOPTIONS . " +AlwaysOnTop +Overlay000000",, Map("B", "gui.Destroy"), true, false,,, "destroyPowerMenu")    
     powerInt := globalGuis[GUIPOWERTITLE]
 
     powerInt.unselectColor := COLOR2
@@ -39,6 +37,9 @@ createPowerMenu() {
     }
 
     powerInt.Show("Center w" . (buttonSize * index) + (buttonSpacing * (index - 1)) + (marginSize * 2) . " h" . percentHeight(0.2))
+    
+    ; hide the mouse in the gui
+    MouseMove(percentWidth(1), percentHeight(1))
 }
 
 ; destroys the power menu & resumes current program
@@ -50,14 +51,8 @@ destroyPowerMenu() {
 
     if (getGUI(GUIPOWERTITLE)) {
         globalGuis[GUIPOWERTITLE].guiObj.Destroy()
-
-        currProgram := getStatusParam("currProgram")
-    
-        ; set pause & activate currProgram resume
+        
         setStatusParam("pause", false)
-        if (currProgram != "") {
-            globalRunning[currProgram].resume()
-        }
     }
 }
 

@@ -1,0 +1,29 @@
+{
+    "id": "ppsspp",
+    "name": "PPSSPP",
+
+    "exe": "PPSSPPWindows64.exe",
+    "dir": "C:\\Emulators\\PPSSPP",
+
+    "requireFullscreen": true,
+    
+    "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
+
+    "pause": "SendSafe {Escape} 120",
+    "resume": "SendSafe {Escape} 120",
+
+    "reset": "ppssppReset",
+
+    "numStates": 1,
+    "saveState": "ppssppSaveState",
+    "loadState": "ppssppLoadState",
+    "fastForward": "ppssppFastForward",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {
+        "HOME&START": "program.saveState",
+        "HOME&SELECT": "program.loadState",
+        "HOME&RT>0.3": "program.fastForward",
+    },
+}

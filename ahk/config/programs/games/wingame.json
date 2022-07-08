@@ -1,0 +1,37 @@
+{
+	"id": "wingame",
+	"name": "Windows Game",
+
+	"requireFullscreen": true,
+
+	"launch": "winGameLaunch",
+	"postLaunch": "winGamePostLaunch",
+	"postExit": "winGamePostExit",
+
+	"exe": [
+		"gzdoom.exe",
+		"openmw.exe",
+		"GTAIV.exe",
+		"GTA5.exe",
+		"KINGDOM HEARTS HD 1.5+2.5 ReMIX.exe",
+		"KINGDOM HEARTS HD 2.8 Final Chapter Prologue.exe",
+		"KINGDOM HEARTS III.exe",
+		"Simpsons.exe",
+		"AssassinsCreedIIGame.exe",
+		"ACBSP.exe",
+		"AC4BFSP.exe",
+		"DOOM64.exe",
+		"forza_x64_release_final.exe",
+		"Bully.exe",
+		"Viva Pinata.exe",
+		"Clone Hero.exe",
+		"spearmint_x86_64.exe",
+		"OR2006C2C.EXE",
+		"MaxPayne3.exe",
+		"FOER.exe",
+		"WOGR.exe",
+		"AM2R.exe",
+		"SorR.exe",
+		"MBAA.exe",
+	]
+}

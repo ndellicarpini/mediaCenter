@@ -1,0 +1,14 @@
+{
+    "id": "genesis",
+    "romDir": "D:\\Roms\\Genesis",
+    "romNameIndex": 0,
+
+    "emulators": ["retroarch"],
+    "extensions": [".md", ".cue", ".32x", ".bin", ".iso", ".gen"],
+
+    "core": "picodrive",
+
+    "romVersions": [
+        
+    ]
+}

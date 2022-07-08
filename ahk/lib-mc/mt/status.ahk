@@ -11,6 +11,7 @@ global MT_STATUS_KEYS := {
     pause: MT_CHR_SIZE,
     suspendScript: MT_CHR_SIZE,
     kbmmode: MT_CHR_SIZE,
+    desktopmode: MT_CHR_SIZE,
     currProgram: MT_KEY_SIZE,
     loadShow: MT_CHR_SIZE,
     loadText: MT_STR_SIZE,
@@ -18,10 +19,13 @@ global MT_STATUS_KEYS := {
     errorHwnd: MT_NUM_SIZE,
     currGui: MT_KEY_SIZE,
     internalMessage: MT_KEY_SIZE,
+    threadedFunction: MT_STR_SIZE,
     buttonTime: MT_NUM_SIZE,
 
-    ; support for up to 32 hotkeys
-    currHotkeys: MT_KEY_SIZE * 64,
+    ; support for up to ~32 hotkeys
+    currHotkeys: MT_KEY_SIZE * 256,
+    ; support for up to ~8 mouse items
+    currMouse: MT_KEY_SIZE * 16,
 }
 
 ; creates the status buffer based on the data in MT_STATUS_KEYS
@@ -71,6 +75,8 @@ getStatusParam(param, ptr := "") {
         case "suspendScript": 
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar") 
         case "kbmmode":  
+            return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")   
+        case "desktopmode":  
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")       
         case "currProgram": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)    
@@ -87,29 +93,57 @@ getStatusParam(param, ptr := "") {
         case "currGui": 
             return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)        
         case "internalMessage": 
-            return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
+            return StrGet(calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)    
+        case "threadedFunction": 
+            return StrGet(calcStatusPtrOffset(param, ptr), MT_STR_SIZE)
         case "currHotkeys":
             ptrOffset := calcStatusPtrOffset(param, ptr)
 
             retMap := Map()
             loop 32 {
                 key := StrGet(ptrOffset, MT_KEY_SIZE)
-                val := StrGet(ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
+                valString := StrGet(ptrOffset + MT_KEY_SIZE, (MT_KEY_SIZE * 7))
 
                 if (key = "") {
                     break
                 }
 
-                if (InStr(val, "{|}")) {
-                    tempArr := StrSplit(val, "{|}")
-                    
-                    val := Map()
-                    val["down"] := tempArr[1]
-                    val["up"]   := tempArr[2]
+                tempArr := StrSplit(valString, "{|}")
+                val := Map()
+
+                loop tempArr.Length {
+                    if (tempArr[A_Index] = "DOWN") {
+                        val["down"] := Trim(tempArr[A_Index + 1])
+                    }
+                    else if (tempArr[A_Index] = "UP") {
+                        val["up"] := Trim(tempArr[A_Index + 1])
+                    }
+                    else if (tempArr[A_Index] = "TIME") {
+                        val["time"] := Trim(tempArr[A_Index + 1])
+                    }
                 }
 
                 retMap[key] := val
-                ptrOffset += MT_KEY_SIZE
+
+                ptrOffset += (MT_KEY_SIZE * 8)
+            }
+
+            return retMap
+        case "currMouse": 
+            ptrOffset := calcStatusPtrOffset(param, ptr)
+
+            retMap := Map()
+            loop 8 {
+                key := StrGet(ptrOffset, MT_KEY_SIZE)
+                val := StrGet(ptrOffset + MT_KEY_SIZE, MT_KEY_SIZE)
+
+                if (key = "") {
+                    break
+                }
+
+                retMap[key] := val
+
+                ptrOffset += (MT_KEY_SIZE * 2)
             }
 
             return retMap
@@ -130,6 +164,8 @@ setStatusParam(param, newVal, ptr := "") {
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
         case "kbmmode":  
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
+        case "desktopmode":  
+            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
         case "currProgram": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
         case "loadShow":   
@@ -146,8 +182,13 @@ setStatusParam(param, newVal, ptr := "") {
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)  
         case "internalMessage": 
             StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_KEY_SIZE)
+        case "threadedFunction": 
+            StrPut(newVal, calcStatusPtrOffset(param, ptr), MT_STR_SIZE)
         case "currHotkeys":
             ptrOffset := calcStatusPtrOffset(param, ptr)
+
+            HOTKEY_SIZE := MT_KEY_SIZE * 8
+
             keys := []
             vals := []
 
@@ -157,17 +198,18 @@ setStatusParam(param, newVal, ptr := "") {
             }
 
             loop 32 {
+                down := " "
+                up   := " "
+                time := " "
+                
                 if (A_Index > keys.Length) {
-                    StrPut("", ptrOffset, MT_KEY_SIZE)
-                    ptrOffset += MT_KEY_SIZE
+                    StrPut("", ptrOffset, HOTKEY_SIZE)
+                    ptrOffset += HOTKEY_SIZE
                 }
                 else {
                     StrPut(keys[A_Index], ptrOffset, MT_KEY_SIZE)
 
                     if (IsObject(vals[A_Index])) {
-                        down := ""
-                        up   := ""
-                        
                         for key, value in vals[A_Index] {
                             if (StrLower(key) = "down") {
                                 down := value
@@ -175,15 +217,48 @@ setStatusParam(param, newVal, ptr := "") {
                             else if (StrLower(key) = "up") {
                                 up := value
                             }
+                            else if (StrLower(key) = "time") {
+                                time := value
+                            }
                         }
-
-                        StrPut(down . "{|}" . up, ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
-                        ptrOffset += MT_KEY_SIZE
                     }
                     else {
-                        StrPut(vals[A_Index], ptrOffset + (32 * MT_KEY_SIZE), MT_KEY_SIZE)
-                        ptrOffset += MT_KEY_SIZE
+                        down := vals[A_Index]
                     }
+                    
+                    StrPut("{|}DOWN{|}" . down . "{|}UP{|}" . up . "{|}TIME{|}" . time . "{|}"
+                        , ptrOffset + MT_KEY_SIZE, (MT_KEY_SIZE * 7))
+                    
+                    ptrOffset += HOTKEY_SIZE
+                }
+            }
+        case "currMouse":
+            ptrOffset := calcStatusPtrOffset(param, ptr)
+
+            MOUSE_SIZE := MT_KEY_SIZE * 2
+
+            keys := []
+            vals := []
+
+            for key, val in newVal {
+                if (key = "initialPos") {
+                    continue
+                }
+
+                keys.Push(key)
+                vals.Push(val)
+            }
+
+            loop 8 {                
+                if (A_Index > keys.Length) {
+                    StrPut("", ptrOffset, MOUSE_SIZE)
+                    ptrOffset += MOUSE_SIZE
+                }
+                else {
+                    StrPut(keys[A_Index], ptrOffset, MT_KEY_SIZE)
+                    StrPut(vals[A_Index], ptrOffset + MT_KEY_SIZE, MT_KEY_SIZE)
+                    
+                    ptrOffset += MOUSE_SIZE
                 }
             }
     }

@@ -58,12 +58,76 @@ ProcessWinClose(window) {
 }
 
 ; kills a process with extreme prejudice
-;  PID - pid of process to murder
+;  process - process to murder
 ;  includeChildren - whether or not to kill child processes
 ;
 ; returns null
-ProcessKill(PID, includeChildren := true) {
+ProcessKill(process, includeChildren := true) {
+	PID := 0
+	
+	if (IsInteger(process)) {
+		PID := process
+	}
+	else if (ProcessExist(process)) {
+		PID := WinGetPID("ahk_exe " . process)
+	}
+	else {
+		PID := WinGetPID(WinHidden(process))
+	}
+
 	Run "taskkill " . ((includeChildren) ? "/t" : "") . " /f /pid " . PID,, "Hide"
+}
+
+; suspends a running process
+;  process - process to suspend
+;
+; returns null
+ProcessSuspend(process) {
+	PID := 0
+	
+	if (IsInteger(process)) {
+		PID := process
+	}
+	else if (ProcessExist(process)) {
+		PID := WinGetPID("ahk_exe " . process)
+	}
+	else {
+		PID := WinGetPID(WinHidden(process))
+	}
+
+	handle := DllCall("OpenProcess", "UInt", 0x1F0FFF, "Int", 0, "Int", PID)
+	if (!handle) {
+		return
+	}
+
+	DllCall("ntdll\NtSuspendProcess", "Int", handle)
+	DllCall("CloseHandle", "Int", handle)
+}
+
+; resumes a suspended process
+;  process - process to resume
+;
+; returns null
+ProcessResume(process) {
+	PID := 0
+	
+	if (IsInteger(process)) {
+		PID := process
+	}
+	else if (ProcessExist(process)) {
+		PID := WinGetPID("ahk_exe " . process)
+	}
+	else {
+		PID := WinGetPID(WinHidden(process))
+	}
+
+	handle := DllCall("OpenProcess", "UInt", 0x1F0FFF, "Int", 0, "Int", PID)
+	if (!handle) {
+		return
+	}
+
+	DllCall("ntdll\NtResumeProcess", "Int", handle)
+	DllCall("CloseHandle", "Int", handle)
 }
 
 ; returns the winexist of the window only if the window is not hidden
@@ -92,6 +156,45 @@ WinHidden(window) {
 	DetectHiddenWindows(resetDHW)
 
 	return retVal
+}
+
+; sets the current script's window title to the string in name
+;  name - new window name for current script
+;
+; returns null
+SetCurrentWinTitle(name) {
+	resetDHW := A_DetectHiddenWindows
+
+	DetectHiddenWindows(true)
+	WinSetTitle(name, "ahk_pid " DllCall("GetCurrentProcessId"))
+	DetectHiddenWindows(resetDHW)
+}
+
+; holds a keybinding for x ms
+;  key - key to press/hold (must be single key, can't be combo)
+;  time - time in ms to hold key
+;
+; returns null
+SendSafe(key, time := 85) {
+	if (StrSplit(key, A_Space).Length > 2) {
+		ErrorMsg("Can't SendSafe a multi key bind")
+		return
+	}
+
+	firstChar := SubStr(key, 1, 1)
+    if (firstChar != "{" && firstChar != "^"
+		&& firstChar != "+" && firstChar != "!" && firstChar != "#") {
+        
+		key := "{" . key
+    }
+
+	if (SubStr(key, -1, 1) = "}") {
+        key := SubStr(key, 1, StrLen(key) - 1)
+    }
+
+	Send(key . " down}")
+	Sleep(time)
+	Send(key . " up}")
 }
 
 ; sums all values in each list
@@ -132,6 +235,36 @@ Sum(lists*) {
 	}
 
 	return retVal
+}
+
+; deep clones an object, supporting Maps & Arrays
+; obj - obj to deep clone
+;
+; returns cloned object
+ObjDeepClone(obj) {
+	if (!IsObject(obj)) {
+		return obj
+	}
+
+	retObj := obj.Clone()
+
+	if (Type(obj) = "Map") {
+		for key, value in obj {
+			retObj[key] := ObjDeepClone(value)
+		}
+	}
+	else if (Type(obj) = "Array") {
+		loop obj.Length {
+			retObj[A_Index] := ObjDeepClone(obj[A_Index])
+		}
+	}
+	else {
+		for key, value in obj.OwnProps() {
+			retObj[key] := ObjDeepClone(value)
+		}
+	}
+
+	return retObj
 }
 
 ; converts the value to a string by appending it to empty string
@@ -203,15 +336,15 @@ fromString(value, trimString := false) {
 
 	; try to convert the item into a float, if successful save as number
 	try {
-		retVal := Float(value)
+		retVal := Float(Trim(value, A_Space))
 		return retVal
 	}
 	catch {
 		; check if value is a string representing a bool, convert to bool
-		if (StrLower(value) = "true") {
+		if (StrLower(Trim(value, A_Space)) = "true") {
 			return true
 		}
-		else if (StrLower(value) = "false") {
+		else if (StrLower(Trim(value, A_Space)) = "false") {
 			return false
 		}
 		
@@ -312,6 +445,29 @@ arrayEquals(arr1, arr2, checkOrder := true) {
 	}
 	
 	return inArray(arr1, arr2)
+}
+
+; checks if 2 maps have the same contents
+;  map1 - first map
+;  map2 - second map
+;
+; returns true if the maps are equal
+mapEquals(map1, map2) {
+    map1Keys := []
+    map1Vals := []
+    for key, value in map1 {
+        map1Keys.Push(key)
+        map1Vals.Push(value)
+    }
+
+    map2Keys := []
+    map2Vals := []
+    for key, value in map2 {
+        map2Keys.Push(key)
+        map2Vals.Push(value)
+    }
+
+    return (arrayEquals(map1Keys, map2Keys) && arrayEquals(map1Vals, map2Vals))
 }
 
 ; cleans text to have special characters set to match identical in regex
@@ -567,34 +723,57 @@ runFunction(text, params := "") {
 	}
 
 	; set args for func from words in text
+	stringType := ""
+	tempString := ""
 	for item in textArr {
-		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%") {
+		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%" && StrLen(item) > 1) {
 			funcArr.Push(%Trim(item, "%")%)
+			continue
+		}
+		
+		; handle function param strings w/ spaces
+		if (!stringType) {
+			if (SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"' && StrLen(item) > 1) {
+				funcArr.Push(Trim(item, '"'))
+			}
+			else if (SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'" && StrLen(item) > 1) {
+				funcArr.Push(Trim(item, "'"))
+			}
+			else if (SubStr(item, 1, 1) = '"' && StrLen(item) > 1) {
+				tempString .= LTrim(item, '"') . A_Space
+				stringType := '"'
+			}
+			else if (SubStr(item, 1, 1) = "'" && StrLen(item) > 1) {
+				tempString .= LTrim(item, "'") . A_Space
+				stringType := "'"
+			}
+			else {
+				funcArr.Push(item)
+			}
 		}
 		else {
-			funcArr.Push(item)
+			if (SubStr(item, -1, 1) = '"' && stringType = '"') {
+				funcArr.Push(RTrim(tempString . item, '"'))
+				tempString := ""
+				stringType := ""
+			}
+			else if (SubStr(item, -1, 1) = "'" && stringType = "'") {
+				funcArr.Push(RTrim(tempString . item, "'"))
+				tempString := ""
+				stringType := ""
+			}
+			else {
+				tempString .= item . A_Space
+			}
 		}
 	}
 
-	; this is kinda annoying, TODO - maybe figure out how to deconstruct array
 	if (funcArr.Length > 0) {
 		return %func%(funcArr*)
 	}
 	else {
 		return %func%()
 	}
-}
-
-; sets the current script's window title to the string in name
-;  name - new window name for current script
-;
-; returns null
-setCurrentWinTitle(name) {
-	resetDHW := A_DetectHiddenWindows
-
-	DetectHiddenWindows(true)
-	WinSetTitle(name, "ahk_pid" . DllCall("GetCurrentProcessId"))
-	DetectHiddenWindows(resetDHW)
 }
 
 ; returns the string containing the dynamic includes if it exists

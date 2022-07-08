@@ -1,6 +1,6 @@
 ; the load gui function takes very specific parameters, and should always return a GUI object
 ; this is just used to customize the load screen gui if the user wants to
-;  args[0] - GUI object to append new styling to
+;  guiObj - GUI object to append new styling to
 ;
 ; returns GUI obj with new load screen styling
 loadGUI(guiObj) {    

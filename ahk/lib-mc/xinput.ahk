@@ -136,7 +136,7 @@ xGetBatteryLevel(port, ptr) {
         case 1:
             return 0.2
         case 2:
-            return 0.6
+            return 0.8
         case 3:
             return 1
     }
@@ -171,6 +171,18 @@ xDisableVibration(port, ptr) {
     NumPut("UChar", 0, ptr + (port * 20) + 3, 0)
 }
 
+; gets the controller buffer from ptr for the specific port
+;  port - controller to check
+;  ptr - ptr to controller data to check
+;
+; returns buffer of controller data
+xGetPortBuffer(port, ptr) {
+    statusData := Buffer(16)
+    copyBufferData(ptr + (port * 20) + 4, statusData.Ptr, 16)
+
+    return statusData
+}
+
 ; checks the buttons & axis of a specific controller, comparing them with current hotkeys
 ;  toCheck - current hotkeys to check
 ;  port - controller to check
@@ -183,12 +195,7 @@ xCheckStatus(toCheck, port, ptr) {
     }
 
     checkArr := toArray(toCheck)
-    if (!inArray("HOME", checkArr) && xGetBatteryType(port, ptr) = 0) {
-        return false
-    }
-
-    statusData := Buffer(16)
-    copyBufferData(ptr + (port * 20) + 4, statusData.Ptr, 16)
+    statusData := xGetPortBuffer(port, ptr)
 
     retVal := true
 
@@ -216,6 +223,17 @@ xCheckStatus(toCheck, port, ptr) {
     return ((checkAxis) ? axisVal : true) && (buttons = (buttons & NumGet(statusData, xButtons.offset, xButtons.type)))
 }
 
+; checks a button of a specific controller
+;  statusData - controller status buffer
+;  button - button to check from hotkeys
+xCheckButton(statusData, button) {
+    if (!xButtons.HasOwnProp(button)) {
+        ErrorMsg("Tried to get a button that doesn't exist: " . button, true)
+    }
+
+    return (xButtons.%button% & NumGet(statusData, xButtons.offset, xButtons.type))
+}
+
 ; checks the axis of a specific controller
 ;  statusData - controller status buffer
 ;  axis - axis to check from hotkeys
@@ -235,7 +253,7 @@ xCheckAxis(statusData, axis) {
     }
 
     if (currAxis = axis) {
-        return NumGet(statusData, xAxis.%currAxis%.offset, xAxis.%currAxis%.type)
+        return NumGet(statusData, xAxis.%currAxis%.offset, xAxis.%currAxis%.type) / xAxis.%currAxis%.max
     }
 
     value := 0

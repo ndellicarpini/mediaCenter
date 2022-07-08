@@ -9,6 +9,7 @@ class Interface {
     deselectColor := ""
 
     allowPause := ""
+    allowFocus := true
 
     customDeselect := Map()
     customDestroy  := ""
@@ -39,9 +40,10 @@ class Interface {
 
     ; same as Program
     hotkeys := Map()
+    mouse := Map()
     time := 0
 
-    __New(title, options := "", eventObj := "", enableAnalog := false, allowPause := true, closeGuiMode := "off", customDestroy := "", additionalHotkeys := "") {
+    __New(title, options := "", eventObj := "", enableAnalog := false, allowPause := true, allowFocus := true, closeGuiMode := "off", customDestroy := "", additionalHotkeys := "") {
         customOptions := []
 
         optionsArr := StrSplit(options, A_Space)
@@ -69,26 +71,16 @@ class Interface {
         ; add hotkeys for moving selection around gui
         ; yes these probably shouldn't be hardcoded
         if (enableAnalog) {
-            this.hotkeys["[REPEAT]LSY>0.2"] := "gui.up"
-            this.hotkeys["[REPEAT]LSY<-0.2"]  := "gui.down"
-            this.hotkeys["[REPEAT]LSX<-0.2"] := "gui.left"
-            this.hotkeys["[REPEAT]LSX>0.2"]  := "gui.right"
-
-            this.hotkeys["[REPEAT]LSY>0.2&LSX<-0.2"] := "gui.upleft"
-            this.hotkeys["[REPEAT]LSY>0.2&LSX>0.2"] := "gui.upright"
-            this.hotkeys["[REPEAT]LSY<-0.2&LSX<-0.2"] := "gui.downleft"
-            this.hotkeys["[REPEAT]LSY<-0.2&LSX>0.2"] := "gui.downright"
+            this.hotkeys["[REPEAT]LSY>0.4"] := "gui.up"
+            this.hotkeys["[REPEAT]LSY<-0.4"]  := "gui.down"
+            this.hotkeys["[REPEAT]LSX<-0.4"] := "gui.left"
+            this.hotkeys["[REPEAT]LSX>0.4"]  := "gui.right"
         }
 
         this.hotkeys["[REPEAT]DU"] := "gui.up"
         this.hotkeys["[REPEAT]DD"] := "gui.down"
         this.hotkeys["[REPEAT]DL"] := "gui.left"
         this.hotkeys["[REPEAT]DR"] := "gui.right"
-
-        this.hotkeys["[REPEAT]DU&DL"] := "gui.upleft"
-        this.hotkeys["[REPEAT]DU&DR"] := "gui.upright"
-        this.hotkeys["[REPEAT]DD&DL"] := "gui.downleft"
-        this.hotkeys["[REPEAT]DD&DR"] := "gui.downright"
 
         this.hotkeys["A"] := "gui.select"
 
@@ -103,6 +95,7 @@ class Interface {
         this.closeGuiMode  := closeGuiMode
         this.customDestroy := customDestroy
         this.allowPause    := allowPause
+        this.allowFocus    := allowFocus
     }
 
     ; exactly like gui.show except renders the selected item w/ the proper background
@@ -210,8 +203,8 @@ class Interface {
         controlName := ""
         controlFunc := ""
         controlDeselect := ""
-        xpos := -1
-        ypos := -1
+        xposArr := []
+        yposArr := []
 
         currItem := ""
         inFunction := false
@@ -258,7 +251,19 @@ class Interface {
 
             ; check for a xpos string
             else if (SubStr(item, 1, 4) = "xpos") {
-                xpos := Integer(SubStr(item, 5))
+                if (InStr(item, "-")) {
+                    xposRange := StrSplit(item, "-")
+                    xposRange[1] := Integer(StrReplace(xposRange[1], "xpos", ""))
+                    xposRange[2] := Integer(xposRange[2])
+
+                    xposArr.Push(xposRange[1])
+                    loop (xposRange[2] - xposRange[1]) {
+                        xposArr.Push(xposRange[1] + A_Index)
+                    }
+                }
+                else {
+                    xposArr.Push(Integer(SubStr(item, 5)))
+                }
                 
                 removeArr.Push(item)
                 addControl := true
@@ -266,7 +271,19 @@ class Interface {
 
             ; check for a xpos string
             else if (SubStr(item, 1, 4) = "ypos") {
-                ypos := Integer(SubStr(item, 5))
+                if (InStr(item, "-")) {
+                    yposRange := StrSplit(item, "-")
+                    yposRange[1] := Integer(StrReplace(yposRange[1], "ypos", ""))
+                    yposRange[2] := Integer(yposRange[2])
+
+                    yposArr.Push(yposRange[1])
+                    loop (yposRange[2] - yposRange[1]) {
+                        yposArr.Push(yposRange[1] + A_Index)
+                    }
+                }
+                else {
+                    yposArr.Push(Integer(SubStr(item, 5)))
+                }
 
                 removeArr.Push(item)
                 addControl := true
@@ -275,67 +292,79 @@ class Interface {
 
         ; if control is interactable
         if (addControl && controlName != "") {
-            ; add empty slots if xpos > max xpos
-            if (xpos > 0) {
-                while (this.control2D.Length < xpos) {
-                    this.control2D.Push([])
-                }
+            ; if an axis pos is missing, default to all slots
+            if (xposArr.Length > 0 && yposArr.Length = 0) {
+                yposArr.Push(-1)
             }
-            
-            ; add empty slots if ypos > max ypos
-            if (ypos > 0) {
-                if (xpos = -1) {
-                    loop this.control2D.Length {
-                        x_index := A_Index
-    
-                        while(this.control2D[x_index].Length < ypos) {
-                            this.control2D[x_index].Push({control: "", function: ""})
+            if (xposArr.Length = 0 && yposArr.Length > 0) {
+                xposArr.Push(-1)
+            }
+
+            for xpos in xposArr {
+                for ypos in yposArr {
+                    ; add empty slots if xpos > max xpos
+                    if (xpos > 0) {
+                        while (this.control2D.Length < xpos) {
+                            this.control2D.Push([])
                         }
                     }
-                }
-                else {
-                    while(this.control2D[xpos].Length < ypos) {
-                        this.control2D[xpos].Push({control: "", function: ""})
-                    }
-                }
-            }
+                    
+                    ; add empty slots if ypos > max ypos
+                    if (ypos > 0) {
+                        if (xpos = -1) {
+                            loop this.control2D.Length {
+                                x_index := A_Index
             
-            ; put the interacable data in every slot
-            if (xpos = -1 && ypos = -1) {
-                loop this.control2D.Length {
-                    x_index := A_Index
-
-                    loop this.control2D[x_index].Length {
-                        y_index := A_Index
-
-                        if (this.control2D[x_index][y_index].control = "") {
-                            this.control2D[x_index][y_index] := {control: controlName, function: controlFunc}
+                                while(this.control2D[x_index].Length < ypos) {
+                                    this.control2D[x_index].Push({control: "", function: ""})
+                                }
+                            }
+                        }
+                        else {
+                            while(this.control2D[xpos].Length < ypos) {
+                                this.control2D[xpos].Push({control: "", function: ""})
+                            }
                         }
                     }
-                }
-            }
+                    
+                    ; put the interacable data in every slot
+                    if (xpos = -1 && ypos = -1) {
+                        loop this.control2D.Length {
+                            x_index := A_Index
 
-            ; put the interacable data in every slot at same ypos
-            else if (xpos = -1) {
-                loop this.control2D.Length {
-                    if (this.control2D[A_Index][ypos].control = "") {
-                        this.control2D[A_Index][ypos] := {control: controlName, function: controlFunc}
+                            loop this.control2D[x_index].Length {
+                                y_index := A_Index
+
+                                if (this.control2D[x_index][y_index].control = "") {
+                                    this.control2D[x_index][y_index] := {control: controlName, function: controlFunc}
+                                }
+                            }
+                        }
+                    }
+
+                    ; put the interacable data in every slot at same ypos
+                    else if (xpos = -1) {
+                        loop this.control2D.Length {
+                            if (this.control2D[A_Index][ypos].control = "") {
+                                this.control2D[A_Index][ypos] := {control: controlName, function: controlFunc}
+                            }
+                        }
+                    }
+
+                    ; put the interacable data in every slot at same xpos
+                    else if (ypos = -1) {
+                        loop this.control2D[xpos].Length {
+                            if (this.control2D[xpos][A_Index].control = "") {
+                                this.control2D[xpos][A_Index] := {control: controlName, function: controlFunc}
+                            }
+                        }
+                    }
+
+                    ; put the interacable data in the requested slot
+                    else {
+                        this.control2D[xpos][ypos] := {control: controlName, function: controlFunc}
                     }
                 }
-            }
-
-            ; put the interacable data in every slot at same xpos
-            else if (ypos = -1) {
-                loop this.control2D[xpos].Length {
-                    if (this.control2D[xpos][A_Index].control = "") {
-                        this.control2D[xpos][A_Index] := {control: controlName, function: controlFunc}
-                    }
-                }
-            }
-
-            ; put the interacable data in the requested slot
-            else {
-                this.control2D[xpos][ypos] := {control: controlName, function: controlFunc}
             }
 
             if (controlDeselect != "") {
@@ -364,18 +393,23 @@ class Interface {
 
         currGuiCount := globalGuis.Count
 
-        if (this.control2D[this.currentX][this.currentY].function != "") {
+        if (SubStr(StrLower(this.control2D[this.currentX][this.currentY].function), 1, 3) = "gui") {
             runFunction(this.control2D[this.currentX][this.currentY].function)
         }
-
-        if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount >= globalGuis.Count)) {
-            for key, value in globalGuis {
-                value.Destroy()
-                globalGuis.Delete(key)
+        else {
+            if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount >= globalGuis.Count)) {
+                for key, value in globalGuis {
+                    value.Destroy()
+                    globalGuis.Delete(key)
+                }
             }
-        }
-        else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount >= globalGuis.Count)) {
-            this.Destroy()
+            else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount >= globalGuis.Count)) {
+                this.Destroy()
+            }
+
+            if (this.control2D[this.currentX][this.currentY].function != "") {
+                runFunction(this.control2D[this.currentX][this.currentY].function)
+            }
         }
     }
 
@@ -432,35 +466,65 @@ class Interface {
         }
     }
 
-    up() {    
+    up() {  
+        currControl := this.control2D[this.currentX][this.currentY].control
+        nextX := 0
         nextY := 0
-        attemptedY := this.currentY - 1
-        while (nextY = 0) {
-            if (attemptedY = this.currentY) {
-                return
-            }
-            
-            if (attemptedY < 1) {
-                if (this.control2D[this.currentX].Length = 0) {
-                    return
+
+        longestCol := 0
+        loop this.control2D.Length {
+            if (this.control2D[A_Index].Length > longestCol) {
+                longestCol := this.control2D[A_Index].Length
+            } 
+        }
+
+        currCol := []
+        loop longestCol {
+            row := A_Index
+
+            xAdjust := 0
+            foundValid := false
+            while (!foundValid) {
+                if (xAdjust >= this.currentX) {
+                    break
                 }
 
-                attemptedY := this.control2D[this.currentX].Length
-                continue
-            }
-    
-            controlName := this.control2D[this.currentX][attemptedY].control
-            if (controlName != "" && this.guiObj[controlName].Visible) {
-                nextY := attemptedY
-            }
-    
-            attemptedY -= 1
-        }
-    
-        oldControl := this.control2D[this.currentX][this.currentY].control
+                if (row <= this.control2D[this.currentX - xAdjust].Length) {
+                    controlName := this.control2D[this.currentX - xAdjust][row].control
+                    if (controlName != "" && this.guiObj[controlName].Visible) {
+                        if (controlName = currControl && row != this.currentY) {
+                            xAdjust += 1
+                            continue
+                        }
 
-        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
-        this.guiObj[oldControl].Redraw()
+                        foundValid := true
+                        currCol.Push({
+                            x: this.currentX - xAdjust,
+                            y: row
+                        })
+                    }
+                }
+            
+                xAdjust += 1
+            }
+        }
+
+        loop currCol.Length {
+            if (currCol[A_Index].y = this.currentY) {
+                if (A_Index = 1) {
+                    nextX := currCol[currCol.Length].x
+                    nextY := currCol[currCol.Length].y
+                }
+                else {
+                    nextX := currCol[A_Index - 1].x
+                    nextY := currCol[A_Index - 1].y
+                }
+            }
+        }
+
+        this.guiObj[currControl].Opt("Background" . ((this.customDeselect.Has(currControl)) ? this.customDeselect[currControl] : this.unselectColor))
+        this.guiObj[currControl].Redraw()
+        this.currentX := nextX
         this.currentY := nextY
 
         newControl := this.control2D[this.currentX][this.currentY].control
@@ -472,35 +536,64 @@ class Interface {
     }
     
     down() {    
+        currControl := this.control2D[this.currentX][this.currentY].control
+        nextX := 0
         nextY := 0
-        attemptedY := this.currentY + 1
-        currentX := this.currentX
-        while (nextY = 0) {
-            if (attemptedY = this.currentY) {
-                return
-            }
 
-            if (attemptedY > this.control2D[this.currentX].Length) {
-                if (this.control2D[this.currentX].Length = 0) {
-                    return
-                }
-
-                attemptedY := 1
-                continue
-            }
-
-            controlName := this.control2D[this.currentX][attemptedY].control
-            if (controlName != "" && this.guiObj[controlName].Visible) {
-                nextY := attemptedY
-            }
-    
-            attemptedY += 1
+        longestCol := 0
+        loop this.control2D.Length {
+            if (this.control2D[A_Index].Length > longestCol) {
+                longestCol := this.control2D[A_Index].Length
+            } 
         }
 
-        oldControl := this.control2D[this.currentX][this.currentY].control
+        currCol := []
+        loop longestCol {
+            row := A_Index
+
+            xAdjust := 0
+            foundValid := false
+            while (!foundValid) {
+                if (xAdjust >= this.currentX) {
+                    break
+                }
+
+                if (row <= this.control2D[this.currentX - xAdjust].Length) {
+                    controlName := this.control2D[this.currentX - xAdjust][row].control
+                    if (controlName != "" && this.guiObj[controlName].Visible) {
+                        if (controlName = currControl && row != this.currentY) {
+                            xAdjust += 1
+                            continue
+                        }
+
+                        foundValid := true
+                        currCol.Push({
+                            x: this.currentX - xAdjust,
+                            y: row
+                        })
+                    }
+                }
+            
+                xAdjust += 1
+            }
+        }
+
+        loop currCol.Length {
+            if (currCol[A_Index].y = this.currentY) {
+                if (A_Index = currCol.Length) {
+                    nextX := currCol[1].x
+                    nextY := currCol[1].y
+                }
+                else {
+                    nextX := currCol[A_Index + 1].x
+                    nextY := currCol[A_Index + 1].y
+                }
+            }
+        }
     
-        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
-        this.guiObj[oldControl].Redraw()
+        this.guiObj[currControl].Opt("Background" . ((this.customDeselect.Has(currControl)) ? this.customDeselect[currControl] : this.unselectColor))
+        this.guiObj[currControl].Redraw()
+        this.currentX := nextX
         this.currentY := nextY
 
         newControl := this.control2D[this.currentX][this.currentY].control
@@ -512,39 +605,46 @@ class Interface {
     }
     
     left() {    
+        currControl := this.control2D[this.currentX][this.currentY].control
         nextX := 0
-        nextY := this.currentY
-        attemptedX := this.currentX - 1
-        while (nextX = 0) {
-            if (attemptedX = this.currentX) {
-                return
-            }
+        nextY := 0
 
-            if (attemptedX < 1) {
-                attemptedX := this.control2D.Length
-                continue
-            }
+        currRow := []
+        loop this.control2D.Length {
+            col := A_Index
 
-            if (this.control2D[attemptedX].Length < this.currentY) {
-                if (this.control2D[attemptedX].Length) {
-                    return
+            loop this.control2D[col].Length {
+                row := A_Index
+
+                controlName := this.control2D[col][row].control
+                if (row = this.currentY && controlName != "" && this.guiObj[controlName].Visible) {
+                    if (controlName = currControl && col != this.currentX) {
+                        continue
+                    }
+
+                    currRow.Push({
+                        x: col,
+                        y: row
+                    })
                 }
-
-                nextY := this.control2D[attemptedX].Length
             }
-    
-            controlName := this.control2D[attemptedX][nextY].control
-            if (controlName != "" && this.guiObj[controlName].Visible) {
-                nextX := attemptedX
-            }
-    
-            attemptedX -= 1
         }
 
-        oldControl := this.control2D[this.currentX][this.currentY].control
+        loop currRow.Length {
+            if (currRow[A_Index].x = this.currentX) {
+                if (A_Index = 1) {
+                    nextX := currRow[currRow.Length].x
+                    nextY := currRow[currRow.Length].y
+                }
+                else {
+                    nextX := currRow[A_Index - 1].x
+                    nextY := currRow[A_Index - 1].y
+                }
+            }
+        }
     
-        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
-        this.guiObj[oldControl].Redraw()
+        this.guiObj[currControl].Opt("Background" . ((this.customDeselect.Has(currControl)) ? this.customDeselect[currControl] : this.unselectColor))
+        this.guiObj[currControl].Redraw()
         this.currentX := nextX
         this.currentY := nextY
 
@@ -556,40 +656,47 @@ class Interface {
         this.checkScrollHorizontal(this.guiObj[newControl])
     }
     
-    right() {    
+    right() {   
+        currControl := this.control2D[this.currentX][this.currentY].control 
         nextX := 0
-        nextY := this.currentY
-        attemptedX := this.currentX + 1
-        while (nextX = 0) {
-            if (attemptedX = this.currentX) {
-                return
-            }
+        nextY := 0
 
-            if (attemptedX > this.control2D.Length) {
-                attemptedX := 1
-                continue
-            }
+        currRow := []
+        loop this.control2D.Length {
+            col := A_Index
 
-            if (this.control2D[attemptedX].Length < this.currentY) {
-                if (this.control2D[attemptedX].Length) {
-                    return
+            loop this.control2D[col].Length {
+                row := A_Index
+
+                controlName := this.control2D[col][row].control
+                if (row = this.currentY && controlName != "" && this.guiObj[controlName].Visible) {
+                    if (controlName = currControl && col != this.currentX) {
+                        continue
+                    }
+
+                    currRow.Push({
+                        x: col,
+                        y: row
+                    })
                 }
+            }
+        }
 
-                nextY := this.control2D[attemptedX].Length
+        loop currRow.Length {
+            if (currRow[A_Index].x = this.currentX) {
+                if (A_Index = currRow.Length) {
+                    nextX := currRow[1].x
+                    nextY := currRow[1].y
+                }
+                else {
+                    nextX := currRow[A_Index + 1].x
+                    nextY := currRow[A_Index + 1].y
+                }
             }
-    
-            controlName := this.control2D[attemptedX][nextY].control
-            if (controlName != "" && this.guiObj[controlName].Visible) {
-                nextX := attemptedX
-            }
-    
-            attemptedX += 1
         }
     
-        oldControl := this.control2D[this.currentX][this.currentY].control
-    
-        this.guiObj[oldControl].Opt("Background" . ((this.customDeselect.Has(oldControl)) ? this.customDeselect[oldControl] : this.unselectColor))
-        this.guiObj[oldControl].Redraw()
+        this.guiObj[currControl].Opt("Background" . ((this.customDeselect.Has(currControl)) ? this.customDeselect[currControl] : this.unselectColor))
+        this.guiObj[currControl].Redraw()
         this.currentX := nextX
         this.currentY := nextY
 
@@ -599,24 +706,6 @@ class Interface {
         this.guiObj[newControl].Redraw()
 
         this.checkScrollHorizontal(this.guiObj[newControl])
-    }
-
-    ; okay look im sorry but it works pretty well
-    upleft() {
-        this.up()
-        this.left()
-    }
-    upright() {
-        this.up()
-        this.right()
-    }
-    downleft() {
-        this.down()
-        this.left()
-    }
-    downright() {
-        this.down()
-        this.right()
     }
 }
 
@@ -631,10 +720,10 @@ class Interface {
 ;  customTime - override the launch time
 ;
 ; returns null
-createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, allowPause := true, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
+createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, allowPause := true, allowFocus := true, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
     global globalGuis
     
-    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, allowPause, closeGuiMode, customDestroy, additionalHotkeys)
+    globalGuis[title] := Interface(title, options, eventObj, enableAnalog, allowPause, allowFocus, closeGuiMode, customDestroy, additionalHotkeys)
 
     if (setCurrent) {
         setStatusParam("currGui", title)
@@ -671,9 +760,14 @@ getMostRecentGui() {
 checkAllGuis() {
     global globalGuis
 
+    toDelete := []
     for key, value in globalGuis {
         if (!WinShown(key)) {
-            globalGuis.Delete(key)
+            toDelete.Push(key)
         }
+    }
+
+    for item in toDelete {
+        globalGuis.Delete(item)
     }
 }

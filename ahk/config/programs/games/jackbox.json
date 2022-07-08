@@ -1,0 +1,12 @@
+{
+    "id": "jackbox",
+    "name": "Jackbox Party Pack",
+
+    "launch": "jackboxLaunch",
+
+    "exe": [
+        "The Jackbox Party Pack.exe",
+        "The Jackbox Party Pack 2.exe",
+        "The Jackbox Party Pack 3.exe",
+    ],
+}

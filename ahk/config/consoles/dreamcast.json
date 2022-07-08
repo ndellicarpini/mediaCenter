@@ -1,0 +1,14 @@
+{
+    "id": "dreamcast",
+    "romDir": "D:\\Roms\\Dreamcast",
+    "romNameIndex": 0,
+
+    "emulators": ["retroarch"],
+    "extensions": [".cdi", ".chd"],
+
+    "core": "flycast",
+
+    "romVersions": [
+        
+    ]
+}

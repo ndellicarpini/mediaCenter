@@ -1,0 +1,12 @@
+{
+    "id": "xbox360",
+    "romDir": "D:\\Roms\\Xbox 360",
+    "romNameIndex": 0,
+
+    "emulators": ["xenia"],
+    "extensions": [".iso", ""],
+
+    "romVersions": [
+        
+    ]
+}
