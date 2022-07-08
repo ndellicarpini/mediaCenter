@@ -13,6 +13,9 @@ boot() {
         }
     }
 
-    createProgram("steam", true, false)
+    if (!ProcessExist("steam.exe")) {
+        createProgram("steam", true, false)
+    }
+    
     resetLoadScreen()
 }

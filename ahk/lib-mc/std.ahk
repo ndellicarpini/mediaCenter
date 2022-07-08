@@ -768,7 +768,6 @@ runFunction(text, params := "") {
 		}
 	}
 
-	; this is kinda annoying, TODO - maybe figure out how to deconstruct array
 	if (funcArr.Length > 0) {
 		return %func%(funcArr*)
 	}

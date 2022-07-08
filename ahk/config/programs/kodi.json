@@ -2,7 +2,6 @@
     "id": "kodi",
 	"name": "Kodi",
 
-	"wndw": "Kodi",
     "exe": "kodi.exe",
 
     "allowQuickAccess": true,

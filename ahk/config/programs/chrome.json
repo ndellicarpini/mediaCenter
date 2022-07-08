@@ -43,7 +43,7 @@
 
     "pauseOptions": {
         "Show Controls": "chromeControls",
-        "Enable Picture-in-Picture": "chromePIP",
+        "Toggle Picture-in-Picture": "chromePIP",
     },
-    "pauseOrder": ["Show Controls", "Enable Picture-in-Picture"]
+    "pauseOrder": ["Toggle Picture-in-Picture"]
 }

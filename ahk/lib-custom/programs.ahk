@@ -6,8 +6,8 @@ instantReplay() {
 }
 
 ; --- KODI ---
-; kodi only properly minimizes if its active?
 kodiMinimize() {
+    ; kodi only properly minimizes if its active?
     WinActivate("Kodi")
     Sleep(200)
     WinMinimize("Kodi")
@@ -23,7 +23,7 @@ kodiExit() {
 ; --- CHROME ---
 chromeExit() {
     global globalRunning
-    global globalGuis
+    ; global globalGuis
 
     if (WinShown("On-Screen Keyboard")) {
         WinClose("On-Screen Keyboard")
@@ -33,52 +33,20 @@ chromeExit() {
 }
 
 chromeRestore() {
+    ; don't restore if msft on-screen keyboard exists
     if (WinShown("On-Screen Keyboard")) {    
         return -1
     }
 }
 
-chromeControls() {
-    MsgBox("having sex with your moother")
-}
-
 chromePIP() {
-    global globalRunning
-
-    this := globalRunning["chrome"]
-        
     Send("{Alt Down}p{Alt Up}")
-        
-    for key, value in this.pauseOptions {
-        if (InStr(key, "Picture-in-Picture")) {
-            newKey := ""
-
-            if (InStr(key, "Enable")) {
-                newKey := StrReplace(key, "Enable", "Disable")                    
-            }
-            else {
-                newKey := StrReplace(key, "Disable", "Enable")
-            }
-
-            this.pauseOptions[newKey] := value
-            this.pauseOptions.Delete(key)
-
-            loop this.pauseOrder.Length {
-                if (this.pauseOrder[A_Index] = key) {
-                    this.pauseOrder[A_Index] := newKey
-                    break
-                }
-            }
-
-            break
-        }
-    }
 }
 
 ; --- BIG BOX --- 
-; don't restore w/ starting up
 bigBoxRestore() {
-    if (WinShown("LaunchBox Game Startup")) {
-        return -1
+    ; stop while start up screen exists
+    while (WinShown("LaunchBox Game Startup")) {
+        Sleep(100)
     }
 }

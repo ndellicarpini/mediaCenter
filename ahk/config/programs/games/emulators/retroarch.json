@@ -30,8 +30,8 @@
     },
 
     "pauseOptions": {
-        "Show/Hide MAME Menu": "retroarchToggleMAMEMenu"
+        "Toggle MAME Menu": "retroarchToggleMAMEMenu"
     },
 
-    "pauseOrder": ["Save State", "Load State", "retroarchMAMECheck?Show/Hide MAME Menu", "Reset Game"]
+    "pauseOrder": ["Save State", "Load State", "retroarchMAMECheck?Toggle MAME Menu", "Reset Game"]
 }

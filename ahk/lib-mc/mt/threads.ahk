@@ -351,6 +351,8 @@ hotkeyThread(globalConfig, globalStatus, globalControllers) {
                             }
 
                             Run A_AhkPath . A_Space . 'send2Main.ahk Nuclear', directory, 'Hide'
+                            
+                            hotkeyBuffer := []
                             Sleep(1000)
                         }
                     }

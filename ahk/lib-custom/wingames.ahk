@@ -441,3 +441,29 @@ amazonGamePostExit() {
         ProcessClose("Amazon Games.exe")
     }
 }
+
+; winGamePause() {
+;     global globalRunning
+
+;     for id, program in globalRunning {
+;         ; only steamgame | wingame | origingame are supported
+;         if (id != "steamgame" && id != "wingame" && id != "origingame") {
+;             continue
+;         }
+
+;         ProcessSuspend(program.getPID())
+;     }
+; }
+
+; winGameResume() {
+;     global globalRunning
+
+;     for id, program in globalRunning {
+;         ; only steamgame | wingame | origingame are supported
+;         if (id != "steamgame" && id != "wingame" && id != "origingame") {
+;             continue
+;         }
+
+;         ProcessResume(program.getPID())
+;     }
+; }

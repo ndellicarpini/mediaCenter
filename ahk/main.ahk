@@ -287,8 +287,7 @@ hotkeySource := ""
 loop {
     currSuspended := getStatusParam("suspendScript")
 
-    ; --- CHECK MESSAGES ---
-
+    ; --- CHECK INTERNAL MESSAGE ---
     internalMessage := getStatusParam("internalMessage")
     if (internalMessage != "") {
         currProgram := getStatusParam("currProgram")
@@ -642,25 +641,20 @@ loop {
     }
 
     if (delayCount > maxDelayCount) {
-        ; check that controller thread is running
-        controllerThreadHWND := WinHidden("controllerThread")
-        if (!controllerThreadHWND) {
+        try {
+            controllerThreadRef.FuncPtr("")
+        }
+        catch {
             controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
             Sleep(100)
         }
-        else if (DllCall("IsHungAppWindow", "Ptr", controllerThreadHWND)) {
-            ProcessKill(controllerThreadHWND)
+        
+        try {
+            hotkeyThreadRef.FuncPtr("")
         }
-
-        ; check that hotkey thread is running
-        hotkeyThreadHWND := WinHidden("hotkeyThread")
-        if (!hotkeyThreadHWND) {
-            setStatusParam("internalMessage", "")
+        catch {
             hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
             Sleep(100)
-        }
-        else if (DllCall("IsHungAppWindow", "Ptr", hotkeyThreadHWND)) {
-            ProcessKill(hotkeyThreadHWND)
         }
 
         ; check that function thread is running
@@ -736,7 +730,7 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         ; ProcessKill(MAINNAME)
     }
     else {
-        runFunction(joinArray(message))
+        try runFunction(joinArray(message))
     }
 }
 
