@@ -5,15 +5,13 @@ guiPauseMenu() {
     global globalGuis
 
     currProgram := getStatusParam("currProgram")
-
-    setStatusParam("pause", true)
     
     ; set activate currProgram pause
     if (currProgram != "") {
         globalRunning[currProgram].pause()
     }
 
-    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("HOME|B", "gui.Destroy"), true,,, "count-current", "destroyPauseMenu")
+    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy"), true,,, "count-current", "destroyPauseMenu")
     pauseInt := globalGuis[GUIPAUSETITLE]
 
     pauseInt.unselectColor := COLOR1

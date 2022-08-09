@@ -32,6 +32,7 @@ delayedKeypress(key, delay := 2000, numPress := 1) {
 ;           - index = 1 -> x, index = 2 -> y | infinitely
 ;  delay - delay before mousemoves->mouseclicks
 skipLauncherMouse(gameID, executable, mousePos, delay := 1000) {
+    global globalConfig
     global globalRunning
 
     if (Type(mousePos) != "Array") {
@@ -46,6 +47,11 @@ skipLauncherMouse(gameID, executable, mousePos, delay := 1000) {
         }
 
         Sleep(100)
+    }
+
+    hideTaskbar := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
+    if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
+        WinHide "ahk_class Shell_TrayWnd"
     }
 
     ; flatten double array
@@ -79,12 +85,13 @@ skipLauncherMouse(gameID, executable, mousePos, delay := 1000) {
             index := ((A_Index - 1) * 2) + 1
     
             Sleep(delay)
-            if (globalRunning[gameID].exists()) {
+            Sleep(75)
+            if (globalRunning[gameID].exists() || !WinShown("ahk_exe " executable)) {
                 return
             }
 
-            Sleep(75)
-            MouseClick("Left", percentWidth(mouseArr[index], false), percentHeight(mouseArr[index + 1], false),,, "D")
+            MouseClick("Left", percentWidthRelativeWndw(mouseArr[index], "ahk_exe " executable)
+                , percentHeightRelativeWndw(mouseArr[index + 1], "ahk_exe " executable),,, "D")
             Sleep(75)
             MouseClick("Left",,,,, "U")
             Sleep(75)
@@ -143,6 +150,7 @@ winGameLaunch(game, args*) {
 ;
 ; returns null
 originGameLaunch(game, args*) {
+    global globalConfig
     global globalRunning
 
     this := globalRunning["origingame"]
@@ -160,20 +168,36 @@ originGameLaunch(game, args*) {
     }
 
     count := 0
-    maxCount := 100
+    maxCount := 40
+
+    hideTaskbar := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
     setLoadScreen("Waiting for Origin...")
+    setStatusParam("currHotkeys", addHotkeys(currHotkeys, Map("B", "stopWaiting")))
 
     ; wait for origin to show
     while (!this.exists(true) && count < maxCount) {
         if (WinShown("Origin")) {
             WinActivate("Origin")
+
+            if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
+                WinHide "ahk_class Shell_TrayWnd"
+            }
             
-            Sleep(1500)
+            count := 0
+        }
+
+        if (getStatusParam("internalMessage") = "stopWaiting") {
+            setStatusParam("currHotkeys", currHotkeys)
+            setStatusParam("internalMessage", "")
+            originGamePostExit()
+
+            SetTitleMatchMode(resetTMM)
+            return false
         }
 
         count += 1
-        Sleep(100)
+        Sleep(500)
     }
 }
 
@@ -183,6 +207,7 @@ originGameLaunch(game, args*) {
 ;
 ; returns null
 amazonGameLaunch(URI, args*) {
+    global globalConfig
     global globalRunning
 
     this := globalRunning["amazongame"]
@@ -190,20 +215,36 @@ amazonGameLaunch(URI, args*) {
     Run URI
 
     count := 0
-    maxCount := 100
+    maxCount := 40
+
+    hideTaskbar := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
     setLoadScreen("Waiting for Amazon Games...")
+    setStatusParam("currHotkeys", addHotkeys(currHotkeys, Map("B", "stopWaiting")))
 
     ; wait for amazon to show
     while (!this.exists(true) && count < maxCount) {
         if (WinShown("Amazon Games")) {
             WinActivate("Amazon Games")
+
+            if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
+                WinHide "ahk_class Shell_TrayWnd"
+            }
             
-            Sleep(1500)
+            count := 0
+        }
+
+        if (getStatusParam("internalMessage") = "stopWaiting") {
+            setStatusParam("currHotkeys", currHotkeys)
+            setStatusParam("internalMessage", "")
+            amazonGamePostExit()
+
+            SetTitleMatchMode(resetTMM)
+            return false
         }
 
         count += 1
-        Sleep(100)
+        Sleep(500)
     }
 }
 
@@ -225,37 +266,37 @@ steamGameLaunch(URI, args*) {
     ; custom actions based on game
     switch (URI) {
         case "steam://rungameid/200260": ; Batman Arkham Asylum
-            skipLauncherMouse("steamgame", "BmLauncher.exe", [0.5, 0.58])
+            skipLauncherMouse("steamgame", "BmLauncher.exe", [0.5, 0.666])
         case "steam://rungameid/35140": ; Batman Arkham City
-            skipLauncherMouse("steamgame", "BmLauncher.exe", [0.5, 0.58])
+            skipLauncherMouse("steamgame", "BmLauncher.exe", [0.5, 0.666])
         case "steam://rungameid/489830": ; Skyrim SE
-            skipLauncherMouse("steamgame", "SkyrimSELauncher.exe", [0.685, 0.355])
+            skipLauncherMouse("steamgame", "SkyrimSELauncher.exe", [0.925, 0.112])
         case "steam://rungameid/22370": ; Fallout 3
-            skipLauncherMouse("steamgame", "FalloutLauncherSteam.exe", [0.666, 0.42])
+            skipLauncherMouse("steamgame", "FalloutLauncherSteam.exe", [0.922, 0.278])
         case "steam://rungameid/22380": ; Fallout NV
-            skipLauncherMouse("steamgame", "FalloutNVLauncher.exe", [0.67, 0.42])
+            skipLauncherMouse("steamgame", "FalloutNVLauncher.exe", [0.922, 0.278])
         case "steam://rungameid/377160": ; Fallout 4
-            skipLauncherMouse("steamgame", "Fallout4Launcher.exe", [0.685, 0.355])
+            skipLauncherMouse("steamgame", "Fallout4Launcher.exe", [0.922, 0.109])
         case "steam://rungameid/236870": ; HITMAN
-            skipLauncherMouse("steamgame", "Launcher.exe", [0.382, 0.537])
+            skipLauncherMouse("steamgame", "Launcher.exe", [0.128, 0.621])
         case "steam://rungameid/55230": ; Saints Row 3
-            skipLauncherMouse("steamgame", "game_launcher.exe", [0.427, 0.463])
+            skipLauncherMouse("steamgame", "game_launcher.exe", [0.25, 0.441])
         case "steam://rungameid/20920": ; Witcher 2
-            skipLauncherMouse("steamgame", "Launcher.exe", [0.513, 0.6])
+            skipLauncherMouse("steamgame", "Launcher.exe", [0.585, 0.875])
         case "steam://rungameid/22330": ; Oblivion
-            skipLauncherMouse("steamgame", "OblivionLauncher.exe", [0.555, 0.388])
+            skipLauncherMouse("steamgame", "OblivionLauncher.exe", [0.664, 0.25])
         case "steam://rungameid/219150": ; Hotline Miami
-            skipLauncherMouse("steamgame", "HotlineMiami.exe", [0.458, 0.671])
+            skipLauncherMouse("steamgame", "HotlineMiami.exe", [0.216, 0.948])
         case "steam://rungameid/322500": ; SUPERHOT
-            skipLauncherMouse("steamgame", "SUPERHOT.exe", [[0.27, 0.48], [0.41, 0.833]])
+            skipLauncherMouse("steamgame", "SUPERHOT.exe", [[0.205, 0.5], [0.373, 0.833]])
         case "steam://rungameid/690040": ; SUPERHOT 2
-            skipLauncherMouse("steamgame", "SUPERHOTMCD.exe", [[0.5, 0.48], [0.41, 0.833]])
+            skipLauncherMouse("steamgame", "SUPERHOTMCD.exe", [[0.497, 0.5], [0.373, 0.833]])
         case "steam://rungameid/758330": ; Shenmue 1 & 2
             if (Integer(args[1]) = 1) {
-                skipLauncherMouse("steamgame", "SteamLauncher.exe", [0.39, 0.555])
+                skipLauncherMouse("steamgame", "SteamLauncher.exe", [0.25, 0.5])
             }
             else if (Integer(args[1]) = 2) {
-                skipLauncherMouse("steamgame", "SteamLauncher.exe", [0.625, 0.39])
+                skipLauncherMouse("steamgame", "SteamLauncher.exe", [0.75, 0.5])
             }
         case "steam://rungameid/107100": ; Bastion
             this.requireFullscreen := false
@@ -317,6 +358,8 @@ winGamePostLaunch() {
                 delayedKeypress("{Enter}", 500)
             case "Madden19.exe": ; Madden 19
                 SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -10000)
+            case "TestDriveUnlimited.exe": ; Test Drive Unlimited
+                SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -20000)
             case "openmw.exe": ; Madden 19
                 SetTimer(MouseMove.Bind(percentWidth(0.5, false), percentHeight(0.5, false)), -2000)
             case "braid.exe": ; Braid

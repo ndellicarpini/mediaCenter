@@ -2,7 +2,7 @@
 ;  globalControllers - mainControllers as gotten as a ComObject through ObjShare
 ;
 ; returns the ThreadObj that checks controller statuses
-controllerThread(globalConfig, globalControllers) {
+controllerThread(globalConfig, globalControllers, xLibrary) {
     ref := ThreadObj(
     (
         "
@@ -13,8 +13,8 @@ controllerThread(globalConfig, globalControllers) {
         
         global globalConfig      := ObjShare(" globalConfig ")
         global globalControllers := " globalControllers "
+        xLibrary := " xLibrary "
 
-        xLibrary := dllLoadLib('xinput1_3.dll')
         xGetStatusPtr := 0
         xGetBatteryPtr := 0
         xSetVibrationPtr := 0
@@ -85,7 +85,6 @@ controllerThread(globalConfig, globalControllers) {
 
             ; close if main is no running
             if (!WinHidden(MAINNAME) || exitThread) {
-                dllFreeLib(xLibrary)
                 ExitApp()
             }
 

@@ -6,6 +6,7 @@
     "dir": "C:\\Emulators\\Xenia",
 
     "requireFullscreen": true,
+    "priority": "H",
     
     "fullscreen": "SendSafe {F11}",
 

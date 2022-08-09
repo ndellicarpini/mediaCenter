@@ -140,8 +140,6 @@ destroyProgramMenu() {
 
     if (getGUI(GUIPROGRAMTITLE)) {
         globalGuis[GUIPROGRAMTITLE].guiObj.Destroy()
-        
-        setStatusParam("pause", false)
     }
 }
 

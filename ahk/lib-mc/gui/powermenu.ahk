@@ -51,8 +51,6 @@ destroyPowerMenu() {
 
     if (getGUI(GUIPOWERTITLE)) {
         globalGuis[GUIPOWERTITLE].guiObj.Destroy()
-        
-        setStatusParam("pause", false)
     }
 }
 

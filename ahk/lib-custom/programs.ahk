@@ -15,11 +15,6 @@ kodiMinimize() {
     return -1
 }
 
-kodiExit() {
-    WinClose("Kodi")
-    Sleep(5000)
-}
-
 ; --- CHROME ---
 chromeExit() {
     global globalRunning
@@ -46,7 +41,11 @@ chromePIP() {
 ; --- BIG BOX --- 
 bigBoxRestore() {
     ; stop while start up screen exists
-    while (WinShown("LaunchBox Game Startup")) {
-        Sleep(100)
+    if (WinShown("LaunchBox Game Startup")) {
+        while (WinShown("LaunchBox Game Startup")) {
+            Sleep(5)
+        }
+
+        return -1
     }
 }

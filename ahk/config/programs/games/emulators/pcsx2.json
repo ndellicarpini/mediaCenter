@@ -9,8 +9,6 @@
     
     "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
 
-    "exit": "WinClose PCSX2",
-
     "pause": "Send {Space}",
     "resume": "Send {Space}",
 

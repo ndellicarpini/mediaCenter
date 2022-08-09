@@ -36,9 +36,12 @@ steamGameLaunchHandler(programID, URI, loopCount := 0) {
         }
     }
 
+    global globalConfig
     global globalRunning
 
     this := globalRunning[programID]
+
+    hideTaskbar := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
     currLoadScreen := getStatusParam("loadText")
     setLoadScreen("Waiting for Steam...")
@@ -132,13 +135,17 @@ steamGameLaunchHandler(programID, URI, loopCount := 0) {
     while (WinShown("Updating ")) {
         try {
             WinActivate("Updating ")
+
+            if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
+                WinHide "ahk_class Shell_TrayWnd"
+            }
             
             WinGetPos(&X, &Y, &W, &H, "Updating ")
             if (W != updateWidth) {
                 WinMove((Floor(percentWidth(0.5, false)) - Floor(updateWidth / 2)), Y, updateWidth, H)
             }
         }
-        
+
         if (getStatusParam("internalMessage") = "stopWaiting") {
             setStatusParam("currHotkeys", currHotkeys)
             setStatusParam("internalMessage", "")
@@ -162,8 +169,8 @@ steamGameLaunchHandler(programID, URI, loopCount := 0) {
 
             WinGetPos(&X, &Y, &W, &H, "Ready - ")
             ; the perfect infinite subpixel
-            mouseX := X + W - Floor(percentWidth(0.0484375, false))
-            mouseY := Y + Floor(percentHeight(0.14629629629, false))
+            mouseX := Floor(percentWidthRelativeWndw(0.915, "Ready - "))
+            mouseY := Floor(percentHeightRelativeWndw(0.658, "Ready - "))
     
             Sleep(75)
             MouseMove(mouseX, mouseY)

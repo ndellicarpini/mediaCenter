@@ -4,7 +4,7 @@ boot() {
         Run "explorer.exe"
 
         count := 0
-        maxCount := 40
+        maxCount := 50
         while (count < maxCount) {
             activateLoadScreen()
             

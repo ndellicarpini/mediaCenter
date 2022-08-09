@@ -35,6 +35,10 @@ statusBackup() {
 ; 
 ; returns status updated with values from backup
 statusRestore() {
+    if (!FileExist("data\backup.bin")) {
+        return
+    }
+
     backup := ObjLoad("data\backup.bin")
     
     for key, value in backup {

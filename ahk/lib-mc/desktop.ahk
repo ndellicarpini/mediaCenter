@@ -39,7 +39,7 @@ enableKBMMode(showDialog := true) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +E0x20", GUIKBMMODETITLE)
+        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIKBMMODETITLE)
         guiObj.BackColor := COLOR1
 
         guiWidth := percentWidth(0.16)
@@ -47,7 +47,7 @@ enableKBMMode(showDialog := true) {
         guiSetFont(guiObj, "bold s24")
 
         guiObj.Add("Text", "0x200 Center x0 y0 w" . guiWidth . " h" . guiHeight, "KB && Mouse Mode")
-        guiObj.Show("w" . guiWidth . " h" . guiHeight 
+        guiObj.Show("NoActivate w" . guiWidth . " h" . guiHeight 
             . " x" . (percentWidth(1) - (guiWidth + percentWidth(0.01, false))) . " y" . (percentHeight(1) - (guiHeight + percentWidth(0.01, false))))
         
         WinSetTransparent(230, GUIKBMMODETITLE)
@@ -70,6 +70,30 @@ disableKBMMode() {
     if (WinShown(GUIKBMMODETITLE)) {
         WinClose(GUIKBMMODETITLE)
     }
+}
+
+; hotkeys for desktop mode
+;
+; returns map of hotkeys
+desktopmodeHotkeys() {
+    setStatusParam("buttonTime", 0)
+
+    ; TODO - button for keyboard
+    return Map(
+        "HOME", "disableDesktopMode",
+        "SELECT", "toggleKeyboard",
+        "START", "Send {LWin}",
+
+        "[REPEAT]DU", "Send {Up}",
+        "[REPEAT]DD", "Send {Down}",
+        "[REPEAT]DL", "Send {Left}",
+        "[REPEAT]DR", "Send {Right}",
+
+        "[REPEAT]B", "Send {Backspace}",
+
+        "LT>0.3", "Send !{Tab}",
+        "RT>0.3", "Send !+{Tab}",
+    )
 }
 
 ; enables desktop & displays info splash
@@ -100,7 +124,7 @@ enableDesktopMode(showDialog := true) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +E0x20", GUIDESKTOPTITLE)
+        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIDESKTOPTITLE)
         guiObj.BackColor := COLOR1
 
         guiWidth := percentWidth(0.31)

@@ -6,6 +6,7 @@
     "dir": "C:\\Emulators\\Ryujinx",
 
     "requireFullscreen": true,
+    "priority": "H",
     
     "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
 
