@@ -1,0 +1,12 @@
+{
+    "id": "switch",
+    "romDir": "D:\\Roms\\Switch",
+    "romNameIndex": 0,
+
+    "emulators": ["ryujinx"],
+    "extensions": [".nca"],
+
+    "romVersions": [
+        
+    ]
+}

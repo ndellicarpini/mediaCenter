@@ -1,0 +1,23 @@
+{
+    "id": "xemu",
+    "name": "Xemu",
+
+    "exe": "xemu.exe",
+    "dir": "C:\\Emulators\\Xemu",
+
+    "requireFullscreen": true,
+    "priority": "H",
+    
+    "fullscreen": "Send '{Ctrl down}{Alt down}f{Alt up}{Ctrl up}'",
+
+    "launch": "xemuLaunch",
+
+    "pause": "Send '{Ctrl down}p{Ctrl up}'",
+    "resume": "xemuResume",
+
+    "reset": "xemuReset",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {},
+}

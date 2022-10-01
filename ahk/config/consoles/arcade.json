@@ -1,0 +1,14 @@
+{
+    "id": "arcade",
+    "romDir": "D:\\Roms\\Arcade",
+    "romNameIndex": 0,
+
+    "emulators": ["retroarch"],
+    "extensions": [".zip"],
+
+    "core": "mame",
+
+    "romVersions": [
+        
+    ]
+}

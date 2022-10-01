@@ -1,0 +1,14 @@
+{
+    "id": "snes",
+    "romDir": "D:\\Roms\\SNES",
+    "romNameIndex": 0,
+
+    "emulators": ["retroarch"],
+    "extensions": [".sfc", ".smc"],
+
+    "core": "bsnes",
+
+    "romVersions": [
+        
+    ]
+}

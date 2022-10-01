@@ -1,0 +1,22 @@
+https://www.autohotkey.com/board/topic/3180-how-can-i-get-the-system-time/
+
+
+XINPUT
+- https://www.autohotkey.com/boards/viewtopic.php?t=3389
+- https://www.autohotkey.com/board/topic/35848-xinput-xbox-360-controller-api/page-4
+
+- in order to read the home button, need to disable "Open Xbox Game Bar using this button..."
+
+USAGE
+- https://www.reddit.com/r/AutoHotkey/comments/liicqk/real_total_system_cpu_usage_from_within_an/
+- https://www.autohotkey.com/boards/viewtopic.php?f=6&t=142&hilit=MemoryInfo
+- https://www.autohotkey.com/boards/viewtopic.php?t=5508
+
+SCREENSHOT
+- https://www.autohotkey.com/board/topic/91585-screen-capture-using-only-ahk-no-3rd-party-software-required/
+
+WINDOWS
+- replace shell REGEDIT: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
+
+STEAM
+- launch configs: Steam\userdata\${userid}\config\localconfig.vdf

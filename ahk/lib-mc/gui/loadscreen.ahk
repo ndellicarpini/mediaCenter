@@ -78,13 +78,24 @@ setLoadScreen(text) {
 ;
 ; returns null
 resetLoadScreen() {
-	global globalConfig
-
-	setStatusParam("loadText", (globalConfig["GUI"].Has("DefaultLoadText")) ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
-	updateLoadScreen(false)
 	setStatusParam("loadShow", false)
+	SetTimer(DelayResetText.Bind(getStatusParam("loadText")), -1000)
 
 	return
+
+	DelayResetText(currText) {
+		global globalConfig
+
+		; don't reset if the text has been changed by another loadText update
+		if (getStatusParam("loadText") != currText) {
+			return
+		}
+
+		setStatusParam("loadText", (globalConfig["GUI"].Has("DefaultLoadText")) ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
+		updateLoadScreen(false)
+
+		return
+	}
 }
 
 ; spin waits until either timeout or successful internet connection

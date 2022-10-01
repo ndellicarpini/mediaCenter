@@ -51,19 +51,43 @@ setMonitorInfo(guiConfig) {
 ; gets the proper width in pixels based on pixel size of screen
 ;  width - percentage of the screen width
 ;  useSize - whether or not to apply the size multipler
+;  useDPI - whether or not to apply the screen's dpi
 ;
 ; returns proper size in pixels
-percentWidth(width, useSize := true) {
-    return MONITORX + (width * MONITORW * ((useSize && width < 1) ? SIZE : 1))
+percentWidth(width, useSize := true, useDPI := false) {
+    return MONITORX + (width * MONITORW * ((useSize && width < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
 }
 
 ; gets the proper height in pixels based on pixel size of screen
 ;  height - percentage of the screen height
 ;  useSize - whether or not to apply the size multipler
+;  useDPI - whether or not to apply the screen's dpi
 ;
 ; returns proper size in pixels
-percentHeight(height, useSize := true) {
-    return MONITORY + (height * MONITORH * ((useSize && height < 1) ? SIZE : 1))
+percentHeight(height, useSize := true, useDPI := false) {
+    return MONITORY + (height * MONITORH * ((useSize && height < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+}
+
+; gets the proper width in pixels based on pixel size of screen
+;  width - percentage of the window width
+;  wndw - wndw title to get screen pixels from
+;
+; returns proper size in pixels
+percentWidthRelativeWndw(width, wndw) {
+    WinGetPos(&X, &Y, &W, &H, wndw)
+
+    return X + (width * W) 
+}
+
+; gets the proper height in pixels based on pixel size of screen
+;  height - percentage of the window height
+;  wndw - wndw title to get screen pixels from
+;
+; returns proper size in pixels
+percentHeightRelativeWndw(height, wndw) {
+    WinGetPos(&X, &Y, &W, &H, wndw)
+    
+    return Y + (height * H)
 }
 
 ; sets the font of the guiObj using the default options & param options

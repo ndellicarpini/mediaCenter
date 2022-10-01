@@ -1,0 +1,14 @@
+{
+    "id": "gba",
+    "romDir": "D:\\Roms\\GBA",
+    "romNameIndex": 0,
+
+    "emulators": ["retroarch"],
+    "extensions": [".gba"],
+
+    "core": "mgba",
+
+    "romVersions": [
+        
+    ]
+}

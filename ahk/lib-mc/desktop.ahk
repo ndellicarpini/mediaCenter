@@ -39,7 +39,7 @@ enableKBMMode(showDialog := true) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +E0x20", GUIKBMMODETITLE)
+        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIKBMMODETITLE)
         guiObj.BackColor := COLOR1
 
         guiWidth := percentWidth(0.16)
@@ -47,7 +47,7 @@ enableKBMMode(showDialog := true) {
         guiSetFont(guiObj, "bold s24")
 
         guiObj.Add("Text", "0x200 Center x0 y0 w" . guiWidth . " h" . guiHeight, "KB && Mouse Mode")
-        guiObj.Show("w" . guiWidth . " h" . guiHeight 
+        guiObj.Show("NoActivate w" . guiWidth . " h" . guiHeight 
             . " x" . (percentWidth(1) - (guiWidth + percentWidth(0.01, false))) . " y" . (percentHeight(1) - (guiHeight + percentWidth(0.01, false))))
         
         WinSetTransparent(230, GUIKBMMODETITLE)
@@ -72,11 +72,35 @@ disableKBMMode() {
     }
 }
 
+; hotkeys for desktop mode
+;
+; returns map of hotkeys
+desktopmodeHotkeys() {
+    setStatusParam("buttonTime", 0)
+
+    ; TODO - button for keyboard
+    return Map(
+        "HOME", "disableDesktopMode",
+        "SELECT", "toggleKeyboard",
+        "START", "Send {LWin}",
+
+        "[REPEAT]DU", "Send {Up}",
+        "[REPEAT]DD", "Send {Down}",
+        "[REPEAT]DL", "Send {Left}",
+        "[REPEAT]DR", "Send {Right}",
+
+        "[REPEAT]B", "Send {Backspace}",
+
+        "LT>0.3", "Send !{Tab}",
+        "RT>0.3", "Send !+{Tab}",
+    )
+}
+
 ; enables desktop & displays info splash
 ;  showDialog - whether or not to show the info splash
 ;
 ; returns null
-enableDesktopMode(showDialog := true) {
+enableDesktopMode(showDialog := false) {
     global globalConfig
     global globalRunning
 
@@ -100,7 +124,7 @@ enableDesktopMode(showDialog := true) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +E0x20", GUIDESKTOPTITLE)
+        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIDESKTOPTITLE)
         guiObj.BackColor := COLOR1
 
         guiWidth := percentWidth(0.31)
@@ -141,23 +165,89 @@ disableDesktopMode() {
     }
 }
 
+; checks whether the keyboard is open
+;
+; returns true if the keyboard is visible
+keyboardExists() {
+    resetDHW := A_DetectHiddenWindows
+    DetectHiddenWindows(true)
+
+    hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+
+    DetectHiddenWindows(resetDHW)
+    return (hwnd != 0)
+}
+
+; turns off gui keyboard
+;
+; returns null
+openKeyboard() {
+    resetDHW := A_DetectHiddenWindows
+    resetSTM := A_TitleMatchMode
+
+    DetectHiddenWindows(true)
+    SetTitleMatchMode(3)
+
+    try resetA := WinGetTitle("A")
+
+    if (resetA = "Search") {
+        Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+    }
+    else {
+        try {
+            WinActivate("ahk_class Shell_TrayWnd")
+    
+            Sleep(100)
+            Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+            Sleep(100)
+        }
+    }
+
+    DetectHiddenWindows(resetDHW)
+    SetTitleMatchMode(resetSTM)
+
+    if (resetA && WinShown(resetA)) {
+        WinActivate(resetA)
+    }
+
+    Hotkey("Enter", EnterOverrideHotkey)
+} 
+
+; turns off gui keyboard
+;
+; returns null
+closeKeyboard() {
+    resetDHW := A_DetectHiddenWindows
+    DetectHiddenWindows(true)
+
+    hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+
+    if (hwnd) {
+        WinClose("ahk_id " hwnd)
+    }
+    
+    DetectHiddenWindows(resetDHW)
+
+    try Hotkey("Enter", "Off")
+}
+
 ; turns on & off gui keyboard
 ;
 ; returns null
 toggleKeyboard() {
-    ; global globalGuis
-
-    ; if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-    ;     globalGuis[GUIKEYBOARDTITLE].Destroy()
-    ; }
-    ; else {
-    ;     guiKeyboard() 
-    ; }
-
-    if (WinShown("On-Screen Keyboard")) {
-        WinClose("On-Screen Keyboard")
+    if (keyboardExists()) {
+        closeKeyboard()
     }
     else {
-        Run "osk.exe"
+        openKeyboard()
+    }
+}
+
+; check if keyboard is open when pressing enter to properly close it
+EnterOverrideHotkey(*) { 
+    Send("{Enter}")
+
+    if (keyboardExists()) {
+        closeKeyboard()
     }
 }

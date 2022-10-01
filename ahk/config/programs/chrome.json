@@ -1,0 +1,48 @@
+{
+    "id": "chrome",
+    "name": "Google Chrome",
+
+    "allowQuickAccess": true,
+
+    "dir": "C:\\Program Files\\Google\\Chrome\\Application\\",
+    "exe": "chrome.exe",
+    "wndw": "Google Chrome",
+
+    "exit": "chromeExit",
+
+    "mouse": {
+        "x": "LSX",
+        "y": "-LSY",
+        "vscroll": "-RSY",
+        "lclick": "A",
+        "rclick": "X",
+        "initialPos": [0.5, 0.5],
+        "deadzone": 0.15,
+    },
+
+    "hotkeys": {
+        "[REPEAT]RSX>0.4": "Send ^=",
+        "[REPEAT]RSX<-0.4": "Send ^-",
+
+        "[REPEAT]DU": "Send {Up}",
+        "[REPEAT]DD": "Send {Down}",
+        "[REPEAT]DL": "Send {Left}",
+        "[REPEAT]DR": "Send {Right}",
+
+        "[REPEAT]B": "Send {Backspace}",
+        "Y": "Send !{Home}",
+        "LB": "Send ^+{Tab}",
+        "RB": "Send ^{Tab}",
+        "LT>0.3": "Send !{Left}",
+        "RT>0.3": "Send !{Right}",
+
+        "SELECT": "toggleKeyboard",
+        "START": "Send ^t",
+    },
+
+    "pauseOptions": {
+        "Show Controls": "chromeControls",
+        "Toggle Picture-in-Picture": "chromePIP",
+    },
+    "pauseOrder": ["Toggle Picture-in-Picture"]
+}

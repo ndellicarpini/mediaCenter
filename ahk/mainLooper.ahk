@@ -1,15 +1,23 @@
-#Include lib-mc\std.ahk
-
 #SingleInstance Force
+
+#Include lib-mc\std.ahk
 
 SetCurrentWinTitle(MAINLOOP)
 
+globalCount   := 0
 hungCount     := 0
 resetCount    := 0
 maxResetCount := 0
 
-if (A_Args.Length > 0 && IsNumber(A_Args[1])) {
-    maxResetCount := Integer(A_Args[1])
+if (A_Args.Length > 0) {
+    if (IsNumber(A_Args[1])) {
+        maxResetCount := Integer(A_Args[1])
+    }
+    else if (StrLower(A_Args[1]) = "-clean") {
+        Run A_ScriptDir . "\" . "startMain.cmd", A_ScriptDir, "Hide"
+        
+        ExitApp()
+    }
 }
 
 loop {
@@ -24,7 +32,7 @@ loop {
         continue
     }
     
-    if (DllCall("IsHungAppWindow", "Ptr", mainID)) {
+    if (globalCount > 30 && DllCall("IsHungAppWindow", "Ptr", mainID)) {
         hungCount += 1
 
         if (hungCount > 5) {
@@ -45,5 +53,6 @@ loop {
         ExitApp()
     }
 
+    globalCount += 1
     Sleep(1000)
 }

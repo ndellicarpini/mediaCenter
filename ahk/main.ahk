@@ -1,7 +1,13 @@
-; #SingleInstance Force
+#SingleInstance Force
 ; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
+#Include LIB-CU~1\boot.ahk
+#Include LIB-CU~1\EMULAT~1.AHK
+#Include LIB-CU~1\load.ahk
+#Include LIB-CU~1\programs.ahk
+#Include LIB-CU~1\steam.ahk
+#Include LIB-CU~1\wingames.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
 #Include lib-mc\confio.ahk
@@ -92,6 +98,9 @@ for value in requiredFolders {
         DirCreate value
     }
 }
+
+; load xinput libraray
+xLibrary := dllLoadLib("xinput1_3.dll")
 
 ; load process monitoring library for checking process lists
 processLib := dllLoadLib("psapi.dll")
@@ -223,6 +232,13 @@ for item in globalConfig["StartArgs"] {
     if (item = "-backup") {
         statusRestore()
         globalConfig["Boot"]["EnableBoot"] := false
+
+        if (getStatusParam("kbmmode")) {
+            enableKBMMode()
+        }
+        if (getStatusParam("desktopmode")) {
+            enableDesktopMode()
+        }
     }
 }
 
@@ -232,7 +248,7 @@ if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("En
 
 ; ----- START CONTROLLER THEAD -----
 ; this thread just updates the status of each controller in a loop
-controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
+controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers, xLibrary)
 Sleep(100)
 
 ; ----- START HOTKEY THREAD -----
@@ -306,6 +322,9 @@ loop {
         if (StrLower(internalMessage) = "pausemenu") {
             if (!globalGuis.Has(GUIPAUSETITLE)) {
                 guiPauseMenu()
+            }
+            else {
+                globalGuis[GUIPAUSETITLE].Destroy()
             }
         }
 
@@ -383,7 +402,6 @@ loop {
         ; check that taskbar is hidden
         if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
             try WinHide "ahk_class Shell_TrayWnd"
-            Sleep(50)
         }
     }
     
@@ -397,12 +415,8 @@ loop {
 
     ; --- CHECK DESKTOP MODE ---
     if (getStatusParam("desktopmode")) {
-        currHotkeys := addHotkeys(kbmmodeHotkeys(), Map("HOME", "disableDesktopMode"))
+        currHotkeys := desktopmodeHotkeys()
         currMouse   := kbmmodeMouse()
-
-        if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-            currHotkeys := addHotkeys(currHotkeys, globalGuis[GUIKEYBOARDTITLE].hotkeys)
-        }
 
         activeSet := true
         hotkeySource := "desktopmode"
@@ -546,26 +560,11 @@ loop {
     }
 
     ; --- CHECK KB & MOUSE MODE ---
-    if (getStatusParam("kbmmode") && hotkeySource = "" && !currSuspended) {
+    if (getStatusParam("kbmmode") && hotkeySource = "") {
         currHotkeys := addHotkeys(currHotkeys, kbmmodeHotkeys())
         currMouse   := kbmmodeMouse()
 
-        ; don't restore currProgram if mouse is not on currProgram
-        if (!activeSet && currProgram != "" && globalRunning.Has(currProgram)) {
-            MouseGetPos(,, &mouseWin)
-            
-            if (globalRunning[currProgram].getHWND() != mouseWin && WinHidden(GUILOADTITLE) != mouseWin) {
-                newSet := true
-                for key, value in globalRunning {
-                    if (!value.background) {
-                        newSet := newSet && (value.getHWND() != mouseWin)
-                    }
-                }
-
-                activeSet := newSet
-            }
-        }
-
+        activeSet := true
         hotkeySource := "kbmmode"
     }
 
@@ -639,7 +638,7 @@ loop {
             controllerThreadRef.FuncPtr("")
         }
         catch {
-            controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers)
+            controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers, xLibrary)
             Sleep(100)
         }
         
@@ -753,7 +752,7 @@ WaitProgramResume(id, function, args) {
 }
 
 ; clean shutdown of script
-ShutdownScript() {
+ShutdownScript(restoreTaskbar := true) {
     ; disable message listener
     OnMessage(MESSAGE_VAL, HandleMessage, 0)
 
@@ -767,6 +766,7 @@ ShutdownScript() {
     controllerThreadRef.exitThread := true
     Sleep(100)
 
+    dllFreeLib(xLibrary)
     dllFreeLib(processLib)
     
     DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
@@ -780,7 +780,7 @@ ShutdownScript() {
     DllCall("SetThreadDpiAwarenessContext", "Ptr", prevDPIContext, "Ptr")
     
     ; reset taskbar
-    if (!WinShown("ahk_class Shell_TrayWnd") && WinHidden("ahk_class Shell_TrayWnd")) {
+    if (restoreTaskbar && !WinShown("ahk_class Shell_TrayWnd") && WinHidden("ahk_class Shell_TrayWnd")) {
         try WinShow "ahk_class Shell_TrayWnd"
     }
 }
@@ -817,7 +817,6 @@ ResetScript() {
         Run A_AhkPath . A_Space . "mainLooper.ahk 1", A_ScriptDir, "Hide"
     }
     else if (!WinHidden(MAINLOOP)) {
-        MsgBox("huh?")
         Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
     }
 
@@ -858,14 +857,15 @@ Standby() {
     }
     
     exitAllPrograms()
-    Sleep(500)
-
-    ShutdownScript()
-    Sleep(500)
+    setLoadScreen("Please Wait...")
+    Sleep(1500)
     
     DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
-    Sleep(3000)
+    Sleep(6000)
+    
+    ShutdownScript()
+    Sleep(1500)
 
-    Run A_ScriptDir . "\" . "startMain.cmd", A_ScriptDir, "Hide"
+    Run A_AhkPath . A_Space . "mainLooper.ahk -clean", A_ScriptDir, "Hide"
     ExitApp()
 }

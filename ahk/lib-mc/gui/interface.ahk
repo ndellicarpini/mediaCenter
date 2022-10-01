@@ -49,7 +49,7 @@ class Interface {
         optionsArr := StrSplit(options, A_Space)
         for item in optionsArr {
             if (item != "" && InStr(StrLower(item), "overlay")) {
-                this.overlayObj := Gui(GUIOPTIONS . " +Disabled", "AHKOVERLAY")
+                this.overlayObj := Gui(GUIOPTIONS . " +Disabled +ToolWindow +E0x20", "AHKOVERLAY")
                 this.overlayObj.BackColor := StrReplace(StrLower(item), "overlay", "")
 
                 customOptions.Push(item)
@@ -721,7 +721,10 @@ class Interface {
 ;
 ; returns null
 createInterface(title, options := "", eventObj := "",  additionalHotkeys := "", enableAnalog := false, allowPause := true, allowFocus := true, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
+    global globalConfig
     global globalGuis
+
+    setMonitorInfo(globalConfig["GUI"])
     
     globalGuis[title] := Interface(title, options, eventObj, enableAnalog, allowPause, allowFocus, closeGuiMode, customDestroy, additionalHotkeys)
 

@@ -8,7 +8,6 @@ global MT_STR_SIZE := 2048  ; used for strings
 ; 
 ; TODO - think about DefineProps getters/setter
 global MT_STATUS_KEYS := {
-    pause: MT_CHR_SIZE,
     suspendScript: MT_CHR_SIZE,
     kbmmode: MT_CHR_SIZE,
     desktopmode: MT_CHR_SIZE,
@@ -70,8 +69,6 @@ calcStatusPtrOffset(param, ptr) {
 ; returns param
 getStatusParam(param, ptr := "") {
     switch param {
-        case "pause":  
-            return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar")
         case "suspendScript": 
             return NumGet(calcStatusPtrOffset(param, ptr), 0, "UChar") 
         case "kbmmode":  
@@ -158,8 +155,6 @@ getStatusParam(param, ptr := "") {
 ; returns null
 setStatusParam(param, newVal, ptr := "") {
     switch param {
-        case "pause":  
-            NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
         case "suspendScript": 
             NumPut("UChar", newVal, calcStatusPtrOffset(param, ptr))
         case "kbmmode":  
@@ -269,9 +264,9 @@ setStatusParam(param, newVal, ptr := "") {
 ;
 ; returns true if the status has been updated
 statusUpdated() {
-    static prevPause         := getStatusParam("pause")
     static prevSuspendScript := getStatusParam("suspendScript")
     static prevKbmmode       := getStatusParam("kbmmode")
+    static prevDesktopmode   := getStatusParam("desktopmode")
     static prevCurrProgram   := getStatusParam("currProgram")
     static prevLoadShow      := getStatusParam("loadShow")
     static prevLoadText      := getStatusParam("loadText")
@@ -279,9 +274,9 @@ statusUpdated() {
     static prevErrorHwnd     := getStatusParam("errorHwnd")
     static prevCurrGui       := getStatusParam("currGui")
 
-    currPause         := getStatusParam("pause")
     currSuspendScript := getStatusParam("suspendScript")
     currKbmmode       := getStatusParam("kbmmode")
+    currDesktopmode   := getStatusParam("desktopmode")
     currCurrProgram   := getStatusParam("currProgram")
     currLoadShow      := getStatusParam("loadShow")
     currLoadText      := getStatusParam("loadText")
@@ -289,13 +284,13 @@ statusUpdated() {
     currErrorHwnd     := getStatusParam("errorHwnd")
     currCurrGui       := getStatusParam("currGui")
 
-    if (prevPause != currPause || prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevCurrProgram != currCurrProgram
+    if (prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevDesktopmode != currDesktopmode || prevCurrProgram != currCurrProgram
         || prevLoadShow != currLoadShow || prevLoadText != currLoadText || prevErrorShow != currErrorShow || prevErrorHwnd != currErrorHwnd
         || prevCurrGui != currCurrGui) {
             
-        prevPause         := currPause
         prevSuspendScript := currSuspendScript
         prevKbmmode       := currKbmmode
+        prevDesktopmode   := currDesktopmode
         prevCurrProgram   := currCurrProgram
         prevLoadShow      := currLoadShow
         prevLoadText      := currLoadText

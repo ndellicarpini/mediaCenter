@@ -1,0 +1,12 @@
+{
+    "id": "kodi",
+	"name": "Kodi",
+
+    "exe": "kodi.exe",
+
+    "allowQuickAccess": true,
+    "allowExit": false,
+
+    "launch": "Run 'C:\Kodi\kodi.exe -fs -p' C:\Kodi",
+    "minimize": "kodiMinimize"
+}

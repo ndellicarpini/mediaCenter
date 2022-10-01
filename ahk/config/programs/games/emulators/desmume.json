@@ -1,0 +1,104 @@
+{
+    "id": "desmume",
+    "name": "DeSmuME",
+
+    "exe": "DeSmuME-VS2019-x64-Release.exe",
+    "dir": "C:\\Emulators\\DeSmuME",
+
+    "requireFullscreen": true,
+
+    "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
+
+    "pause": "SendSafe {Pause}",
+    "resume": "SendSafe {Pause}",
+
+    "reset": "desmumeReset",
+
+    "numStates": 1,
+    "saveState": "desmumeSaveState",
+    "loadState": "desmumeLoadState",
+    "fastForward": "desmumeFastForward",
+
+    "controls": ["Xbox Controller"],
+
+    "mouse": {
+        "x": "RSX",
+        "y": "-RSY",
+        "lclick": "RSB",
+        "initialPos": [0.5, 0.5],
+        "deadzone": 0.15,
+    },
+    
+    "hotkeyButtonTime": 0,
+
+    "hotkeys": {
+        "HOME&START": {
+            "down": "program.saveState",
+            "time": 70,
+        },
+        "HOME&SELECT": {
+            "down": "program.loadState",
+            "time": 70,
+        },
+        "HOME&RT>0.3": {
+            "down": "program.fastForward",
+            "time": 70,
+        },
+
+        "A": {
+            "down": "Send '{z down}'",
+            "up": "Send '{z up}'",
+        },
+        "B": {
+            "down": "Send '{x down}'",
+            "up": "Send '{x up}'",
+        },
+        "X": {
+            "down": "Send '{a down}'",
+            "up": "Send '{a up}'",
+        },
+        "Y": {
+            "down": "Send '{s down}'",
+            "up": "Send '{s up}'",
+        },
+        "START": {
+            "down": "Send '{Enter down}'",
+            "up": "Send '{Enter up}'",
+        },
+        "SELECT": {
+            "down": "Send '{RShift down}'",
+            "up": "Send '{RShift up}'",
+        },
+        "LB|LT>0.05": {
+            "down": "Send '{q down}'",
+            "up": "Send '{q up}'",
+        },
+        "RB|RT>0.05": {
+            "down": "Send '{w down}'",
+            "up": "Send '{w up}'",
+        },
+        "DU|LSY>0.4": {
+            "down": "Send '{Up down}'",
+            "up": "Send '{Up up}'",
+        },
+        "DD|LSY<-0.4": {
+            "down": "Send '{Down down}'",
+            "up": "Send '{Down up}'",
+        },
+        "DL|LSX<-0.4": {
+            "down": "Send '{Left down}'",
+            "up": "Send '{Left up}'",
+        },
+        "DR|LSX>0.4": {
+            "down": "Send '{Right down}'",
+            "up": "Send '{Right up}'",
+        },
+    },
+
+    "pauseOptions": {
+        "Swap Screens": "SendSafe {PgDn}",
+        "Change Screen Layout": "SendSafe {End}",
+    },
+
+    "pauseOrder": ["Save State", "Load State", "Swap Screens", "Change Screen Layout", "Reset Game"]
+}

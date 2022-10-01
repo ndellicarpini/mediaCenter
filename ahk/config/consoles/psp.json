@@ -1,0 +1,12 @@
+{
+    "id": "psp",
+    "romDir": "D:\\Roms\\PSP",
+    "romNameIndex": 0,
+
+    "emulators": ["ppsspp"],
+    "extensions": [".iso"],
+
+    "romVersions": [
+        
+    ]
+}

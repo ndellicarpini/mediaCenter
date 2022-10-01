@@ -5,15 +5,18 @@ guiPauseMenu() {
     global globalGuis
 
     currProgram := getStatusParam("currProgram")
-
-    setStatusParam("pause", true)
     
     ; set activate currProgram pause
     if (currProgram != "") {
         globalRunning[currProgram].pause()
     }
 
-    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("HOME|B", "gui.Destroy"), true,,, "count-current", "destroyPauseMenu")
+    ; close the keyboard if open
+    if (keyboardExists()) {
+        closeKeyboard()
+    }
+
+    createInterface(GUIPAUSETITLE, GUIOPTIONS . " +AlwaysOnTop",, Map("B", "gui.Destroy"), true,,, "count-current", "destroyPauseMenu")
     pauseInt := globalGuis[GUIPAUSETITLE]
 
     pauseInt.unselectColor := COLOR1
@@ -162,12 +165,12 @@ defaultPauseOptions() {
 
     defaultOptions["KBMMode"] := {
         title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
-        function: (!currKBMMode) ? "enableKBMMode" : "disableKBMMode"
+        function: (!currKBMMode) ? "runFunctionResume enableKBMMode" : "runFunctionResume disableKBMMode"
     }
 
     defaultOptions["Suspend"] := {
         title: (!currSuspend) ? "Suspend Consolizer" : "Resume Consolizer", 
-        function: "setStatusParam suspendScript " . !currSuspend
+        function: "runFunctionResume setStatusParam suspendScript " . !currSuspend
     }
 
     optionsOrder := []
@@ -252,6 +255,22 @@ defaultProgramOpen() {
         else {
             createProgram(defaultProgram)
         }
+    }
+}
+
+; runs the requested function w/ args then resumes currProgram
+; args - [0]: function, else arg
+;
+; returns null
+runFunctionResume(args*) {
+    global globalRunning
+
+    function := args.RemoveAt(1)
+    %function%(args*)
+
+    currProgram := getStatusParam("currProgram")
+    if (currProgram != "") {
+        globalRunning[currProgram].resume()
     }
 }
 
