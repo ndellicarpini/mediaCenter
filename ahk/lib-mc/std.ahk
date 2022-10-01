@@ -175,7 +175,7 @@ SetCurrentWinTitle(name) {
 ;  time - time in ms to hold key
 ;
 ; returns null
-SendSafe(key, time := 85) {
+SendSafe(key, time := 100) {
 	if (StrSplit(key, A_Space).Length > 2) {
 		ErrorMsg("Can't SendSafe a multi key bind")
 		return

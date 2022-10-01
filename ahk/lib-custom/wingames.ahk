@@ -193,7 +193,7 @@ originGameLaunch(game, args*) {
             originGamePostExit()
 
             SetTitleMatchMode(resetTMM)
-            return false
+            return -1
         }
 
         count += 1
@@ -240,7 +240,7 @@ amazonGameLaunch(URI, args*) {
             amazonGamePostExit()
 
             SetTitleMatchMode(resetTMM)
-            return false
+            return -1
         }
 
         count += 1
@@ -291,6 +291,8 @@ steamGameLaunch(URI, args*) {
             skipLauncherMouse("steamgame", "SUPERHOT.exe", [[0.205, 0.5], [0.373, 0.833]])
         case "steam://rungameid/690040": ; SUPERHOT 2
             skipLauncherMouse("steamgame", "SUPERHOTMCD.exe", [[0.497, 0.5], [0.373, 0.833]])
+        case "steam://rungameid/1174180": ; Red Dead Redemption 2
+            skipLauncherMouse("steamgame", "Launcher.exe", [])
         case "steam://rungameid/758330": ; Shenmue 1 & 2
             if (Integer(args[1]) = 1) {
                 skipLauncherMouse("steamgame", "SteamLauncher.exe", [0.25, 0.5])
@@ -300,10 +302,11 @@ steamGameLaunch(URI, args*) {
             }
         case "steam://rungameid/107100": ; Bastion
             this.requireFullscreen := false
+        case "steam://rungameid/374320": ; Dark Souls III
+            this.requireFullscreen := false
         case "steam://rungameid/12140", "steam://rungameid/12150", "steam://rungameid/400", "steam://rungameid/220":
             ; Max Payne / Max Payne 2 / Portal / HL2
             this.mouse := Map("initialPos", [0.5, 0.5])
-
     }
 }
 
@@ -332,6 +335,12 @@ jackboxLaunch(version) {
 
 ; custom post launch action for all flavors of windows game
 winGamePostLaunch() {
+    DelayCheckFullscreen(program) {
+        if (!program.checkFullscreen()) {
+            program.fullscreen()
+        }
+    }
+
     global globalRunning
 
     for id, program in globalRunning {
@@ -358,10 +367,15 @@ winGamePostLaunch() {
                 delayedKeypress("{Enter}", 500)
             case "Madden19.exe": ; Madden 19
                 SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -10000)
+                delayedKeypress("{Enter}", 500)
             case "TestDriveUnlimited.exe": ; Test Drive Unlimited
                 SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -20000)
             case "openmw.exe": ; Madden 19
                 SetTimer(MouseMove.Bind(percentWidth(0.5, false), percentHeight(0.5, false)), -2000)
+            case "PROA34-Win64-Shipping.exe": ; Blue Fire                
+                SetTimer(DelayCheckFullscreen.Bind(program), -6500)  
+            case "DarkSoulsIII.exe": ; Dark Souls III                
+                SetTimer(DelayCheckFullscreen.Bind(program), -6500)  
             case "braid.exe": ; Braid
                 if (program.checkFullscreen()) {
                     Send("!{Enter}")
@@ -372,7 +386,9 @@ winGamePostLaunch() {
                 while (!program.checkFullscreen()) {
                     Send("{F4}")
                     Sleep(500)
-                }            
+                    Send("{F4}")
+                    Sleep(500)
+                }          
         }
     }
 }

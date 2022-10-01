@@ -1,4 +1,4 @@
-; #SingleInstance Force
+#SingleInstance Force
 
 #Include lib-mc\std.ahk
 

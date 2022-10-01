@@ -15,23 +15,23 @@ kodiMinimize() {
     return -1
 }
 
+kodiReload() {
+    global globalRunning
+
+    globalRunning["kodi"].exit()
+    Sleep(500)
+    ResetScript()
+}
+
 ; --- CHROME ---
 chromeExit() {
     global globalRunning
-    ; global globalGuis
 
-    if (WinShown("On-Screen Keyboard")) {
-        WinClose("On-Screen Keyboard")
+    if (keyboardExists()) {
+        closeKeyboard()
     }
 
     WinClose(globalRunning["chrome"].getWND())
-}
-
-chromeRestore() {
-    ; don't restore if msft on-screen keyboard exists
-    if (WinShown("On-Screen Keyboard")) {    
-        return -1
-    }
 }
 
 chromePIP() {

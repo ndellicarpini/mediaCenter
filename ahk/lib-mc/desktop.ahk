@@ -100,7 +100,7 @@ desktopmodeHotkeys() {
 ;  showDialog - whether or not to show the info splash
 ;
 ; returns null
-enableDesktopMode(showDialog := true) {
+enableDesktopMode(showDialog := false) {
     global globalConfig
     global globalRunning
 
@@ -165,23 +165,89 @@ disableDesktopMode() {
     }
 }
 
+; checks whether the keyboard is open
+;
+; returns true if the keyboard is visible
+keyboardExists() {
+    resetDHW := A_DetectHiddenWindows
+    DetectHiddenWindows(true)
+
+    hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+
+    DetectHiddenWindows(resetDHW)
+    return (hwnd != 0)
+}
+
+; turns off gui keyboard
+;
+; returns null
+openKeyboard() {
+    resetDHW := A_DetectHiddenWindows
+    resetSTM := A_TitleMatchMode
+
+    DetectHiddenWindows(true)
+    SetTitleMatchMode(3)
+
+    try resetA := WinGetTitle("A")
+
+    if (resetA = "Search") {
+        Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+    }
+    else {
+        try {
+            WinActivate("ahk_class Shell_TrayWnd")
+    
+            Sleep(100)
+            Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+            Sleep(100)
+        }
+    }
+
+    DetectHiddenWindows(resetDHW)
+    SetTitleMatchMode(resetSTM)
+
+    if (resetA && WinShown(resetA)) {
+        WinActivate(resetA)
+    }
+
+    Hotkey("Enter", EnterOverrideHotkey)
+} 
+
+; turns off gui keyboard
+;
+; returns null
+closeKeyboard() {
+    resetDHW := A_DetectHiddenWindows
+    DetectHiddenWindows(true)
+
+    hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+
+    if (hwnd) {
+        WinClose("ahk_id " hwnd)
+    }
+    
+    DetectHiddenWindows(resetDHW)
+
+    try Hotkey("Enter", "Off")
+}
+
 ; turns on & off gui keyboard
 ;
 ; returns null
 toggleKeyboard() {
-    ; global globalGuis
-
-    ; if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-    ;     globalGuis[GUIKEYBOARDTITLE].Destroy()
-    ; }
-    ; else {
-    ;     guiKeyboard() 
-    ; }
-
-    if (WinShown("On-Screen Keyboard")) {
-        WinClose("On-Screen Keyboard")
+    if (keyboardExists()) {
+        closeKeyboard()
     }
     else {
-        Run "osk.exe"
+        openKeyboard()
+    }
+}
+
+; check if keyboard is open when pressing enter to properly close it
+EnterOverrideHotkey(*) { 
+    Send("{Enter}")
+
+    if (keyboardExists()) {
+        closeKeyboard()
     }
 }

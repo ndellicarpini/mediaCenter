@@ -6,6 +6,7 @@
     "dir": "C:\\Emulators\\Dolphin",
 
     "requireFullscreen": true,
+    "priority": "H",
 
     "exit": "ProcessClose Dolphin.exe",
 

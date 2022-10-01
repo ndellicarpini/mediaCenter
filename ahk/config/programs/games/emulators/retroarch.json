@@ -6,6 +6,7 @@
     "dir": "C:\\Emulators\\RetroArch",
 
     "requireFullscreen": true,
+    "priority": "H",
 
     "launch": "retroarchLaunch",
 

@@ -1,4 +1,4 @@
-; #SingleInstance Force
+#SingleInstance Force
 ; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
@@ -402,7 +402,6 @@ loop {
         ; check that taskbar is hidden
         if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
             try WinHide "ahk_class Shell_TrayWnd"
-            Sleep(50)
         }
     }
     
@@ -418,10 +417,6 @@ loop {
     if (getStatusParam("desktopmode")) {
         currHotkeys := desktopmodeHotkeys()
         currMouse   := kbmmodeMouse()
-
-        if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-            currHotkeys := addHotkeys(currHotkeys, globalGuis[GUIKEYBOARDTITLE].hotkeys)
-        }
 
         activeSet := true
         hotkeySource := "desktopmode"
@@ -565,26 +560,11 @@ loop {
     }
 
     ; --- CHECK KB & MOUSE MODE ---
-    if (getStatusParam("kbmmode") && hotkeySource = "" && !currSuspended) {
+    if (getStatusParam("kbmmode") && hotkeySource = "") {
         currHotkeys := addHotkeys(currHotkeys, kbmmodeHotkeys())
         currMouse   := kbmmodeMouse()
 
-        ; don't restore currProgram if mouse is not on currProgram
-        if (!activeSet && currProgram != "" && globalRunning.Has(currProgram)) {
-            MouseGetPos(,, &mouseWin)
-            
-            if (globalRunning[currProgram].getHWND() != mouseWin && WinHidden(GUILOADTITLE) != mouseWin) {
-                newSet := true
-                for key, value in globalRunning {
-                    if (!value.background) {
-                        newSet := newSet && (value.getHWND() != mouseWin)
-                    }
-                }
-
-                activeSet := newSet
-            }
-        }
-
+        activeSet := true
         hotkeySource := "kbmmode"
     }
 
@@ -877,13 +857,14 @@ Standby() {
     }
     
     exitAllPrograms()
-    Sleep(500)
-
-    ShutdownScript()
-    Sleep(500)
+    setLoadScreen("Please Wait...")
+    Sleep(1500)
     
     DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
-    Sleep(3000)
+    Sleep(6000)
+    
+    ShutdownScript()
+    Sleep(1500)
 
     Run A_AhkPath . A_Space . "mainLooper.ahk -clean", A_ScriptDir, "Hide"
     ExitApp()

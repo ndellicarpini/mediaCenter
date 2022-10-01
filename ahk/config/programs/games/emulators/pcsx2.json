@@ -6,7 +6,10 @@
     "dir": "C:\\Emulators\\PCSX2",
 
     "requireFullscreen": true,
+    "priority": "H",
     
+    "exit": "pcsx2Exit",
+
     "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
 
     "pause": "Send {Space}",

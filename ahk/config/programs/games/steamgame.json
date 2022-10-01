@@ -201,6 +201,8 @@
 		"dmc1.exe",
 		"dmc2.exe",
 		"dmc3.exe",
+		"dmcLauncher.exe",
+		"DevilMayCry4SpecialEdition.exe",
 		"UNDERTALE.exe",
 		"PuyoPuyoTetris2.exe",
 		"SOR4.exe",
@@ -214,5 +216,16 @@
 		"Tsonic_win.exe",
 		"Rayman Origins.exe",
 		"Rayman Legends.exe",
+		"TheWonderful101.exe",
+		"ds.exe",
+		"EDF5.exe",
+		"PROA34-Win64-Shipping.exe",
+		"DOOMEternalx64vk.exe",
+		"MultiVersus-Win64-Shipping.exe",
+		"Yoku.exe",
+		"GeometryWars.exe",
+		"RDR2.exe",
+		"Bug Fables.exe",
+		"Super Sami Roll.exe"
     ]
 }

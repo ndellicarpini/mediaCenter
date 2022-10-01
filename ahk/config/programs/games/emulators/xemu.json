@@ -6,6 +6,7 @@
     "dir": "C:\\Emulators\\Xemu",
 
     "requireFullscreen": true,
+    "priority": "H",
     
     "fullscreen": "Send '{Ctrl down}{Alt down}f{Alt up}{Ctrl up}'",
 
