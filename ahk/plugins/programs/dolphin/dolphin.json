@@ -1,0 +1,32 @@
+{
+    "id": "dolphin",
+    "name": "Dolphin",
+
+    "exe": "Dolphin.exe",
+    "dir": "C:\\Emulators\\Dolphin",
+
+    "requireFullscreen": true,
+    "priority": "H",
+
+    "exit": "ProcessClose Dolphin.exe",
+
+    "pause": "SendSafe {F10}",
+    "resume": "SendSafe {F10}",
+
+    "reset": "SendSafe r",
+
+    "numStates": 1,
+    "saveState": "dolphinSaveState",
+    "loadState": "dolphinLoadState",
+    "fastForward": "dolphinFastForward",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {
+        "xinput": {
+            "HOME&START": "program.saveState",
+            "HOME&SELECT": "program.loadState",
+            "HOME&RT>0.3": "program.fastForward",
+        }
+    },
+}

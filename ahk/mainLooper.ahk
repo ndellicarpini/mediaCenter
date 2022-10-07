@@ -1,6 +1,6 @@
 #SingleInstance Force
 
-#Include lib-mc\std.ahk
+#Include lib\std.ahk
 
 SetCurrentWinTitle(MAINLOOP)
 

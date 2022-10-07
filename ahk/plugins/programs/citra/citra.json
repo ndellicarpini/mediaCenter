@@ -1,0 +1,69 @@
+{
+    "id": "citra",
+    "name": "Citra",
+
+    "exe": "citra-qt.exe",
+    "dir": "C:\\Emulators\\Citra",
+
+    "requireFullscreen": true,
+
+    "fullscreen": "Send {F11}",
+
+    "pause": "SendSafe {F4}",
+    "resume": "SendSafe {F4}",
+
+    "reset": "SendSafe {F6}",
+
+    "numStates": 1,
+    "saveState": "citraSaveState",
+    "loadState": "citraLoadState",
+    "fastForward": "citraFastForward",
+
+    "controls": ["Xbox Controller"],
+
+    "mouse": {
+        "xinput": {
+            "x": "RSX",
+            "y": "-RSY",
+            "lclick": "RSB",
+            "rclick": "LSB",
+            "initialPos": [0.5, 0.5],
+            "deadzone": 0.15,
+        }
+    },
+
+    "hotkeyButtonTime": 0,
+
+    "hotkeys": {
+        "xinput": {
+            "HOME&START": {
+                "down": "program.saveState",
+                "time": 70,
+            },
+            "HOME&SELECT": {
+                "down": "program.loadState",
+                "time": 70,
+            },
+            "HOME&RT>0.3": {
+                "down": "program.fastForward",
+                "time": 70,
+            },
+
+            "LB|LT>0.05": {
+                "down": "Send '{q down}'",
+                "up": "Send '{q up}'",
+            },
+            "RB|RT>0.05": {
+                "down": "Send '{w down}'",
+                "up": "Send '{w up}'",
+            },
+        }
+    },
+
+    "pauseOptions": {
+        "Swap Screens": "SendSafe {F9}",
+        "Change Screen Layout": "SendSafe {F10}",
+    },
+
+    "pauseOrder": ["Save State", "Load State", "Swap Screens", "Change Screen Layout", "Reset Game"]
+}

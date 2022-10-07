@@ -1,5 +1,5 @@
-#Include lib-mc\std.ahk
-#Include lib-mc\messaging.ahk
+#Include lib\std.ahk
+#Include lib\messaging.ahk
 
 #SingleInstance Force
 

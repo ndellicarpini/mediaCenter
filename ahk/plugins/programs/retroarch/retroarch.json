@@ -1,0 +1,40 @@
+{
+    "id": "retroarch",
+    "name": "RetroArch",
+
+    "exe": "retroarch.exe",
+    "dir": "C:\\Emulators\\RetroArch",
+
+    "requireFullscreen": true,
+    "priority": "H",
+
+    "launch": "retroarchLaunch",
+
+    "pause": "SendSafe p",
+    "resume": "SendSafe p",
+
+    "reset": "SendSafe h",
+
+    "numStates": 1,
+    "saveState": "retroarchSaveState",
+    "loadState": "retroarchLoadState",
+    "rewind": "retroarchRewind",
+    "fastForward": "SendSafe {Space}",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {
+        "xinput": {
+            "HOME&START": "program.saveState",
+            "HOME&SELECT": "program.loadState",
+            "HOME&LT>0.3": "program.rewind",
+            "HOME&RT>0.3": "program.fastForward",
+        }
+    },
+
+    "pauseOptions": {
+        "Toggle MAME Menu": "retroarchToggleMAMEMenu"
+    },
+
+    "pauseOrder": ["Save State", "Load State", "retroarchMAMECheck?Toggle MAME Menu", "Reset Game"]
+}

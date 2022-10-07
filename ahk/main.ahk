@@ -2,38 +2,50 @@
 ; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
-#Include LIB-CU~1\boot.ahk
-#Include LIB-CU~1\EMULAT~1.AHK
-#Include LIB-CU~1\load.ahk
-#Include LIB-CU~1\programs.ahk
-#Include LIB-CU~1\steam.ahk
-#Include LIB-CU~1\wingames.ahk
+#Include plugins\ahk\boot.ahk
+#Include plugins\ahk\LOADSC~1.AHK
+#Include plugins\CONTRO~1\xinput\xinput.ahk
+#Include plugins\programs\AMAZON~1\AMAZON~1.AHK
+#Include plugins\programs\bigbox\bigbox.ahk
+#Include plugins\programs\cemu\cemu.ahk
+#Include plugins\programs\chrome\chrome.ahk
+#Include plugins\programs\citra\citra.ahk
+#Include plugins\programs\desmume\desmume.ahk
+#Include plugins\programs\dolphin\dolphin.ahk
+#Include plugins\programs\kodi\kodi.ahk
+#Include plugins\programs\origin\ORIGIN~1.AHK
+#Include plugins\programs\pcsx2\pcsx2.ahk
+#Include plugins\programs\ppsspp\ppsspp.ahk
+#Include plugins\programs\RETROA~1\RETROA~1.AHK
+#Include plugins\programs\steam\steam.ahk
+#Include plugins\programs\steam\STEAMG~1.AHK
+#Include plugins\programs\wingame\wingame.ahk
+#Include plugins\programs\xemu\xemu.ahk
+#Include plugins\programs\xenia\xenia.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
-#Include lib-mc\confio.ahk
-#Include lib-mc\std.ahk
-#Include lib-mc\xinput.ahk
-#Include lib-mc\messaging.ahk
-#Include lib-mc\program.ahk
-#Include lib-mc\emulator.ahk
-#Include lib-mc\data.ahk
-#Include lib-mc\hotkeys.ahk
-#Include lib-mc\desktop.ahk
+#Include lib\confio.ahk
+#Include lib\std.ahk
+#Include lib\messaging.ahk
+#Include lib\program.ahk
+#Include lib\emulator.ahk
+#Include lib\data.ahk
+#Include lib\hotkeys.ahk
+#Include lib\desktop.ahk
+#Include lib\controller.ahk
+#Include lib\threads.ahk
 
-#Include lib-mc\gui\std.ahk
-#Include lib-mc\gui\constants.ahk
-#Include lib-mc\gui\interface.ahk
-#Include lib-mc\gui\choicedialog.ahk
-#Include lib-mc\gui\loadscreen.ahk
-#Include lib-mc\gui\pausemenu.ahk
-#Include lib-mc\gui\volumemenu.ahk
-#Include lib-mc\gui\controllermenu.ahk
-#Include lib-mc\gui\programmenu.ahk
-#Include lib-mc\gui\powermenu.ahk
-#Include lib-mc\gui\keyboard.ahk
-
-#Include lib-mc\mt\status.ahk
-#Include lib-mc\mt\threads.ahk
+#Include lib\gui\std.ahk
+#Include lib\gui\constants.ahk
+#Include lib\gui\interface.ahk
+#Include lib\gui\choicedialog.ahk
+#Include lib\gui\loadscreen.ahk
+#Include lib\gui\pausemenu.ahk
+#Include lib\gui\volumemenu.ahk
+#Include lib\gui\controllermenu.ahk
+#Include lib\gui\programmenu.ahk
+#Include lib\gui\powermenu.ahk
+#Include lib\gui\keyboard.ahk
 
 SetKeyDelay 50, 100
 CoordMode "Mouse", "Screen"
@@ -45,16 +57,18 @@ prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
 SetCurrentWinTitle(MAINNAME)
 global MAINSCRIPTDIR := A_ScriptDir
 
-global globalConfig
-global globalStatus
-global globalControllers
-global globalPrograms
-global globalRunning
-global globalGuis
+global globalConfig         := Map()
+global globalStatus         := Map()
+global globalConsoles       := Map()
+global globalPrograms       := Map()
+global globalRunning        := Map()
+global globalGuis           := Map()
+global globalControllers    := Map()
+global globalControlConfigs := Map()
+global globalThreads        := Map()
 
 ; ----- INITIALIZE GLOBALCONFIG (READ-ONLY) -----
-mainConfig := Map()
-mainConfig["StartArgs"] := A_Args
+globalConfig["StartArgs"] := A_Args
 
 ; read from global.cfg
 for key, value in readGlobalConfig().subConfigs {
@@ -66,31 +80,39 @@ for key, value in readGlobalConfig().subConfigs {
         configObj[key2] := value2
     }
 
-    mainConfig[key] := configObj
+    globalConfig[key] := configObj
 }
 
 ; set priority from config
-if (mainConfig["General"].Has("MainPriority") && mainConfig["General"]["MainPriority"] != "") {
-    ProcessSetPriority(mainConfig["General"]["MainPriority"])
+if (globalConfig["General"].Has("MainPriority") && globalConfig["General"]["MainPriority"] != "") {
+    ProcessSetPriority(globalConfig["General"]["MainPriority"])
 }
 
 ; set gui variables
-parseGUIConfig(mainConfig["GUI"])
+parseGUIConfig(globalConfig["GUI"])
 
 ; create required folders
 requiredFolders := [expandDir("data")]
 
-if (mainConfig["General"].Has("CustomLibDir") && mainConfig["General"]["CustomLibDir"] != "") {
-    mainConfig["General"]["CustomLibDir"] := expandDir(mainConfig["General"]["CustomLibDir"])
-    requiredFolders.Push(mainConfig["General"]["CustomLibDir"])
+if (globalConfig["GUI"].Has("AssetDir") && globalConfig["GUI"]["AssetDir"] != "") {
+    globalConfig["GUI"]["AssetDir"] := expandDir(globalConfig["GUI"]["AssetDir"])
+    requiredFolders.Push(globalConfig["GUI"]["AssetDir"])
 }
-if (mainConfig["General"].Has("AssetDir") && mainConfig["General"]["AssetDir"] != "") {
-    mainConfig["General"]["AssetDir"] := expandDir(mainConfig["General"]["AssetDir"])
-    requiredFolders.Push(mainConfig["General"]["AssetDir"])
+if (globalConfig["Plugins"].Has("AHKPluginDir") && globalConfig["Plugins"]["AHKPluginDir"] != "") {
+    globalConfig["Plugins"]["AHKPluginDir"] := expandDir(globalConfig["Plugins"]["AHKPluginDir"])
+    requiredFolders.Push(globalConfig["Plugins"]["AHKPluginDir"])
 }
-if (mainConfig["Programs"].Has("ConfigDir") && mainConfig["Programs"]["ConfigDir"] != "") {
-    mainConfig["Programs"]["ConfigDir"] := expandDir(mainConfig["Programs"]["ConfigDir"])
-    requiredFolders.Push(mainConfig["Programs"]["ConfigDir"])
+if (globalConfig["Plugins"].Has("ConsolePluginDir") && globalConfig["Plugins"]["ConsolePluginDir"] != "") {
+    globalConfig["Plugins"]["ConsolePluginDir"] := expandDir(globalConfig["Plugins"]["ConsolePluginDir"])
+    requiredFolders.Push(globalConfig["Plugins"]["ConsolePluginDir"])
+}
+if (globalConfig["Plugins"].Has("ControllerPluginDir") && globalConfig["Plugins"]["ControllerPluginDir"] != "") {
+    globalConfig["Plugins"]["ControllerPluginDir"] := expandDir(globalConfig["Plugins"]["ControllerPluginDir"])
+    requiredFolders.Push(globalConfig["Plugins"]["ControllerPluginDir"])
+}
+if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["ProgramPluginDir"] != "") {
+    globalConfig["Plugins"]["ProgramPluginDir"] := expandDir(globalConfig["Plugins"]["ProgramPluginDir"])
+    requiredFolders.Push(globalConfig["Plugins"]["ProgramPluginDir"])
 }
 
 for value in requiredFolders {
@@ -98,9 +120,6 @@ for value in requiredFolders {
         DirCreate value
     }
 }
-
-; load xinput libraray
-xLibrary := dllLoadLib("xinput1_3.dll")
 
 ; load process monitoring library for checking process lists
 processLib := dllLoadLib("psapi.dll")
@@ -114,61 +133,53 @@ NumPut("Char", 1, gdiBuffer.Ptr, 0)
 DllCall("GdiPlus\GdiplusStartup", "UPtr*", gdiToken, "Ptr", gdiBuffer.Ptr, "Ptr", 0)
 
 ; load nvidia library for gpu monitoring
-if (mainConfig["GUI"].Has("EnablePauseGPUMonitor") && mainConfig["GUI"]["EnablePauseGPUMonitor"]) { 
+if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) { 
     try {
         nvLib := dllLoadLib("nvapi64.dll")
         DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
     }
     catch {
-        mainConfig["GUI"]["EnablePauseGPUMonitor"] := false
+        globalConfig["GUI"]["EnablePauseGPUMonitor"] := false
     }
 }
 
-
 ; ----- INITIALIZE GLOBALSTATUS -----
-mainStatus := statusInitBuffer()
-
 ; whether or not pause screen is shown 
-setStatusParam("pause", false, mainStatus.Ptr)
+globalStatus["pause"] := false
 ; whether or not script is suspended (no actions running, changable in pause menu)
-setStatusParam("suspendScript", false, mainStatus.Ptr)
+globalStatus["suspendScript"] := false
 ; whether or not script is in keyboard & mouse mode
-setStatusParam("kbmmode", false, mainStatus.Ptr)
+globalStatus["kbmmode"] := false
 ; whether or not script is in desktop mode
-setStatusParam("desktopmode", false, mainStatus.Ptr)
+globalStatus["desktopmode"] := false
+
 ; current name of programs focused & running, used to get config -> setup hotkeys & background actions
-setStatusParam("currProgram", "", mainStatus.Ptr)
-; load screen info
-setStatusParam("loadShow", false, mainStatus.Ptr)
-setStatusParam("loadText", (mainConfig["GUI"].Has("DefaultLoadText")) ? mainConfig["GUI"]["DefaultLoadText"] : "Now Loading...", mainStatus.Ptr)
-; error info
-setStatusParam("errorShow", false, mainStatus.Ptr)
-setStatusParam("errorHwnd", 0, mainStatus.Ptr)
-; time to hold a hotkey for it to trigger
-setStatusParam("buttonTime", (mainConfig["Hotkeys"].Has("ButtonTime")) ? mainConfig["Hotkeys"]["ButtonTime"] : 70, mainStatus.Ptr)
-; current hotkeys
-setStatusParam("currHotkeys", Map(), mainStatus.Ptr)
-; current mouse
-setStatusParam("currMouse", Map(), mainStatus.Ptr)
+globalStatus["currProgram"] := ""
 ; current active gui
-setStatusParam("currGui", "", mainStatus.Ptr)
-; some function that should be digested by a thread
-setStatusParam("internalMessage", "", mainStatus.Ptr)
+globalStatus["currGui"] := ""
 
+; load screen info
+globalStatus["loadscreen"] := Map()
+globalStatus["loadscreen"]["show"] := false
+globalStatus["loadscreen"]["text"] := (globalConfig["GUI"].Has("DefaultLoadText")) 
+    ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading..."
 
-; ----- INITIALIZE GLOBALCONTROLLERS -----
-mainControllers  := xInitBuffer(mainConfig["General"]["MaxXInputControllers"])
+; error info
+globalStatus["error"] := Map()
+globalStatus["error"]["show"] := false
+globalStatus["error"]["hwnd"] := 0
 
+; hotkey info
+globalStatus["controller"] := Map()
+globalStatus["controller"]["hotkeys"]    := Map()
+globalStatus["controller"]["mouse"]      := Map()
+globalStatus["controller"]["buffer"]     := []
+globalStatus["controller"]["buttonTime"] := 70
 
 ; ----- INITIALIZE PROGRAM/CONSOLE CONFIGS -----
-globalRunning  := Map()
-globalPrograms := Map()
-globalConsoles := Map()
-globalGuis     := Map()
-
 ; read program configs from ConfigDir
-if (mainConfig["Programs"].Has("ProgramConfigDir") && mainConfig["Programs"]["ProgramConfigDir"] != "") {
-    loop files validateDir(mainConfig["Programs"]["ProgramConfigDir"]) . "*", "FR" {
+if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["ProgramPluginDir"] != "") {
+    loop files validateDir(globalConfig["Plugins"]["ProgramPluginDir"]) . "*.json", "FR" {
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
         tempConfig.cleanAllItems(true)
 
@@ -205,8 +216,8 @@ if (mainConfig["Programs"].Has("ProgramConfigDir") && mainConfig["Programs"]["Pr
 }
 
 ; read console configs from ConfigDir
-if (mainConfig["Programs"].Has("ConsoleConfigDir") && mainConfig["Programs"]["ConsoleConfigDir"] != "") {
-    loop files validateDir(mainConfig["Programs"]["ConsoleConfigDir"]) . "*", "FR" {
+if (globalConfig["Plugins"].Has("ConsolePluginDir") && globalConfig["Plugins"]["ConsolePluginDir"] != "") {
+    loop files validateDir(globalConfig["Plugins"]["ConsolePluginDir"]) . "*.json", "FR" {
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
         tempConfig.cleanAllItems(true)
 
@@ -219,24 +230,56 @@ if (mainConfig["Programs"].Has("ConsoleConfigDir") && mainConfig["Programs"]["Co
     }
 }
 
+if (globalConfig["Plugins"].Has("ControllerPluginDir") && globalConfig["Plugins"]["ControllerPluginDir"] != "") {
+    loop files validateDir(globalConfig["Plugins"]["ControllerPluginDir"]) . "*.json", "FR" {
+        tempConfig := readConfig(A_LoopFileFullPath,, "json")
+        tempConfig.cleanAllItems(true)
+
+        if ((tempConfig.items.Has("id") || tempConfig.items["id"] != "")
+            && (tempConfig.items.Has("className") || tempConfig.items["className"] != "")
+            && (tempConfig.items.Has("maxConnected") || tempConfig.items["maxConnected"] != "")) {
+            controlID := tempConfig.items["id"]
+
+            globalControlConfigs[controlID] := tempConfig.toMap()
+            globalControllers[controlID] := []
+
+            controllerInit := runFunction(globalControlConfigs[controlID]["initialize"])
+            loop tempConfig.items["maxConnected"] {
+                globalControllers[controlID].Push(
+                    %globalControlConfigs[controlID]["className"]%(controllerInit, A_Index - 1, globalControlConfigs[controlID])
+                )
+            }
+
+            globalThreads["controller-" . controlID] := controllerThread(
+                controlID,
+                ObjPtrAddRef(globalConfig), 
+                ObjPtrAddRef(globalStatus), 
+                ObjPtrAddRef(globalPrograms), 
+                ObjPtrAddRef(globalConsoles), 
+                ObjPtrAddRef(globalRunning), 
+                ObjPtrAddRef(globalGuis),
+                ObjPtrAddRef(globalControllers),
+                ObjPtrAddRef(globalControlConfigs)
+            )
+        }
+        else {
+            ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
+        }
+    }
+}
+
 ; ----- INITIALIZE THREADS -----
 ; configure objects to be used in a thread-safe manner
-;  read-only objects can be used w/ ObjShare 
+;  read-only objects can be used w/ ObjPtrAddRef 
 ;  read/write objects must be a buffer ptr w/ custom getters/setters
-globalConfig      := ObjShare(ObjShare(mainConfig))
-globalStatus      := mainStatus.Ptr
-globalControllers := mainControllers.Ptr
 
 ; ----- PARSE START ARGS -----
 for item in globalConfig["StartArgs"] {
     if (item = "-backup") {
-        statusRestore()
-        globalConfig["Boot"]["EnableBoot"] := false
-
-        if (getStatusParam("kbmmode")) {
+        if (globalStatus["kbmmode"]) {
             enableKBMMode()
         }
-        if (getStatusParam("desktopmode")) {
+        if (globalStatus["desktopmode"]) {
             enableDesktopMode()
         }
     }
@@ -246,26 +289,23 @@ if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("En
     createLoadScreen()
 }
 
-; ----- START CONTROLLER THEAD -----
-; this thread just updates the status of each controller in a loop
-controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers, xLibrary)
-Sleep(100)
+globalThreads["action"] := actionThread(
+    ObjPtrAddRef(globalConfig), 
+    ObjPtrAddRef(globalStatus), 
+    ObjPtrAddRef(globalPrograms), 
+    ObjPtrAddRef(globalConsoles), 
+    ObjPtrAddRef(globalRunning), 
+    ObjPtrAddRef(globalGuis),
+    ObjPtrAddRef(globalControllers),
+    ObjPtrAddRef(globalControlConfigs)
+)
 
-; ----- START HOTKEY THREAD -----
-; this thread reads controller & status to determine what actions needing to be taken
-; (ie. if currExecutable-Game = retroarch & Home+Start -> Save State)
-hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
-Sleep(100)
-
-; ----- START FUNCTION THREAD -----
-; this thread runs functions requested as 'threadedFunction' in a separate thread
-; this is a sacrificial thread, used for functions that have a high chance of hanging the script
-functionThreadRef := functionThread(ObjShare(mainConfig), globalStatus)
 Sleep(100)
 
 ; ----- BOOT -----
-if (globalConfig["Boot"]["EnableBoot"]) {
-    runFunction(globalConfig["Boot"]["BootFunction"])
+if (!inArray("-backup", globalConfig["StartArgs"])) {
+    MsgBox("ih")
+    try customBoot()
 }
 
 ; enables the OnMessage listener for send2Main
@@ -284,7 +324,7 @@ forceActivate  := globalConfig["General"].Has("ForceActivateWindow") && globalCo
 bypassFirewall := globalConfig["General"].Has("BypassFirewallPrompt") && globalConfig["General"]["BypassFirewallPrompt"]
 hideTaskbar    := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
-checkErrors    := globalConfig["Programs"].Has("ErrorList") && globalConfig["Programs"]["ErrorList"] != ""
+checkErrors    := globalConfig["Plugins"].Has("ErrorList") && globalConfig["Plugins"]["ErrorList"] != ""
 
 loopSleep      := Round(globalConfig["General"]["AvgLoopSleep"])
 
@@ -295,96 +335,7 @@ mouseHidden := false
 
 hotkeySource := ""
 loop {
-    currSuspended := getStatusParam("suspendScript")
-
-    ; --- CHECK INTERNAL MESSAGE ---
-    internalMessage := getStatusParam("internalMessage")
-    if (internalMessage != "") {
-        currProgram := getStatusParam("currProgram")
-        currGui     := getStatusParam("currGui")
-        currLoad    := getStatusParam("loadShow")
-        currError   := getStatusParam("errorShow")
-        currKBMM    := getStatusParam("kbmmode")
-        currDesktop := getStatusParam("desktopmode")
-
-        ; mismatched currHotkeys & status, ignore message
-        if ((hotkeySource != currProgram && hotkeySource != currGui)
-            && (hotkeySource = "load" && !currLoad) 
-            && (hotkeySource = "error" && !currError) 
-            && (hotkeySource = "kbmmode" && !currKBMM) 
-            && (hotkeySource = "desktopmode" && !currDesktop)) {
-
-            setStatusParam("internalMessage", "")
-            continue
-        }
-
-        ; update pause status & create/destroy pause menu
-        if (StrLower(internalMessage) = "pausemenu") {
-            if (!globalGuis.Has(GUIPAUSETITLE)) {
-                guiPauseMenu()
-            }
-            else {
-                globalGuis[GUIPAUSETITLE].Destroy()
-            }
-        }
-
-        ; exits the current error or program
-        else if (StrLower(internalMessage) = "exitprogram") {
-            if (getStatusParam("errorShow")) {
-                errorHwnd := getStatusParam("errorHwnd")
-                errorGUI := getGUI(errorHwnd)
-
-                if (errorGUI) {
-                    errorGUI.Destroy()
-                }
-                else {
-                    CloseErrorMsg(errorHwnd)
-                }
-            }
-            else if (currProgram != "" && globalRunning[currProgram].allowExit) {
-                try globalRunning[currProgram].exit()
-
-                if (!globalRunning[currProgram].exists()) {
-                    setStatusParam("currProgram", "")
-                }
-            }
-        }
-
-        ; run current gui funcion
-        else if (StrLower(SubStr(internalMessage, 1, 4)) = "gui.") {
-            tempArr  := StrSplit(internalMessage, A_Space)
-            tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
-
-            try globalGuis[currGui].%tempFunc%(tempArr*)
-        }
-
-        ; run current program function
-        else if (StrLower(SubStr(internalMessage, 1, 8)) = "program.") {
-            tempArr  := StrSplit(internalMessage, A_Space)
-            tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
-            
-            if (tempFunc = "pause" || tempFunc = "resume" || tempFunc = "minimize" 
-                || tempFunc = "exit" || tempFunc = "restore" || tempFunc = "launch") {
-
-                try globalRunning[currProgram].%tempFunc%(tempArr*)
-            }
-            else {
-                SetTimer(WaitProgramResume.Bind(currProgram, tempFunc, tempArr), -50)
-            }
-        }
-
-        ; run function
-        else {
-            try runFunction(internalMessage)
-        }
-
-        ; reset message after processing
-        if (getStatusParam("internalMessage") = internalMessage) {
-            setStatusParam("internalMessage", "")
-        }
-
-        continue
-    }
+    currSuspended := globalStatus["suspendScript"]
 
     if (!currSuspended) {
         ; check that sound driver hasn't crashed
@@ -414,7 +365,7 @@ loop {
     currMouse   := Map()
 
     ; --- CHECK DESKTOP MODE ---
-    if (getStatusParam("desktopmode")) {
+    if (globalStatus["desktopmode"]) {
         currHotkeys := desktopmodeHotkeys()
         currMouse   := kbmmodeMouse()
 
@@ -423,14 +374,14 @@ loop {
     }
 
     ; --- CHECK OVERRIDE ---
-    currError := getStatusParam("errorShow")
+    currError := globalStatus["error"]["show"]
 
     ; if errors should be detected, set error here
     if (!currError && checkErrors && !currSuspended) {
         resetTMM := A_TitleMatchMode
 
         SetTitleMatchMode 2
-        for key, value in globalConfig["Programs"]["ErrorList"] {
+        for key, value in globalConfig["Plugins"]["ErrorList"] {
 
             wndwHWND := WinShown(value)
             if (!wndwHWND) {
@@ -438,8 +389,8 @@ loop {
             }
 
             if (wndwHWND > 0) {
-                setStatusParam("errorShow", true)
-                setStatusParam("errorHwnd", wndwHWND)
+                globalStatus["error"]["show"] := true
+                globalStatus["error"]["hwnd"] := wndwHWND
                 
                 break
             }
@@ -448,7 +399,7 @@ loop {
     }
 
     if (currError && !currSuspended) {
-        errorHwnd := getStatusParam("errorHwnd")
+        errorHwnd := globalStatus["error"]["hwnd"]
 
         if (WinShown("ahk_id " errorHwnd)) {
             if (!activeSet) {
@@ -468,13 +419,13 @@ loop {
             }
         }
         else {
-            setStatusParam("errorShow", false)
-            setStatusParam("errorHwnd", 0)
+            globalStatus["error"]["show"] := false
+            globalStatus["error"]["hwnd"] := 0
         }
     }
 
     ; --- CHECK LOAD SCREEN ---
-    if (getStatusParam("loadShow") && !activeSet && !currSuspended) {
+    if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended) {
         activateLoadScreen()
 
         for key, value in currHotkeys {
@@ -489,15 +440,15 @@ loop {
     }
 
     ; --- CHECK ALL OPEN ---
-    currProgram := getStatusParam("currProgram")
-    currGui     := getStatusParam("currGui")
+    currProgram := globalStatus["currProgram"]
+    currGui     := globalStatus["currGui"]
 
     if ((delayCount > maxDelayCount || (currProgram = "" && currGui = "")) && !currSuspended) {
         checkAllGuis()
 
         mostRecentGui := getMostRecentGui()
         if (mostRecentGui != currGui) {
-            setStatusParam("currGui", mostRecentGui)
+            globalStatus["currGui"] := mostRecentGui
         }
 
         checkAllPrograms()
@@ -522,7 +473,7 @@ loop {
             if (hotkeySource = "") {
                 if (globalGuis[currGui].hotkeys.Count > 0) {
                     currHotkeys := addHotkeys(currHotkeys, globalGuis[currGui].hotkeys)
-                    setStatusParam("buttonTime", 0)
+                    globalStatus["controller"]["buttonTime"] := 0
                 }
 
                 for key, value in currHotkeys {
@@ -549,18 +500,18 @@ loop {
 
             mostRecentGui := getMostRecentGui()
             if (mostRecentGui != currGui) {
-                setStatusParam("currGui", mostRecentGui)
+                globalStatus["currGui"] := mostRecentGui
 
                 continue
             }
             else {
-                setStatusParam("currGui", "")
+                globalStatus["currGui"] := ""
             }
         }
     }
 
     ; --- CHECK KB & MOUSE MODE ---
-    if (getStatusParam("kbmmode") && hotkeySource = "") {
+    if (globalStatus["kbmmode"] && hotkeySource = "") {
         currHotkeys := addHotkeys(currHotkeys, kbmmodeHotkeys())
         currMouse   := kbmmodeMouse()
 
@@ -588,7 +539,7 @@ loop {
                 if (hotkeySource = "") {
                     if (globalRunning[currProgram].hotkeys.Count > 0) {
                         currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys)
-                        setStatusParam("buttonTime", globalRunning[currProgram].hotkeyButtonTime)
+                        globalStatus["controller"]["buttonTime"] := globalRunning[currProgram].hotkeyButtonTime
                     }
 
                     for key, value in currHotkeys {
@@ -615,7 +566,7 @@ loop {
                     continue
                 }
                 else {
-                    setStatusParam("currProgram", "")
+                    globalStatus["currProgram"] := ""
                 }
             }
         } 
@@ -625,8 +576,8 @@ loop {
     }
 
     ; --- UPDATE HOTKEYS & MOUSE ---
-    setStatusParam("currHotkeys", currHotkeys)
-    setStatusParam("currMouse", currMouse)
+    globalStatus["controller"]["hotkeys"] := currHotkeys
+    globalStatus["controller"]["mouse"]   := currMouse
 
     ; --- BACKUP ---
     if (statusUpdated()) {
@@ -634,32 +585,31 @@ loop {
     }
 
     if (delayCount > maxDelayCount) {
-        try {
-            controllerThreadRef.FuncPtr("")
-        }
-        catch {
-            controllerThreadRef := controllerThread(ObjShare(mainConfig), globalControllers, xLibrary)
-            Sleep(100)
-        }
+        ; try {
+        ;     controllerThreadRef.FuncPtr("")
+        ; }
+        ; catch {
+        ;     controllerThreadRef := controllerThread(ObjPtrAddRef(globalConfig), globalControllers, xLibrary)
+        ;     Sleep(100)
+        ; }
         
-        try {
-            hotkeyThreadRef.FuncPtr("")
-        }
-        catch {
-            hotkeyThreadRef := hotkeyThread(ObjShare(mainConfig), globalStatus, globalControllers)
-            Sleep(100)
-        }
+        ; try {
+        ;     hotkeyThreadRef.FuncPtr("")
+        ; }
+        ; catch {
+        ;     hotkeyThreadRef := hotkeyThread(ObjPtrAddRef(globalConfig), ObjPtrAddRef(globalStatus), globalControllers, ObjPtrAddRef(globalRunning))
+        ;     Sleep(100)
+        ; }
 
-        ; check that function thread is running
-        functionThreadHWND := WinHidden("functionThread")
-        if (!functionThreadHWND) {
-            setStatusParam("threadedFunction", "")
-            functionThreadRef := functionThread(ObjShare(mainConfig), globalStatus)
-            Sleep(100)
-        }
-        else if (DllCall("IsHungAppWindow", "Ptr", functionThreadHWND)) {
-            ProcessKill(functionThreadHWND)
-        }
+        ; ; check that function thread is running
+        ; functionThreadHWND := WinHidden("functionThread")
+        ; if (!functionThreadHWND) {
+        ;     functionThreadRef := functionThread(ObjPtrAddRef(globalConfig), ObjPtrAddRef(globalStatus))
+        ;     Sleep(100)
+        ; }
+        ; else if (DllCall("IsHungAppWindow", "Ptr", functionThreadHWND)) {
+        ;     ProcessKill(functionThreadHWND)
+        ; }
 
         ; check that looper is running
         if (forceMaintain && !WinHidden(MAINLOOP)) {
@@ -684,7 +634,7 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         return
     }
 
-    currProgram := getStatusParam("currProgram")
+    currProgram := globalStatus["currProgram"]
 
     ; do something based on external message (like launching app)
     ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
@@ -710,8 +660,8 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         createConsole(message)
     }
     else if (StrLower(message[1]) = "nuclear") {
-        if (getStatusParam("errorShow")) {
-            try ProcessKill(WinGetPID("ahk_id " getStatusParam("errorHwnd")))
+        if (globalStatus["error"]["show"]) {
+            try ProcessKill(WinGetPID("ahk_id " globalStatus["error"]["hwnd"]))
         }
 
         if (currProgram != "" && globalRunning[currProgram].exists()) {
@@ -731,7 +681,7 @@ HandleMessage(wParam, lParam, msg, hwnd) {
 WaitProgramResume(id, function, args) {
     global globalRunning
 
-    if (!globalRunning.Has(id) || getStatusParam("currProgram") != id) {
+    if (!globalRunning.Has(id) || globalStatus["currProgram"] != id) {
         return
     }
 
@@ -753,20 +703,24 @@ WaitProgramResume(id, function, args) {
 
 ; clean shutdown of script
 ShutdownScript(restoreTaskbar := true) {
+    global globalThreads
+    global globalControlConfigs
+
     ; disable message listener
     OnMessage(MESSAGE_VAL, HandleMessage, 0)
 
     setLoadScreen("Please Wait...")
 
     ; tell the threads to close
-    functionThreadRef.exitThread   := true
-    Sleep(100)
-    hotkeyThreadRef.exitThread     := true
-    Sleep(100)
-    controllerThreadRef.exitThread := true
-    Sleep(100)
+    for key, value in globalThreads {
+        value.exitThread := true
+        Sleep(100)
+    }
 
-    dllFreeLib(xLibrary)
+    for key, value in globalControlConfigs {
+        runFunction(value["destroy"])
+    }
+
     dllFreeLib(processLib)
     
     DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
@@ -789,7 +743,6 @@ ShutdownScript(restoreTaskbar := true) {
 ExitScript() {
     global globalConfig
 
-    setStatusParam("internalMessage", "")
     statusBackup()
 
     if (WinHidden(MAINLOOP) && globalConfig["General"].Has("ForceMaintainMain") 
@@ -808,7 +761,6 @@ ExitScript() {
 ResetScript() {
     global globalConfig
 
-    setStatusParam("internalMessage", "")
     statusBackup()
 
     if (!globalConfig["General"].Has("ForceMaintainMain") 
@@ -861,7 +813,7 @@ Standby() {
     Sleep(1500)
     
     DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
-    Sleep(6000)
+    Sleep(5000)
     
     ShutdownScript()
     Sleep(1500)

@@ -1,0 +1,46 @@
+{
+    "id": "xinput",
+    "name": "Xbox Controller",
+
+    "maxConnected": 4,
+    
+    "className": "XInputDevice",
+    "initialize": "xInitialize",
+    "destroy": "xDestroy",
+
+    "hotkeyButtonTime": 70,
+
+    "defaultHotkeys": {
+        "HOME": "PauseMenu",
+        "START&SELECT": "ExitProgram",
+    },
+
+    "interfaceHotkeys": {
+        "default": {
+            "[REPEAT]DU|LSY>0.4": "gui.up",
+            "[REPEAT]DD|LSY<-0.4": "gui.down",
+            "[REPEAT]DL|LSX<-0.4": "gui.left",
+            "[REPEAT]DR|LSX>0.4": "gui.right",
+            "A": "gui.select",
+        },
+        "AHKGUICONTROLLER": {
+            "B": "gui.Destroy",
+            "[HOLD]A": {
+                "down": "controllerMenuVibrate 1", 
+                "up": "controllerMenuVibrate 0"
+            }
+        },
+        "AHKGUIPAUSE": {
+            "B": "gui.Destroy"
+        },
+        "AHKGUIPOWER": {
+            "B": "gui.Destroy"
+        },
+        "AHKGUIPROGRAM": {
+            "B": "gui.Destroy"
+        },
+        "AHKGUIVOLUME": {
+            "B": "gui.Destroy"
+        }  
+    }
+}
