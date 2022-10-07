@@ -38,7 +38,7 @@ updateLoadScreen(activate := true) {
 		loadObj["LoadText"].Text := getStatusParam("loadText")
 		loadObj["LoadText"].Redraw()
 	}
-	else {
+	else if (activate) {
 		createLoadScreen()
 		Sleep(100)
 	}
