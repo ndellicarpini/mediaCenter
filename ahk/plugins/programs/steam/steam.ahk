@@ -41,16 +41,12 @@ steamGameLaunchHandler(URI, loopCount := 0) {
 
     this := globalRunning["steamgame"]
 
-    hideTaskbar := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
+    restoreLoadText := globalStatus["loadscreen"]["text"]
+    restoreAllowExit := this.allowExit
+    restoreTTMM := A_TitleMatchMode
 
-    currLoadScreen := globalStatus["loadscreen"]["text"]
     setLoadScreen("Waiting for Steam...")
-
-    currHotkeys := globalStatus["controller"]["hotkeys"]
-    globalStatus["controller"]["hotkeys"] := addHotkeys(currHotkeys, Map("B", "stopWaiting"))
-
     loadText := globalStatus["loadscreen"]["text"]
-    resetTMM := A_TitleMatchMode
 
     SetTitleMatchMode 2
 
@@ -64,22 +60,23 @@ steamGameLaunchHandler(URI, loopCount := 0) {
         }
     
         setLoadScreen("Waiting for Steam...")
+
+        this.allowExit := true
         
         count := 0
         maxCount := 100
         ; buffer wait for steam so that the URI works
         while (count < maxCount) {
-            if (globalStatus["internalMessage"] = "stopWaiting") {
-                globalStatus["controller"]["hotkeys"] := currHotkeys
-                globalStatus["internalMessage"] := ""
-    
-                SetTitleMatchMode(resetTMM)
+            if (this.shouldExit) {    
+                SetTitleMatchMode(restoreTTMM)
                 return false
             }
 
             count += 1
             Sleep(100)
         }
+
+        this.allowExit := false
     }
 
     Run URI
@@ -88,20 +85,27 @@ steamGameLaunchHandler(URI, loopCount := 0) {
     maxCount := 40
     ; wait for either the game or a common steam window
     while (count < maxCount && !steamShown() && !this.exists()) {
+        if (count > 25 && this.shouldExit) {    
+            SetTitleMatchMode(restoreTTMM)
+            return false
+        }
+
         count += 1
         Sleep(500)
     }
 
     ; if game -> success
     if (this.exists()) {
-        SetTitleMatchMode(resetTMM)
+        this.allowExit := restoreAllowExit
+        SetTitleMatchMode(restoreTTMM)
+
         return true
     }
 
     ; if no steam windows shown -> restart steam
     if (!steamShown()) {
         if (loopCount > 2) {
-            SetTitleMatchMode(resetTMM)
+            SetTitleMatchMode(restoreTTMM)
             return false
         }
 
@@ -111,34 +115,30 @@ steamGameLaunchHandler(URI, loopCount := 0) {
         return steamGameLaunchHandler(URI, loopCount + 1)
     }
 
-    updateWidth := Floor(percentWidth(0.4, false))
+    this.allowExit := true
 
     ; while launching window is shown, just wait
     while (WinShown(" - Steam")) {
-        setLoadScreen(currLoadScreen)
+        setLoadScreen(restoreLoadText)
 
-        if (globalStatus["internalMessage"] = "stopWaiting") {
-            globalStatus["controller"]["hotkeys"] := currHotkeys
-            globalStatus["internalMessage"] := ""
-            WinClose(" - Steam")
+        ; if (this.shouldExit) {    
+        ;     WinClose(" - Steam")
+        ;     SetTitleMatchMode(restoreTTMM)
 
-            SetTitleMatchMode(resetTMM)
-            return false
-        }
+        ;     return false
+        ; }
 
         checkDialogs()
 
         Sleep(250)
     }
 
+    updateWidth := Floor(percentWidth(0.4, false))
+
     ; while game updating -> resize update windows for funsies
     while (WinShown("Updating ")) {
         try {
             WinActivate("Updating ")
-
-            if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
-                WinHide "ahk_class Shell_TrayWnd"
-            }
             
             WinGetPos(&X, &Y, &W, &H, "Updating ")
             if (W != updateWidth) {
@@ -146,12 +146,10 @@ steamGameLaunchHandler(URI, loopCount := 0) {
             }
         }
 
-        if (globalStatus["internalMessage"] = "stopWaiting") {
-            globalStatus["controller"]["hotkeys"] := currHotkeys
-            globalStatus["internalMessage"] := ""
+        if (this.shouldExit) {    
             WinClose("Updating ")
+            SetTitleMatchMode(restoreTTMM)
 
-            SetTitleMatchMode(resetTMM)
             return false
         }
 
@@ -180,12 +178,10 @@ steamGameLaunchHandler(URI, loopCount := 0) {
             MouseMove(percentWidth(1, false), percentHeight(1, false))
         }
 
-        if (globalStatus["internalMessage"] = "stopWaiting") {
-            globalStatus["controller"]["hotkeys"] := currHotkeys
-            globalStatus["internalMessage"] := ""
+        if (this.shouldExit) {    
             WinClose("Ready - ")
-            
-            SetTitleMatchMode(resetTMM)
+            SetTitleMatchMode(restoreTTMM)
+
             return false
         }
 
@@ -194,11 +190,8 @@ steamGameLaunchHandler(URI, loopCount := 0) {
         Sleep(2000)
     }   
 
-    if (globalStatus["internalMessage"] = "stopWaiting") {
-        globalStatus["internalMessage"] := ""
-    }
+    this.allowExit := restoreAllowExit
+    SetTitleMatchMode(restoreTTMM)
 
-    globalStatus["controller"]["hotkeys"] := currHotkeys
-    SetTitleMatchMode(resetTMM)
     return true
 }

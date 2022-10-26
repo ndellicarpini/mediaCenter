@@ -4,6 +4,8 @@
     "background": true,
     "requireInternet": true,
 
+    "allowHungCheck": false,
+
     "exe": "steam.exe",
     "dir": "C:\\Steam",
 

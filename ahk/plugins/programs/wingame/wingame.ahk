@@ -24,15 +24,29 @@ winGameLaunch(game, args*) {
     switch(game) {
         case "D:\Rockstar\Grand Theft Auto V\PlayGTAV.exe":
             this.launcher := Map("exe", "Launcher.exe", "mouseClick", [])
-        case "D:\Games\Kingdom Hearts 1.5+2.5\KINGDOM HEARTS HD 1.5+2.5 ReMIX.exe"
-            , "D:\Games\Kingdom Hearts 2.8\KINGDOM HEARTS HD 2.8 Final Chapter Prologue.exe"
-            , "D:\Games\Kingdom Hearts III\KINGDOM HEARTS III\Binaries\Win64\KINGDOM HEARTS III.exe":
-            this.hotkeys := Map("SELECT", Map("up", "Send '{Escape up}'", "down", "Send '{Escape down}'"))
-        case "D:\Games\Simpsons Hit & Run\Lucas Simpsons Hit & Run Mod Launcher.exe":
-            this.hotkeys := Map("START", Map("up", "Send '{Escape up}'", "down", "Send '{Escape down}'"))
         case "shell:AppsFolder\Microsoft.OpusPG_8wekyb3d8bbwe!OpusReleaseFinal":
             this.wndw := "Forza Horizon 3"
             this.allowPause := false
+        case "D:\Games\Kingdom Hearts 1.5+2.5\KINGDOM HEARTS HD 1.5+2.5 ReMIX.exe"
+        , "D:\Games\Kingdom Hearts 2.8\KINGDOM HEARTS HD 2.8 Final Chapter Prologue.exe"
+        , "D:\Games\Kingdom Hearts III\KINGDOM HEARTS III\Binaries\Win64\KINGDOM HEARTS III.exe":
+            this.hotkeys := Map(
+                "xinput", Map(
+                    "SELECT", Map(
+                        "up", "Send '{Escape up}'", 
+                        "down", "Send '{Escape down}'"
+                    )
+                )
+            )
+        case "D:\Games\Simpsons Hit & Run\Lucas Simpsons Hit & Run Mod Launcher.exe":
+            this.hotkeys := Map(
+                "xinput", Map(
+                    "SELECT", Map(
+                        "up", "Send '{Escape up}'", 
+                        "down", "Send '{Escape down}'"
+                    )
+                )
+            )
     }
 }
 

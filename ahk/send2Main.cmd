@@ -2,4 +2,4 @@
 @setlocal enableextensions
 @cd /d "%~dp0%"
 
-start "" "bin\x64w_MT\AutoHotkey.exe" "send2Main.ahk" %*
+start "" "bin\x64w\AutoHotkey.exe" "send2Main.ahk" %*

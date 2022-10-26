@@ -70,7 +70,7 @@ guiPauseMenu() {
 
         pauseInt.Add("Picture", "vHome Section f(defaultProgramOpen) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
         pauseInt.Add("Picture", "vVolume f(guiVolumeMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
-        pauseInt.Add("Picture", "vControllers f(guiControllerMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers f(guiInputMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti f(guiProgramMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower f(guiPowerMenu) xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     
@@ -79,7 +79,7 @@ guiPauseMenu() {
         buttonSpacing := percentWidth(0.0257)
 
         pauseInt.Add("Picture", "vVolume Section f(guiVolumeMenu) xpos1 ypos1 xm0 y+" . percentHeight(0.02) . " w" . percentWidth(0.039) . " h" . percentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
-        pauseInt.Add("Picture", "vControllers f(guiControllerMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+        pauseInt.Add("Picture", "vControllers f(guiInputMenu) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
         pauseInt.Add("Picture", "vMulti f(guiProgramMenu) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
         pauseInt.Add("Picture", "vPower f(guiPowerMenu) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
     }

@@ -8,7 +8,7 @@ createLoadScreen() {
     guiObj := Gui(GUIOPTIONS, GUILOADTITLE)
 
 	try {
-		guiObj := customLoadScreen(guiObj)
+		guiObj := %"customLoadScreen"%(guiObj)
 	}
 	catch {
 		guiObj.BackColor := COLOR1
@@ -27,6 +27,9 @@ activateLoadScreen() {
 	if (WinShown(GUILOADTITLE)) {
 		WinActivate(GUILOADTITLE)
 	}
+	else {
+		createLoadScreen()
+	}
 }
 
 ; activates & updates the text the load screen
@@ -34,7 +37,12 @@ activateLoadScreen() {
 ;
 ; returns null
 updateLoadScreen(activate := true) {
+	global globalConfig
 	global globalStatus
+
+	if (!globalConfig["GUI"].Has("EnableLoadScreen") || !globalConfig["GUI"]["EnableLoadScreen"]) {
+		return
+	}
 
 	loadObj := getGUI(GUILOADTITLE)
 	if (loadObj) {
@@ -109,9 +117,12 @@ resetLoadScreen() {
 
 ; spin waits until either timeout or successful internet connection
 ;  timeout - seconds to wait
+;  programID - if used for a program, will cancel if shouldExit
 ;
 ; returns true if connected to internet
-internetLoadScreen(timeout := 30) {
+internetLoadScreen(timeout := 30, programID := "") {
+	global globalRunning
+
 	count := 0
 	wsaData := Buffer(408, 0)
 		
@@ -124,6 +135,12 @@ internetLoadScreen(timeout := 30) {
 	
 	addrPtr := 0
 	while (count < timeout) {
+		if (programID != "" && globalRunning[programID].shouldExit) {
+			DllCall("Ws2_32\WSACleanup")
+			resetLoadScreen()
+			return false
+		}
+
 		try {
 			if (DllCall("Ws2_32\GetAddrInfoW", "WStr", "dns.msftncsi.com", "WStr", "http", "Ptr", 0, "Ptr*", &addrPtr)) {		
 				count += 1

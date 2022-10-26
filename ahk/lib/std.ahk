@@ -158,6 +158,32 @@ WinHidden(window) {
 	return retVal
 }
 
+WinResponsive(window) {
+	id := 0
+	if (IsInteger(window)) {
+		id := window
+	}
+	else {
+		id := WinGetID(window)
+	}
+
+	resetDHW := A_DetectHiddenWindows
+	DetectHiddenWindows(true)
+	
+	retVal := DllCall("SendMessageTimeout"
+		, "UInt", id
+		, "UInt", 0x0000
+		, "Int", 0
+		, "Int", 0
+		, "UInt", 0x0008
+		, "UInt", 100
+		, "UInt*", 0
+	)
+
+	DetectHiddenWindows(resetDHW)
+	return (retVal != 0 && A_LastError != 1460)
+}
+
 ; sets the current script's window title to the string in name
 ;  name - new window name for current script
 ;
@@ -246,21 +272,23 @@ ObjDeepClone(obj) {
 		return obj
 	}
 
-	retObj := obj.Clone()
-
+	retObj := ""
 	if (Type(obj) = "Map") {
+		retObj := Map()
 		for key, value in obj {
 			retObj[key] := ObjDeepClone(value)
 		}
 	}
 	else if (Type(obj) = "Array") {
+		retObj := []
 		loop obj.Length {
-			retObj[A_Index] := ObjDeepClone(obj[A_Index])
+			retObj.Push(ObjDeepClone(obj[A_Index]))
 		}
 	}
 	else {
+		retObj := {}
 		for key, value in obj.OwnProps() {
-			retObj[key] := ObjDeepClone(value)
+			retObj.%key% := ObjDeepClone(value)
 		}
 	}
 
@@ -702,14 +730,12 @@ copyBufferData(getPtr, setPtr, size) {
 }
 
 ; runs a text as a function, seperating by spaces
-;  text - string to run as function
+;  args - string/array to run as function
 ;  params - additional params to push after string params
 ;
 ; return null
-runFunction(text, params := "") {
-	textArr := StrSplit(text, A_Space)
-	func := textArr.RemoveAt(1)
-	
+runFunction(args, params := "") {
+	func := ""
 	funcArr := []
 
 	; prepend args to func from additional outside args
@@ -722,50 +748,62 @@ runFunction(text, params := "") {
 		funcArr.Push(params)
 	}
 
-	; set args for func from words in text
-	stringType := ""
-	tempString := ""
-	for item in textArr {
-		if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%" && StrLen(item) > 1) {
-			funcArr.Push(%Trim(item, "%")%)
-			continue
-		}
-		
-		; handle function param strings w/ spaces
-		if (!stringType) {
-			if (SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"' && StrLen(item) > 1) {
-				funcArr.Push(Trim(item, '"'))
+	if (Type(args) = "String") {
+		textArr := StrSplit(args, A_Space)
+		func := textArr.RemoveAt(1)
+
+		; set args for func from words in text
+		stringType := ""
+		tempString := ""
+		for item in textArr {
+			if (SubStr(item, 1, 1) = "%" && SubStr(item, -1, 1) = "%" && StrLen(item) > 1) {
+				funcArr.Push(%Trim(item, "%")%)
+				continue
 			}
-			else if (SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'" && StrLen(item) > 1) {
-				funcArr.Push(Trim(item, "'"))
-			}
-			else if (SubStr(item, 1, 1) = '"' && StrLen(item) > 1) {
-				tempString .= LTrim(item, '"') . A_Space
-				stringType := '"'
-			}
-			else if (SubStr(item, 1, 1) = "'" && StrLen(item) > 1) {
-				tempString .= LTrim(item, "'") . A_Space
-				stringType := "'"
-			}
-			else {
-				funcArr.Push(item)
-			}
-		}
-		else {
-			if (SubStr(item, -1, 1) = '"' && stringType = '"') {
-				funcArr.Push(RTrim(tempString . item, '"'))
-				tempString := ""
-				stringType := ""
-			}
-			else if (SubStr(item, -1, 1) = "'" && stringType = "'") {
-				funcArr.Push(RTrim(tempString . item, "'"))
-				tempString := ""
-				stringType := ""
+			
+			; handle function param strings w/ spaces
+			if (!stringType) {
+				if (SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"' && StrLen(item) > 1) {
+					funcArr.Push(Trim(item, '"'))
+				}
+				else if (SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'" && StrLen(item) > 1) {
+					funcArr.Push(Trim(item, "'"))
+				}
+				else if (SubStr(item, 1, 1) = '"' && StrLen(item) > 1) {
+					tempString .= LTrim(item, '"') . A_Space
+					stringType := '"'
+				}
+				else if (SubStr(item, 1, 1) = "'" && StrLen(item) > 1) {
+					tempString .= LTrim(item, "'") . A_Space
+					stringType := "'"
+				}
+				else {
+					funcArr.Push(item)
+				}
 			}
 			else {
-				tempString .= item . A_Space
+				if (SubStr(item, -1, 1) = '"' && stringType = '"') {
+					funcArr.Push(RTrim(tempString . item, '"'))
+					tempString := ""
+					stringType := ""
+				}
+				else if (SubStr(item, -1, 1) = "'" && stringType = "'") {
+					funcArr.Push(RTrim(tempString . item, "'"))
+					tempString := ""
+					stringType := ""
+				}
+				else {
+					tempString .= item . A_Space
+				}
 			}
 		}
+	}
+	else if (Type(args) = "Array") {
+		func := args.RemoveAt(1)
+		funcArr := args
+	}
+	else {
+		return
 	}
 
 	if (funcArr.Length > 0) {

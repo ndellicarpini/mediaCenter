@@ -14,38 +14,34 @@ amazonGameLaunch(URI, args*) {
     count := 0
     maxCount := 40
 
-    hideTaskbar := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
-
     setLoadScreen("Waiting for Amazon Games...")
-    globalStatus["controller"]["hotkeys"] := addHotkeys(globalStatus["controller"]["hotkeys"], Map("B", "stopWaiting"))
     
     resetTMM := A_TitleMatchMode
     SetTitleMatchMode 2
+
+    restoreAllowExit := this.allowExit
+    this.allowExit := true
 
     ; wait for amazon to show
     while (!this.exists(true) && count < maxCount) {
         if (WinShown("Amazon Games")) {
             WinActivate("Amazon Games")
-
-            if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
-                WinHide "ahk_class Shell_TrayWnd"
-            }
             
             count := 0
         }
 
-        if (globalStatus["internalMessage"] = "stopWaiting") {
-            globalStatus["controller"]["hotkeys"] := currHotkeys
-            globalStatus["internalMessage"] := ""
+        if (this.shouldExit) {
             amazonGamePostExit()
-
             SetTitleMatchMode(resetTMM)
+
             return -1
         }
 
         count += 1
         Sleep(500)
     }
+
+    this.allowExit := restoreAllowExit
 }
 
 ; close amazon game launcher after game exits

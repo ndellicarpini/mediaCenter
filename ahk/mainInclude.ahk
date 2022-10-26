@@ -37,8 +37,8 @@ if (globalConfig.items.Has("AHKPluginDir") && globalConfig.items["AHKPluginDir"]
 if (globalConfig.items.Has("ConsolePluginDir") && globalConfig.items["ConsolePluginDir"] != "") {
     pluginIncludeDirs.Push(globalConfig.items["ConsolePluginDir"])
 }
-if (globalConfig.items.Has("ControllerPluginDir") && globalConfig.items["ControllerPluginDir"] != "") {
-    pluginIncludeDirs.Push(globalConfig.items["ControllerPluginDir"])
+if (globalConfig.items.Has("InputPluginDir") && globalConfig.items["InputPluginDir"] != "") {
+    pluginIncludeDirs.Push(globalConfig.items["InputPluginDir"])
 }
 if (globalConfig.items.Has("ProgramPluginDir") && globalConfig.items["ProgramPluginDir"] != "") {
     pluginIncludeDirs.Push(globalConfig.items["ProgramPluginDir"])

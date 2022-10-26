@@ -1,26 +1,13 @@
 ; gets the default hotkeys & formats them into the proper hotkey map
-;  config - config taken from main
+;  configs - input configs loaded from plugins
 ;
 ; returns map of default hotkeys
-defaultHotkeys(config) {
+defaultHotkeys(configs) {
     newHotkeys := Map()
 
-    buttonTime := (config["Hotkeys"].Has("ButtonTime")) ? config["Hotkeys"]["ButtonTime"] : 70
-
-    for key in config["Hotkeys"] {
-        if (key = "ButtonTime") {
-            continue
-        }
-
-        ; only add pause hotkey if pausing is enabled
-        if (StrLower(key) = "pausemenu" && config["GUI"].Has("EnablePauseMenu") && config["GUI"]["EnablePauseMenu"]) {  
-            newHotkeys[config["Hotkeys"][key]] := Map("down", key, "time", buttonTime)
-        }
-        else if (StrLower(key) = "exitprogram") {
-            newHotkeys[config["Hotkeys"][key]] := Map("down", key, "time", buttonTime * 1.5)
-        }
-        else {
-            newHotkeys[config["Hotkeys"][key]] := Map("down", key, "time", buttonTime)
+    for key, value in configs {
+        if (value.Has("programHotkeys")) {
+            newHotkeys[key] := value["programHotkeys"]
         }
     }
 
@@ -30,34 +17,44 @@ defaultHotkeys(config) {
 addHotkeys(currHotkeys, newHotkeys) {
     oldHotkeys := ObjDeepClone(currHotkeys)
 
+    for key, value in oldHotkeys {
+        if (newHotkeys.Has(key)) {
+            for key2, value2 in newHotkeys[key] {
+                currModifier := checkHotkeyModifier(key2)
+                currKey := (currModifier != "") ? StrReplace(key2, currModifier, "") : key2
+        
+                if (InStr(currKey, ">")) {
+                    currKey := StrSplit(currKey, ">")[1] . ">"
+                }
+                else if (InStr(currKey, "<")) {
+                    currKey := StrSplit(currKey, "<")[1] . "<"
+                }
+        
+                for key3, value3 in oldHotkeys[key] {
+                    currModifier2 := checkHotkeyModifier(key3)
+                    currKey2 := (currModifier2 != "") ? StrReplace(key3, currModifier2, "") : key3
+        
+                    if (InStr(currKey2, ">")) {
+                        currKey2 := StrSplit(currKey2, ">")[1] . ">"
+                    }
+                    else if (InStr(currKey, "<")) {
+                        currKey2 := StrSplit(currKey2, "<")[1] . "<"
+                    }
+        
+                    if (currKey = currKey2) {
+                        oldHotkeys[key].Delete(key3)
+                    }
+                }
+        
+                oldHotkeys[key][key2] := value2
+            }
+        }
+    }
+
     for key, value in newHotkeys {
-        currModifier := checkHotkeyModifier(key)
-        currKey := (currModifier != "") ? StrReplace(key, currModifier, "") : key
-
-        if (InStr(currKey, ">")) {
-            currKey := StrSplit(currKey, ">")[1] . ">"
+        if (!oldHotkeys.Has(key)) {
+            oldHotkeys[key] := value
         }
-        else if (InStr(currKey, "<")) {
-            currKey := StrSplit(currKey, "<")[1] . "<"
-        }
-
-        for key2, value2 in oldHotkeys {
-            currModifier2 := checkHotkeyModifier(key2)
-            currKey2 := (currModifier2 != "") ? StrReplace(key2, currModifier2, "") : key2
-
-            if (InStr(currKey2, ">")) {
-                currKey2 := StrSplit(currKey2, ">")[1] . ">"
-            }
-            else if (InStr(currKey, "<")) {
-                currKey2 := StrSplit(currKey2, "<")[1] . "<"
-            }
-
-            if (currKey = currKey2) {
-                oldHotkeys.Delete(key2)
-            }
-        }
-
-        oldHotkeys[key] := value
     }
 
     return oldHotkeys
@@ -105,8 +102,23 @@ optimizeHotkeys(currHotkeys) {
     cleanHotkeys   := Map()
     modifiers      := Map()
 
-    ; clean new hotkeys from program to put into proper format
+    ; clean out ors from hotkey
+    tempHotkeys := Map()
     for key, value in currHotkeys {
+        if (!InStr(key, "|")) {
+            tempHotkeys[key] := value
+            continue
+        }
+
+        currModifier := checkHotkeyModifier(key)
+        currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")  
+        for item in StrSplit(currKey, "|") {
+            tempHotkeys[currModifier . item] := value
+        }
+    }
+
+    ; clean new hotkeys from program to put into proper format
+    for key, value in tempHotkeys {
         currModifier := checkHotkeyModifier(key)
         currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")   
         
@@ -155,39 +167,6 @@ optimizeHotkeys(currHotkeys) {
                         }
                         else {
                             buttonRefTimes[refs[A_Index]] := valueInt
-                        }
-                    }
-                }
-            }
-        }
-        else if (InStr(currKey, "|")) {
-            currHotkey := StrSplit(currKey, "|")
-
-            ; treat or button combos as 2 separate button definitions
-            for item in currHotkey {
-                currItem := Trim(item, " `t`r`n")
-
-                cleanHotkeys[currItem] := value
-                modifiers[currItem] := Trim(StrLower(currModifier), "[] `t`r`n")
-
-                if (currItem != "") {
-                    if (!buttonRefs.Has(currItem)) {
-                        buttonRefs[currItem] := [currItem]
-                    }
-                    else {
-                        buttonRefs[currItem].Push(currItem)
-                    }
-
-                    if (value.Has("time") && value["time"] != "") {
-                        valueInt := Integer(value["time"])
-    
-                        if (buttonRefTimes.Has(currItem)) {
-                            if (valueInt < buttonRefTimes[currItem]) {
-                                buttonRefTimes[currItem] := valueInt
-                            }
-                        }
-                        else {
-                            buttonRefTimes[currItem] := valueInt
                         }
                     }
                 }
@@ -261,98 +240,4 @@ optimizeHotkeys(currHotkeys) {
         buttonTree: sortedButtonRefs,
         buttonTimes: buttonRefTimes,
     }
-}
-
-; check & find most specific hotkey that matches controller state
-;  currButton - button that was matched
-;  currHotkeys - currHotkeys as set by program
-;  status - status result from controller
-; 
-; returns array of button combo pressed & function from currHotkeys based on controller
-checkHotkeys(currButton, currHotkeys, status) {
-    ; creates the hotkeyData in the appropriate format
-    createHotkeyData(hotkey) {
-        down := ""
-        up   := ""
-        time := ""
-
-        for key, value in currHotkeys.hotkeys[hotkey] {
-            if (StrLower(key) = "down") {
-                down := value
-            }
-            else if (StrLower(key) = "up") {
-                up := value
-            }
-            else if (StrLower(key) = "time") {
-                time := value
-            }
-        }
-
-        return {
-            hotkey: StrSplit(hotkey, ["&", "|"]), 
-            modifier: currHotkeys.modifiers[hotkey],
-            function: down,
-            release: up, 
-            time: time,
-        }
-    }
-
-    if (!currHotkeys.buttonTree.Has(currButton)) {
-        return -1
-    }
-
-    ; masking array of hotkeys from other branches in buttontree 
-    ; used to check that current pressed key combo is actually a child
-    ; of the buttontree[currbutton]
-    notCheckArr := []
-    for key, value in currHotkeys.buttonTree {
-        if (key = currButton) {
-            continue
-        }
-
-        loop value.length {
-            currArr := StrSplit(value[A_Index], "&")
-            if (inArray(currButton, currArr)) {
-                notCheckArr.Push(value[A_Index])
-            }
-        }
-    }
-
-    maxInvalidAmp := 0
-    for item in notCheckArr {
-        if (item = "") {
-            continue
-        }
-
-        hotkeyList := StrSplit(item, "&")
-
-        if (controllerCheckStatus(hotkeyList, status)) {
-            maxInvalidAmp := hotkeyList.Length
-        }
-    }
-
-    checkArr := currHotkeys.buttonTree[currButton]
-
-    maxValidAmp := 0
-    maxValidItem := ""
-    for item in checkArr {
-        if (item = "") {
-            continue
-        }
-
-        hotkeyList := StrSplit(item, "&")
-
-        if (controllerCheckStatus(hotkeyList, status)) {
-            maxValidAmp := hotkeyList.Length
-            maxValidItem := item
-        }
-    }
-
-    ; if the button combo is from a different buttontree branch
-    ; or if no valid button combos found
-    if (maxInvalidAmp > maxValidAmp || maxValidAmp = 0) {
-        return -1
-    }
-
-    return createHotkeyData(maxValidItem)
 }

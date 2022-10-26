@@ -88,7 +88,7 @@ powerExit() {
     global globalStatus
 
     destroyPowerMenu()
-    globalStatus["internalMessage"] := "ExitScript"
+    globalStatus["input"]["buffer"].Push("ExitScript")
 }
 
 ; forces backup & resets the script
@@ -98,7 +98,7 @@ powerReset() {
     global globalStatus
 
     destroyPowerMenu()
-    globalStatus["internalMessage"] := "ResetScript"
+    globalStatus["input"]["buffer"].Push("ResetScript")
 }
 
 ; closes all open programs & explorer -> sleep, then on wake restart main
@@ -108,7 +108,7 @@ powerStandby() {
     global globalStatus
 
     destroyPowerMenu()
-    globalStatus["internalMessage"] := "Standby"
+    globalStatus["input"]["buffer"].Push("Standby")
 }
 
 ; closes all open programs then shuts down the system
@@ -118,7 +118,7 @@ powerShutdown() {
     global globalStatus
 
     destroyPowerMenu()
-    globalStatus["internalMessage"] := "PowerOff"
+    globalStatus["input"]["buffer"].Push("PowerOff")
 }
 
 ; closes all open programs then restarts the system
@@ -128,5 +128,5 @@ powerRestart() {
     global globalStatus
 
     destroyPowerMenu()
-    globalStatus["internalMessage"] := "Restart"
+    globalStatus["input"]["buffer"].Push("Restart")
 }

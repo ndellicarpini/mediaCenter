@@ -1,33 +1,6 @@
 global GUIKBMMODETITLE := "AHKKBMMODE"
 global GUIDESKTOPTITLE := "AHKDESKTOPMODE"
 
-; hotkeys for keyboard & mouse mode
-;
-; returns map of hotkeys
-kbmmodeHotkeys() {
-    globalStatus["controller"]["buttonTime"] := 0
-
-    ; TODO - button for keyboard
-    return Map(
-        "SELECT", "toggleKeyboard",
-        "[REPEAT]B", "Send {Backspace}"
-    )
-}
-
-; mouse config for keyboard & mouse mode
-;
-; returns map of mouse config
-kbmmodeMouse() {
-    return Map(
-        "x", "LSX", 
-        "y", "-LSY", 
-        "lclick", "A",
-        "rclick", "X",
-        "hscroll", "RSX",
-        "vscroll", "-RSY"
-    )
-}
-
 ; enables kbbmode & displays info splash
 ;  showDialog - whether or not to show the info splash
 ;
@@ -72,30 +45,6 @@ disableKBMMode() {
     }
 }
 
-; hotkeys for desktop mode
-;
-; returns map of hotkeys
-desktopmodeHotkeys() {
-    globalStatus["controller"]["buttonTime"] := 0
-
-    ; TODO - button for keyboard
-    return Map(
-        "HOME", "disableDesktopMode",
-        "SELECT", "toggleKeyboard",
-        "START", "Send {LWin}",
-
-        "[REPEAT]DU", "Send {Up}",
-        "[REPEAT]DD", "Send {Down}",
-        "[REPEAT]DL", "Send {Left}",
-        "[REPEAT]DR", "Send {Right}",
-
-        "[REPEAT]B", "Send {Backspace}",
-
-        "LT>0.3", "Send !{Tab}",
-        "RT>0.3", "Send !+{Tab}",
-    )
-}
-
 ; enables desktop & displays info splash
 ;  showDialog - whether or not to show the info splash
 ;
@@ -111,10 +60,6 @@ enableDesktopMode(showDialog := false) {
 
         value.minimize()
         Sleep(100)
-    }
-
-    if (globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]) {
-        try WinShow "ahk_class Shell_TrayWnd"
     }
 
     globalStatus["suspendScript"] := true
@@ -147,10 +92,6 @@ enableDesktopMode(showDialog := false) {
 disableDesktopMode() {
     global globalConfig
     global globalGuis
- 
-    if (globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]) {
-        try WinHide "ahk_class Shell_TrayWnd"
-    }
 
     if (globalGuis.Has(GUIKEYBOARDTITLE)) {
         globalGuis[GUIKEYBOARDTITLE].Destroy()
@@ -197,9 +138,9 @@ openKeyboard() {
         try {
             WinActivate("ahk_class Shell_TrayWnd")
     
-            Sleep(100)
+            Sleep(50)
             Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
-            Sleep(100)
+            Sleep(50)
         }
     }
 

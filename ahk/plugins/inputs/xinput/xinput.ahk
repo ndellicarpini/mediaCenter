@@ -1,4 +1,4 @@
-class XInputDevice extends Controller {
+class XInputDevice extends Input {
     buttons := []
     axis := Map(
         "LT", 0,
@@ -9,12 +9,12 @@ class XInputDevice extends Controller {
         "RSY", 0
     )
 
-    initController() {
+    initDevice() {
         this.getStatus()
 
         if (this.connected) {
             this.checkConnectionType()
-            this.batteryLevel()
+            this.checkBatteryLevel()
         }
     }
 
@@ -99,12 +99,22 @@ class XInputDevice extends Controller {
         xResult := DllCall(this.initResults["getBatteryPtr"], "UInt", this.pluginPort, "UChar", 0, "UInt", xBuf.Ptr)
 
         if (xResult = 1167) {
-            return -1
+            this.connectionType := -1
+            return this.connectionType
         }
 
         connection := NumGet(xBuf.Ptr, 0, "UChar")  
 
-        this.connectionType := (connection = 2 || connection = 3) ? 1 : 0              
+        if (connection = 1) {
+            this.connectionType := 0
+        }
+        else if (connection = 2 || connection = 3) {
+            this.connectionType := 1
+        }
+        else {
+            this.connectionType := -1
+        }
+             
         return this.connectionType
     }
 
@@ -113,7 +123,8 @@ class XInputDevice extends Controller {
         xResult := DllCall(this.initResults["getBatteryPtr"], "UInt", this.pluginPort, "UChar", 0, "UInt", xBuf.Ptr)
 
         if (xResult = 1167) {
-            return -1
+            this.batteryLevel := 0
+            return this.batteryLevel
         }
 
         battery := NumGet(xBuf.Ptr, 1, "UChar")  
@@ -159,10 +170,10 @@ xInitialize() {
 }
 
 xDestroy() {
-    global globalControllers
+    global globalInputStatus
 
-    xinputControllers := globalControllers["xinput"]
-    if (Type(xinputControllers = "Array") && xinputControllers.Length > 0) {
-        dllFreeLib(xinputControllers[0].initResults["dllLibPtr"])
+    xinputControllers := globalInputStatus["xinput"]
+    if (xinputControllers.Length > 0) {
+        dllFreeLib(xinputControllers[1]["initResults"]["dllLibPtr"])
     }
 }

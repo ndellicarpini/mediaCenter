@@ -25,35 +25,34 @@ originGameLaunch(game, args*) {
     count := 0
     maxCount := 40
 
-    hideTaskbar := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
-
     setLoadScreen("Waiting for Origin...")
-    globalStatus["controller"]["hotkeys"] := addHotkeys(currHotkeys, Map("B", "stopWaiting"))
+    
+    resetTMM := A_TitleMatchMode
+    SetTitleMatchMode 2
+
+    restoreAllowExit := this.allowExit
+    this.allowExit := true
 
     ; wait for origin to show
     while (!this.exists(true) && count < maxCount) {
         if (WinShown("Origin")) {
             WinActivate("Origin")
-
-            if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
-                WinHide "ahk_class Shell_TrayWnd"
-            }
             
             count := 0
         }
 
-        if (globalStatus["internalMessage"] = "stopWaiting") {
-            globalStatus["controller"]["hotkeys"] := currHotkeys
-            globalStatus["internalMessage"] := ""
+        if (this.shouldExit) {
             originGamePostExit()
-
             SetTitleMatchMode(resetTMM)
+
             return -1
         }
 
         count += 1
         Sleep(500)
     }
+
+    this.allowExit := restoreAllowExit
 }
 
 ; custom post launch action for origin game

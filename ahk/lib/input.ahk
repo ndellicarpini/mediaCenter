@@ -1,9 +1,11 @@
-class Controller {
+class Input {
     pluginID := ""
     pluginPort := -1
     name := ""
 
     connected := false
+    vibrating := false
+
     ; connectionType
     ;  -1 -> unknown
     ;   0 -> wired
@@ -15,29 +17,30 @@ class Controller {
 
     initResults := Map()
 
-    ; state of controller buttons/axis
+    ; state of input buttons/axis
     buttons := []
     axis := Map()
 
-    __New(initResults, pluginPort, controllerConfigRef) {
-        controllerConfig := ObjDeepClone(controllerConfigRef)
+    __New(initResults, pluginPort, inputConfigRef) {
+        inputConfig := ObjDeepClone(inputConfigRef)
         
-        this.pluginID := controllerConfig["id"]
+        this.pluginID := inputConfig["id"]
         this.pluginPort := pluginPort
 
-        this.name := (controllerConfig.Has("name")) ? controllerConfig["name"] : this.name
+        this.name := (inputConfig.Has("name")) ? inputConfig["name"] : this.name
 
         this.initResults := initResults
         
-        this.initController()
+        this.initDevice()
     }
 
-    ; SHOULD ONLY HAVE DO TO ONCE
-    initController() { 
+    ; this should only run once to intialize the controller port instance (beginnning of script)
+    initDevice() { 
         
     } 
-    ; SHOULD ONLY DO AT END OF SCRIPT
-    destroyController() {
+
+    ; this should only run once to remove the controller port instance (end of script)
+    destroyDevice() {
 
     }
 
@@ -62,18 +65,18 @@ class Controller {
     }
 }
 
-controllerCheckStatus(hotkeys, statusResult) {
+inputCheckStatus(hotkeys, statusResult) {
     hotkeyArr := toArray(hotkeys)
 
     retVal := true
     for key in hotkeyArr {
-        retVal := retVal && (inArray(key, statusResult["buttons"]) || controllerCompareAxis(key, statusResult))
+        retVal := retVal && (inArray(key, statusResult["buttons"]) || inputCompareAxis(key, statusResult))
     }
 
     return retVal
 }
 
-controllerCompareAxis(axisComparison, statusResult) {
+inputCompareAxis(axisComparison, statusResult) {
     getAxisVal(axis) {
         for key, value in statusResult["axis"] {
             if (StrLower(axis) = StrLower(key)) {
@@ -100,7 +103,7 @@ controllerCompareAxis(axisComparison, statusResult) {
             return (getAxisVal(compareArr[1]) <= Float(compareArr[2]))
         }
         else {
-            compareArr := StrSplit(axisComparison, ">")
+            compareArr := StrSplit(axisComparison, "<")
             return (getAxisVal(compareArr[1]) < Float(compareArr[2]))
         }
     }

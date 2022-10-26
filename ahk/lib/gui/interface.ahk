@@ -365,6 +365,7 @@ class Interface {
     ;
     ; returns null
     select() {
+        global globalStatus
         global globalGuis
 
         currGuiCount := globalGuis.Count
@@ -384,7 +385,12 @@ class Interface {
             }
 
             if (this.control2D[this.currentX][this.currentY].function != "") {
-                runFunction(this.control2D[this.currentX][this.currentY].function)
+                try {
+                    runFunction(this.control2D[this.currentX][this.currentY].function)
+                }
+                catch {
+                    globalStatus["input"]["buffer"].Push(this.control2D[this.currentX][this.currentY].function)
+                }
             }
         }
     }

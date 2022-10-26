@@ -28,7 +28,7 @@ delayedKeypress(key, delay := 2000, numPress := 1) {
 ;  args - args to use when running game
 ;
 ; returns -1 if launch fails
-steamGameLaunch(URI, args*) {    
+steamGameLaunch(URI, args*) {
     global globalRunning
 
     this := globalRunning["steamgame"]
@@ -114,17 +114,17 @@ steamGamePostLaunch() {
         case "Clustertruck.exe": ; Clustertruck
             delayedKeypress("{Enter}", 500)
         case "PROA34-Win64-Shipping.exe": ; Blue Fire                
-            SetTimer(DelayCheckFullscreen.Bind(program), -6500)  
+            SetTimer(DelayCheckFullscreen.Bind(this), -6500)  
         case "DarkSoulsIII.exe": ; Dark Souls III                
-            SetTimer(DelayCheckFullscreen.Bind(program), -6500)  
+            SetTimer(DelayCheckFullscreen.Bind(this), -6500)  
         case "braid.exe": ; Braid
-            if (program.checkFullscreen()) {
+            if (this.checkFullscreen()) {
                 Send("!{Enter}")
                 Sleep(500)
-                program.fullscreen()
+                this.fullscreen()
             }
         case "UNDERTALE.exe": ; Undertale
-            while (!program.checkFullscreen()) {
+            while (!this.checkFullscreen()) {
                 Send("{F4}")
                 Sleep(500)
                 Send("{F4}")
@@ -140,7 +140,7 @@ steamGamePostExit() {
     this := globalRunning["steamgame"]
 
     ; custom action based on which executable is open
-    switch (program.currEXE) {
+    switch (this.currEXE) {
         case "Shenmue.exe", "Shenmue2.exe": ; Shenmue 1 & 2
             count := 0
             maxCount := 100

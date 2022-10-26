@@ -12,5 +12,4 @@ kodiReload() {
 
     globalRunning["kodi"].exit()
     Sleep(500)
-    ResetScript()
 }

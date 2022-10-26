@@ -16,9 +16,7 @@ statusBackup() {
     for key, value in globalRunning {
         attrMap := Map()
         for name, attr in value.OwnProps() {
-            if (!IsObject(attr)) {
-                attrMap[name] := attr
-            }
+            attrMap[name] := attr
         }
 
         backup["globalRunning"][key] := attrMap
@@ -127,39 +125,41 @@ saveScreenshot(name, overridePath := "") {
 
     imgPath := expandDir(validateDir((overridePath != "") ? overridePath : "data\thumbnails")) . name . ".png"
 
-    compatibleDC := CreateCompatibleDC()
-    screenDC     := GetDC()
+    try {
+        compatibleDC := CreateCompatibleDC()
+        screenDC     := GetDC()
+        
+        dibsBuffer := Buffer(40, 0)
+        NumPut("UInt", 40, dibsBuffer.Ptr, 0)
+        NumPut("UInt", MONITORW, dibsBuffer.Ptr, 4)
+        NumPut("UInt", MONITORH, dibsBuffer.Ptr, 8)
+        NumPut("UShort", 1, dibsBuffer.Ptr, 12)
+        NumPut("UShort", 32, dibsBuffer.Ptr, 14)
+        NumPut("UInt", 0, dibsBuffer.Ptr, 16)
     
-    dibsBuffer := Buffer(40, 0)
-    NumPut("UInt", 40, dibsBuffer.Ptr, 0)
-	NumPut("UInt", MONITORW, dibsBuffer.Ptr, 4)
-	NumPut("UInt", MONITORH, dibsBuffer.Ptr, 8)
-	NumPut("UShort", 1, dibsBuffer.Ptr, 12)
-	NumPut("UShort", 32, dibsBuffer.Ptr, 14)
-	NumPut("UInt", 0, dibsBuffer.Ptr, 16)
-
-    ppvBits := 0
-    dibsSection := DllCall("CreateDIBSection", "UPtr", compatibleDC, "UPtr", dibsBuffer.Ptr, "UInt", 0, "UPtr*", &ppvBits, "UPtr", 0, "UInt", 0, "UPtr")
-    gdiObject   := DllCall("SelectObject", "UPtr", compatibleDC, "UPtr", dibsSection)
-
-    DllCall("gdi32\BitBlt", "UPtr", compatibleDC, "Int", 0, "Int", 0, "Int", MONITORW, "Int", MONITORH, "UPtr", screenDC, "Int", MONITORX, "Int", MONITORY, "UInt", 0x00CC0020)
-
-    ReleaseDC(screenDC)
-
-    screenBitmap := 0
-    DllCall("GdiPlus\GdipCreateBitmapFromHBITMAP", "UPtr", dibsSection, "UPtr", 0, "UPtr*", &screenBitmap)
-    DllCall("SelectObject", "UPtr", compatibleDC, "UPtr", gdiObject)
-    DllCall("DeleteObject", "UPtr", dibsSection)
-
-    encodeCount := 0
-    encodeSize  := 0
-    DllCall("GdiPlus\GdipGetImageEncodersSize", "UInt*", &encodeCount, "UInt*", &encodeSize)
-
-    encodeBuffer := Buffer(encodeSize, 0)
-    DllCall("GdiPlus\GdipGetImageEncoders", "UInt", encodeCount, "UInt", encodeSize, "UPtr", encodeBuffer.Ptr)
-    DllCall("GdiPlus\GdipSaveImageToFile", "UPtr", screenBitmap, "UPtr", StrPtr(imgPath), "UPtr", encodeBuffer.Ptr + 416, "UInt", 0)
-    DllCall("GdiPlus\GdipDisposeImage", "UPtr", screenBitmap)
-
-    DeleteDC(compatibleDC)
-    DeleteDC(screenDC)
+        ppvBits := 0
+        dibsSection := DllCall("CreateDIBSection", "UPtr", compatibleDC, "UPtr", dibsBuffer.Ptr, "UInt", 0, "UPtr*", &ppvBits, "UPtr", 0, "UInt", 0, "UPtr")
+        gdiObject   := DllCall("SelectObject", "UPtr", compatibleDC, "UPtr", dibsSection)
+    
+        DllCall("gdi32\BitBlt", "UPtr", compatibleDC, "Int", 0, "Int", 0, "Int", MONITORW, "Int", MONITORH, "UPtr", screenDC, "Int", MONITORX, "Int", MONITORY, "UInt", 0x00CC0020)
+    
+        ReleaseDC(screenDC)
+    
+        screenBitmap := 0
+        DllCall("GdiPlus\GdipCreateBitmapFromHBITMAP", "UPtr", dibsSection, "UPtr", 0, "UPtr*", &screenBitmap)
+        DllCall("SelectObject", "UPtr", compatibleDC, "UPtr", gdiObject)
+        DllCall("DeleteObject", "UPtr", dibsSection)
+    
+        encodeCount := 0
+        encodeSize  := 0
+        DllCall("GdiPlus\GdipGetImageEncodersSize", "UInt*", &encodeCount, "UInt*", &encodeSize)
+    
+        encodeBuffer := Buffer(encodeSize, 0)
+        DllCall("GdiPlus\GdipGetImageEncoders", "UInt", encodeCount, "UInt", encodeSize, "UPtr", encodeBuffer.Ptr)
+        DllCall("GdiPlus\GdipSaveImageToFile", "UPtr", screenBitmap, "UPtr", StrPtr(imgPath), "UPtr", encodeBuffer.Ptr + 416, "UInt", 0)
+        DllCall("GdiPlus\GdipDisposeImage", "UPtr", screenBitmap)
+    
+        DeleteDC(compatibleDC)
+        DeleteDC(screenDC)
+    }
 }

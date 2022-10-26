@@ -15,7 +15,5 @@
     "pause":  "Send '{Ctrl down}p{Ctrl up}'",
     "resume": "Send '{Ctrl down}p{Ctrl up}'",
 
-    "controls": ["Xbox Controller"],
-
-    "hotkeys": {},
+    "controls": ["Xbox Controller"]
 }
