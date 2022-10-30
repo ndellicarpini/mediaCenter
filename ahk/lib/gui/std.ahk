@@ -129,9 +129,14 @@ guiSetFont(guiObj, options := "s15", enableSizing := true) {
     for key, value in optionsMap {
         optionString .= key . value . A_Space
     }
-    optionString := RTrim(optionString, A_Space)
 
-    guiObj.SetFont(optionString, FONT)
+    optionString := RTrim(optionString, A_Space)
+    if (FONT != "") {
+        guiObj.SetFont(optionString, FONT)
+    }
+    else {
+        guiObj.SetFont(optionString)
+    }
 }
 
 ; gets a gui object with the specified wintitle

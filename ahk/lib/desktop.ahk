@@ -136,11 +136,12 @@ openKeyboard() {
     }
     else {
         try {
+            WinShow("ahk_class Shell_TrayWnd")
             WinActivate("ahk_class Shell_TrayWnd")
     
-            Sleep(50)
+            Sleep(25)
             Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
-            Sleep(50)
+            Sleep(70)
         }
     }
 

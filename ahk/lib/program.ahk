@@ -287,6 +287,10 @@ class Program {
     restore() {
         global globalStatus
 
+        if (this.hungCount > 0) {
+            return
+        }
+
         this.minimized := false
         
         window := this.getWND()
@@ -499,6 +503,10 @@ class Program {
     minimize() {
         global globalStatus
 
+        if (this.hungCount > 0) {
+            return
+        }
+
         this.pause()
 
         this.minimized := true
@@ -525,6 +533,10 @@ class Program {
     ; fullscreen window if not fullscreened
     fullscreen() {
         global globalStatus
+
+        if (this.hungCount > 0) {
+            return
+        }
 
         if (this.customFullscreen != "") {
             if (runFunction(this.customFullscreen) = -1) {
@@ -586,6 +598,10 @@ class Program {
 
     ; return if program is "fullscreen" & update the fullscreen value of the program
     checkFullscreen() {
+        if (this.hungCount > 0) {
+            return
+        }
+
         window := this.getWND()
 
         try {
@@ -822,7 +838,12 @@ class Program {
             }
         }
         else if (window != "") {
-            WinClose(window)
+            if (this.hungCount = 0) {
+                WinClose(window)
+            }
+            else {
+                ProcessClose(activeEXE)
+            }
         }
 
         try {
@@ -839,10 +860,16 @@ class Program {
                 if (this.customExit = "" && window != "") {
                     ; attempt to winclose again @ 10s
                     if (count = 100 && WinShown(window)) {
-                        WinClose(window)
+                        ; if program is hanging, kill it
+                        if (this.hungCount = 0) {
+                            WinClose(window)
+                        }
+                        else {
+                            ProcessKill(this.getPID())
+                        }
                     }
     
-                    ; attempte to processclose @ 20s
+                    ; attempt to processclose @ 20s
                     if (count = 200) {
                         ProcessWinClose(window)
                     }

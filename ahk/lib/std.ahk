@@ -158,6 +158,10 @@ WinHidden(window) {
 	return retVal
 }
 
+; returns the "Responding" state of the window
+;  window - window to check based on WinTitle
+;
+; returns false if the window is "Not Responding"
 WinResponsive(window) {
 	id := 0
 	if (IsInteger(window)) {

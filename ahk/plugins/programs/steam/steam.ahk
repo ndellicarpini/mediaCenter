@@ -121,13 +121,6 @@ steamGameLaunchHandler(URI, loopCount := 0) {
     while (WinShown(" - Steam")) {
         setLoadScreen(restoreLoadText)
 
-        ; if (this.shouldExit) {    
-        ;     WinClose(" - Steam")
-        ;     SetTitleMatchMode(restoreTTMM)
-
-        ;     return false
-        ; }
-
         checkDialogs()
 
         Sleep(250)

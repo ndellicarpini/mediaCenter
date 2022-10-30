@@ -1,3 +1,5 @@
+; abstract object that is used as the base for an individual input device
+; stores the current state & required functions to check the state of the device
 class Input {
     pluginID := ""
     pluginPort := -1
@@ -15,6 +17,8 @@ class Input {
     ; valid range 0 -> 1
     batteryLevel := 0
 
+    ; map object to use for whatever ptrs are created in the initialization
+    ; of the device type / individual device
     initResults := Map()
 
     ; state of input buttons/axis
@@ -44,27 +48,37 @@ class Input {
 
     }
 
+    ; returns the state of the pressed buttons and each axis's current state
     getStatus() {
         return Map("buttons", [], "axis", Map())
     }
 
+    ; returns & sets the connection type of the device
     checkConnectionType() {
         return this.connectionType
     }
 
+    ; returns & sets the battery level of the device
     checkBatteryLevel() { 
         return this.batteryLevel
     }
 
+    ; start vibrating the device if it supports vibrations
     startVibration() {
 
     }
 
+    ; stop vibrating the device
     stopVibration() {
 
     }
 }
 
+; checks the button & axis status of an input device using the results from getStatus
+;  hotkeys - array of hotkeys to check if results from the status satisfy any hotkey
+;  statusResults - the results from 1 input device's getStatus
+;
+; returns true if any hotkey in hotkeys is satisfied
 inputCheckStatus(hotkeys, statusResult) {
     hotkeyArr := toArray(hotkeys)
 
@@ -76,6 +90,11 @@ inputCheckStatus(hotkeys, statusResult) {
     return retVal
 }
 
+; checks if a hotkey is an axis comparison, then checks if the input status satisfies the comparison
+;  axisComparison - hotkey that will be compared if its in the appropriate format
+;  statusResults - the results from 1 input device's getStatus
+;
+; returns true if the axis comparison is satisfied
 inputCompareAxis(axisComparison, statusResult) {
     getAxisVal(axis) {
         for key, value in statusResult["axis"] {

@@ -1,8 +1,12 @@
-; creates the input thread to check the input status of each connected input
-;  globalInputStatus - maininputs as gotten as a ComObject through `AddRef
+; creates a thread that checks the status of a specific input device type
+;  inputID - the id of the input config/status to read/update
+;  globalConfigPtr - ptr to globalConfig
+;  globalStatusPtr - ptr to globalStatus
+;  globalInputStatusPtr - ptr to globalInputStatus
+;  globalInputConfigsPtr - ptr to globalInputConfigs
 ;
-; returns the ThreadObj that checks input statuses
-inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, globalInputConfigsPtr) {    
+; returns ptr to the thread reference
+inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, globalInputConfigsPtr) {    
     restoreScriptDir := A_ScriptDir
     
     global globalConfig
@@ -27,13 +31,13 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
 
         global exitThread := false
 
-        global controlID          := A_Args[1]
+        global inputID            := A_Args[1]
         global globalConfig       := ObjFromPtr(A_Args[2])
         global globalStatus       := ObjFromPtr(A_Args[3])
         global globalInputStatus  := ObjFromPtr(A_Args[4])
         global globalInputConfigs := ObjFromPtr(A_Args[5])
 
-        if (!globalInputStatus.Has(controlID) || !globalInputConfigs.Has(controlID)) {
+        if (!globalInputStatus.Has(inputID) || !globalInputConfigs.Has(inputID)) {
             ExitApp()
         }
 
@@ -44,7 +48,7 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
         global hotkeyTimers := []
 
         global buttonTime   := globalStatus["input"]["buttonTime"]
-        global maxConnected := globalInputConfigs[controlID]["maxConnected"]
+        global maxConnected := globalInputConfigs[inputID]["maxConnected"]
 
         global mouseStatus := Map("lclick", 0, "rclick", 0, "mclick", 0)
         global hscrollCount  := 0
@@ -53,14 +57,14 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
         global currHotkeys := ""
         global currStatus  := ""
 
-        ; --- FUNCTIONS ---
+        ; ----- FUNCTIONS -----
 
         ; updates the global input status
         ;  index - index of the input
         ;
         ; returns null
         updateGlobalStatus(index) {
-            global controlID
+            global inputID
             global globalInputStatus
             global thisInput
             
@@ -69,7 +73,7 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
                     continue
                 }
 
-                globalInputStatus[controlID][index][key] := ObjDeepClone(value)
+                globalInputStatus[inputID][index][key] := ObjDeepClone(value)
             }
         }
 
@@ -220,17 +224,19 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
             }
         }
 
+        ; ----- MAIN -----
+
         mouseTimerRunning := false
 
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 4)
 
-        inputInit := runFunction(globalInputConfigs[controlID]["initialize"])
+        ; intialize input type & devices
+        inputInit := runFunction(globalInputConfigs[inputID]["initialize"])
         loop maxConnected {
-            thisInput.Push(
-                %globalInputConfigs[controlID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[controlID]))
+            thisInput.Push(%globalInputConfigs[inputID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[inputID]))
             
             updateGlobalStatus(A_Index)
-            globalInputStatus[controlID][A_Index]["vibrating"] := false
+            globalInputStatus[inputID][A_Index]["vibrating"] := false
         }
 
         SetTimer(DeviceStatusTimer, globalConfig["General"]["AvgLoopSleep"] * 2)
@@ -239,12 +245,12 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
             currStatus := globalStatus["currProgram"] . globalStatus["currGui"]
                 . globalStatus["error"]["show"] . globalStatus["loadscreen"]["show"]
 
-            thisHotkeys := (globalStatus["input"]["hotkeys"].Has(controlID))
-                ? globalStatus["input"]["hotkeys"][controlID]
+            thisHotkeys := (globalStatus["input"]["hotkeys"].Has(inputID))
+                ? globalStatus["input"]["hotkeys"][inputID]
                 : Map()
 
-            thisMouse := (globalStatus["input"]["mouse"].Has(controlID))
-                ? globalStatus["input"]["mouse"][controlID]
+            thisMouse := (globalStatus["input"]["mouse"].Has(inputID))
+                ? globalStatus["input"]["mouse"][inputID]
                 : Map()
 
             ; enable/disable the mouse listener timer if the program uses the mouse
@@ -267,6 +273,7 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
             currHotkeys := optimizeHotkeys(thisHotkeys)
             buttonTime  := globalStatus["input"]["buttonTime"]
 
+            ; check each input device
             loop maxConnected {
                 currIndex := A_Index
 
@@ -277,6 +284,7 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
                     continue
                 }
 
+                ; check if any of the unique keys from buttonTree are being pressed
                 for key, value in currHotkeys.buttonTree {
                     currButton := key
                     currButtonTime := (currHotkeys.buttonTimes.Has(currButton)) ? currHotkeys.buttonTimes[currButton] : buttonTime
@@ -298,13 +306,13 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
             if (!WinHidden(MAINNAME) || exitThread) {
                 SetTimer(DeviceStatusTimer, 0)
 
-                if (globalInputConfigs[controlID].Has("destroy") && globalInputConfigs[controlID]["destroy"] != "") {
-                    runFunction(globalInputConfigs[controlID]["destroy"])
+                if (globalInputConfigs[inputID].Has("destroy") && globalInputConfigs[inputID]["destroy"] != "") {
+                    runFunction(globalInputConfigs[inputID]["destroy"])
                 }
 
                 ; clean object of any reference to this thread (allows ObjRelease in main)
-                for item in globalInputStatus[controlID] {
-                    globalInputStatus[controlID][A_Index] := 0
+                for item in globalInputStatus[inputID] {
+                    globalInputStatus[inputID][A_Index] := 0
                 }
                 
                 ExitApp()
@@ -313,7 +321,8 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
             Sleep(loopSleep)
         }
 
-        ; --- TIMERS ---
+        ; ----- TIMERS -----
+
         ButtonTimer(button, time, index, status) {   
             Critical "Off"
 
@@ -612,13 +621,13 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
         }
 
         DeviceStatusTimer() {
-            global controlID
+            global inputID
             global globalInputConfigs
             global globalInputStatus
             global thisInput
 
-            loop globalInputConfigs[controlID]["maxConnected"] {
-                globalVibe := globalInputStatus[controlID][A_Index]["vibrating"]
+            loop globalInputConfigs[inputID]["maxConnected"] {
+                globalVibe := globalInputStatus[inputID][A_Index]["vibrating"]
                 if (globalVibe != thisInput[A_Index].vibrating) {
                     if (globalVibe) {
                         thisInput[A_Index].startVibration()
@@ -639,18 +648,20 @@ inputThread(controlID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, g
             return
         }
     )"
-    , controlID . " " . globalConfigPtr . " " . globalStatusPtr . " " . globalInputStatusPtr . " " . globalInputConfigsPtr
+    , inputID . " " . globalConfigPtr . " " . globalStatusPtr . " " . globalInputStatusPtr . " " . globalInputConfigsPtr
     , "inputThread")
 
     SetWorkingDir(restoreScriptDir)
     return ref
 }
 
-; run function in separate thread
-;  text - string name of function to run
-;  params - spread args to pass to function
+; creates a thread that checks the current status of main & updates the globalStatus hotkeys appropriately
+;  globalConfigPtr - ptr to globalConfig
+;  globalStatusPtr - ptr to globalStatus
+;  globalInputConfigsPtr - ptr to globalInputConfigs
+;  globalRunningPtr - ptr to globalRunning
 ;
-; returns null
+; returns ptr to the thread reference
 hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunningPtr) {
     restoreScriptDir := A_ScriptDir
 
@@ -680,7 +691,9 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
         programHotkeys      := Map()
         guiHotkeys          := Map()
 
+        ; set default hotkeys from input plugins
         for key, value in globalInputConfigs {
+            ; add desktopmode hotkeys
             if (value.Has("desktopmode")) {
                 if (value["desktopmode"].Has("hotkeys")) {
                     desktopmodeHotkeys := addHotkeys(desktopmodeHotkeys, Map(key, value["desktopmode"]["hotkeys"]))
@@ -690,6 +703,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                 }
             }
 
+            ; add kbmmode hotkeys
             if (value.Has("kbmmode")) {
                 if (value["kbmmode"].Has("hotkeys")) {
                     kbmmodeHotkeys := addHotkeys(kbmmodeHotkeys, Map(key, value["kbmmode"]["hotkeys"]))
@@ -699,10 +713,12 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                 }
             }
 
+            ; add default program hotkeys
             if (value.Has("programHotkeys")) {
                 programHotkeys := addHotkeys(programHotkeys, Map(key, value["programHotkeys"]))
             }
 
+            ; add default & individual gui hotkeys
             if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has("default")) {
                 guiHotkeys := addHotkeys(guiHotkeys, Map(key, value["interfaceHotkeys"]["default"]))
             }
@@ -804,11 +820,11 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
     return ref
 }
 
-; run function in separate thread
-;  text - string name of function to run
-;  params - spread args to pass to function
+; creates a thread that interfaces with Windows OS features independent of main
+;  globalConfigPtr - ptr to globalConfig
+;  globalStatusPtr - ptr to globalStatus
 ;
-; returns null
+; returns ptr to the thread reference
 windowsThread(globalConfigPtr, globalStatusPtr) {
     restoreScriptDir := A_ScriptDir
 
@@ -847,12 +863,12 @@ windowsThread(globalConfigPtr, globalStatusPtr) {
             
                 ; check that taskbar is hidden
                 if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
-                    try WinHide "ahk_class Shell_TrayWnd"
+                    try WinHide("ahk_class Shell_TrayWnd")
                 }
             }
             else {
                 if (hideTaskbar && !WinShown("ahk_class Shell_TrayWnd")) {
-                    try WinShow "ahk_class Shell_TrayWnd"
+                    try WinShow("ahk_class Shell_TrayWnd")
                 }
             }
 

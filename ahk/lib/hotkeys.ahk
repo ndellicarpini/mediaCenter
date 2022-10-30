@@ -1,22 +1,12 @@
-; gets the default hotkeys & formats them into the proper hotkey map
-;  configs - input configs loaded from plugins
+; combines the hotkeys from currHotkeys & newHotkeys, preferring newHotkeys where keys overlap
+;  currHotkeys - the current hotkeys to add to / replace
+;  newHotkeys - new hotkeys to add to currHotkeys
 ;
-; returns map of default hotkeys
-defaultHotkeys(configs) {
-    newHotkeys := Map()
-
-    for key, value in configs {
-        if (value.Has("programHotkeys")) {
-            newHotkeys[key] := value["programHotkeys"]
-        }
-    }
-
-    return newHotkeys 
-}
-
+; returns the combination of currHotkeys & newHotkeys
 addHotkeys(currHotkeys, newHotkeys) {
     oldHotkeys := ObjDeepClone(currHotkeys)
 
+    ; parse currHotkeys & replace shared hotkeys with newHotkeys
     for key, value in oldHotkeys {
         if (newHotkeys.Has(key)) {
             for key2, value2 in newHotkeys[key] {
@@ -51,6 +41,7 @@ addHotkeys(currHotkeys, newHotkeys) {
         }
     }
 
+    ; add newHotkeys to currHotkeys that didn't exist in currHotkeys
     for key, value in newHotkeys {
         if (!oldHotkeys.Has(key)) {
             oldHotkeys[key] := value
@@ -76,11 +67,15 @@ checkHotkeyModifier(hotkey) {
     return ""
 }
 
-; splits a hotkey string into different attributes of the hotkey map
-; & -> first element becomes main, all others become sub | -> all elements become main
+; converts a map of hotkeys into an object more appropriate to use while checking pressed keys
 ;  currHotkeys - current hotkey map
 ;
-; returns updated hotkeyMap
+; returns {
+;   hotkeys     - currHotkeys but splitting | hotkeys into unique entries
+;   modifiers   - map of hotkey modifiers using the hotkeys as keys
+;   buttonTree  - map using every unique key as keys, and an array of hotkeys using that key as values
+;   buttonTimes - map storing the times required to trigger function for every hotkey
+; }
 optimizeHotkeys(currHotkeys) {
     ; get the highest count button in list
     getMaxButton(list) {        
@@ -117,7 +112,7 @@ optimizeHotkeys(currHotkeys) {
         }
     }
 
-    ; clean new hotkeys from program to put into proper format
+    ; splits hotkeys into modifiers, times, & unique keys
     for key, value in tempHotkeys {
         currModifier := checkHotkeyModifier(key)
         currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")   
@@ -205,7 +200,7 @@ optimizeHotkeys(currHotkeys) {
     ; sort unique buttons by number of references to each button in the total
     ; hotkeys, lets me reduce the number of button checks in a loop by only
     ; checking the unique buttons in order of most referenced
-    sortedButtonRefs := Map()
+    buttonTree := Map()
     loop buttonRefs.Count {
         maxButton := getMaxButton(buttonRefs)
         if (maxButton = "") {
@@ -213,7 +208,7 @@ optimizeHotkeys(currHotkeys) {
         }
 
         maxRefs := buttonRefs.Delete(maxButton)
-        sortedButtonRefs[maxButton] := maxRefs
+        buttonTree[maxButton] := maxRefs
 
         ; remove shared references from any buttons outside of max
         for key, value in buttonRefs {
@@ -237,7 +232,7 @@ optimizeHotkeys(currHotkeys) {
     return {
         hotkeys: cleanHotkeys,
         modifiers: modifiers,
-        buttonTree: sortedButtonRefs,
+        buttonTree: buttonTree,
         buttonTimes: buttonRefTimes,
     }
 }

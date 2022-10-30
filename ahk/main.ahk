@@ -1,4 +1,4 @@
-#SingleInstance Force
+﻿#SingleInstance Force
 ; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
@@ -55,6 +55,7 @@ Critical "Off"
 prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
 
 SetCurrentWinTitle(MAINNAME)
+
 global globalConfig       := Map()
 global globalStatus       := Map()
 global globalConsoles     := Map()
@@ -66,7 +67,7 @@ global globalInputConfigs := Map()
 global globalThreads      := Map()
 
 
-; ----- INITIALIZE GLOBALCONFIG (READ-ONLY) -----
+; ----- INITIALIZE GLOBALCONFIG -----
 globalConfig["StartArgs"] := A_Args
 
 ; read from global.cfg
@@ -116,7 +117,7 @@ if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["
 
 for value in requiredFolders {
     if (!DirExist(value)) {
-        DirCreate value
+        DirCreate(value)
     }
 }
 
@@ -176,7 +177,7 @@ globalStatus["input"]["source"]     := ""
 globalStatus["input"]["buttonTime"] := 70
 globalStatus["input"]["buffer"]     := []
 
-; ----- INITIALIZE PROGRAM/CONSOLE CONFIGS -----
+; ----- INITIALIZE PROGRAM/CONSOLE/INPUT CONFIGS -----
 ; read program configs from ConfigDir
 if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["ProgramPluginDir"] != "") {
     loop files validateDir(globalConfig["Plugins"]["ProgramPluginDir"]) . "*.json", "FR" {
@@ -230,6 +231,7 @@ if (globalConfig["Plugins"].Has("ConsolePluginDir") && globalConfig["Plugins"]["
     }
 }
 
+; read input configs from plugins & start a unique inputThread for each individual config
 if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["InputPluginDir"] != "") {
     loop files validateDir(globalConfig["Plugins"]["InputPluginDir"]) . "*.json", "FR" {
         tempConfig := readConfig(A_LoopFileFullPath,, "json")
@@ -262,15 +264,17 @@ if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["In
     }
 }
 
-; ----- INITIALIZE THREADS -----
-; configure objects to be used in a thread-safe manner
-;  read-only objects can be used w/ ObjPtrAddRef 
-;  read/write objects must be a buffer ptr w/ custom getters/setters
-
 ; ----- PARSE START ARGS -----
 for item in globalConfig["StartArgs"] {
     if (item = "-backup") {
         statusRestore()
+
+        ; kill any programs that should have exited before main was backed up
+        for key, value in globalRunning {
+            if (value.shouldExit) {
+                try ProcessKill(value.getPID())
+            }
+        }
         
         if (globalStatus["kbmmode"]) {
             enableKBMMode()
@@ -281,10 +285,12 @@ for item in globalConfig["StartArgs"] {
     }
 }
 
+; create loadscreen if appropriate
 if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
     createLoadScreen()
 }
 
+; start non-input threads
 globalThreads["hotkey"] := hotkeyThread(
     ObjPtrAddRef(globalConfig), 
     ObjPtrAddRef(globalStatus),
@@ -301,7 +307,7 @@ Sleep(100)
 
 ; ----- BOOT -----
 if (!inArray("-backup", globalConfig["StartArgs"])) {
-    try customBoot()
+    try %"customBoot"%()
 }
 
 ; enables the OnMessage listener for send2Main
@@ -311,9 +317,8 @@ OnMessage(MESSAGE_VAL, HandleMessage)
 statusBackup()
 
 ; ----- MAIN THREAD LOOP -----
-; the main thread monitors the other threads, checks that looper is running
+; the main thread monitors the other threads, checks that maintainer is running
 ; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
-; probably going to need to figure out updating loadscreen?
 
 forceMaintain  := globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]
 forceActivate  := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
@@ -321,6 +326,7 @@ checkErrors    := globalConfig["Plugins"].Has("ErrorList") && globalConfig["Plug
 
 loopSleep      := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 
+; set timer to check the input buffer
 SetTimer(InputBufferTimer, globalConfig["General"]["AvgLoopSleep"])
 
 delayCount := 0
@@ -340,7 +346,7 @@ loop {
         hotkeySource := "desktopmode"
     }
 
-    ; --- CHECK OVERRIDE ---
+    ; --- CHECK ERROR ---
     currError := globalStatus["error"]["show"]
 
     ; if errors should be detected, set error here
@@ -502,11 +508,12 @@ loop {
         globalStatus["input"]["source"] := hotkeySource
     }
 
-    ; --- BACKUP ---
+    ; check if status has updated & backup
     if (statusUpdated()) {
         statusBackup()
     }
 
+    ; every maxDelayCount loops -> check threads & maintainer
     if (delayCount > maxDelayCount) {
         for key, value in globalThreads {
             ; if thread crashed, reset main
@@ -518,9 +525,9 @@ loop {
             }
         }
 
-        ; check that looper is running
+        ; check that maintainer is running
         if (forceMaintain && !WinHidden(MAINLOOP)) {
-            Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
+            Run A_AhkPath . A_Space . "maintainer.ahk", A_ScriptDir, "Hide"
         }
 
         delayCount := 0
@@ -530,6 +537,7 @@ loop {
     Sleep(loopSleep)
 }
 
+; run function from top of input buffer
 InputBufferTimer() {
     global globalConfig
     global globalStatus        
@@ -748,7 +756,7 @@ ShutdownScript(restoreTaskbar := true) {
     
     ; reset taskbar
     if (restoreTaskbar && !WinShown("ahk_class Shell_TrayWnd") && WinHidden("ahk_class Shell_TrayWnd")) {
-        try WinShow "ahk_class Shell_TrayWnd"
+        try WinShow("ahk_class Shell_TrayWnd")
     }
 
     ; tell the threads to close
@@ -768,7 +776,7 @@ ShutdownScript(restoreTaskbar := true) {
     ObjRelease(ObjPtr(globalInputConfigs))
 }
 
-; exits the script entirely, including looper
+; exits the script entirely, including maintainer
 ExitScript() {
     global globalConfig
 
@@ -795,10 +803,10 @@ ResetScript() {
     if (!globalConfig["General"].Has("ForceMaintainMain") 
         || (globalConfig["General"].Has("ForceMaintainMain") && !globalConfig["General"]["ForceMaintainMain"])) {
 
-        Run A_AhkPath . A_Space . "mainLooper.ahk 1", A_ScriptDir, "Hide"
+        Run A_AhkPath . A_Space . "maintainer.ahk 1", A_ScriptDir, "Hide"
     }
     else if (!WinHidden(MAINLOOP)) {
-        Run A_AhkPath . A_Space . "mainLooper.ahk", A_ScriptDir, "Hide"
+        Run A_AhkPath . A_Space . "maintainer.ahk", A_ScriptDir, "Hide"
     }
 
     ShutdownScript()
@@ -865,6 +873,6 @@ Standby() {
     ShutdownScript()
     Sleep(500)
 
-    Run A_AhkPath . A_Space . "mainLooper.ahk -clean", A_ScriptDir, "Hide"
+    Run A_AhkPath . A_Space . "maintainer.ahk -clean", A_ScriptDir, "Hide"
     ExitApp()
 }
