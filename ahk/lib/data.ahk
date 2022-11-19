@@ -73,8 +73,8 @@ statusUpdated() {
     static prevCurrGui       := globalStatus["currGui"]
     static prevLoadShow      := globalStatus["loadscreen"]["show"]
     static prevLoadText      := globalStatus["loadscreen"]["text"]
-    static prevErrorShow     := globalStatus["error"]["show"]
-    static prevErrorHwnd     := globalStatus["error"]["hwnd"]
+    static prevLoadEnable    := globalStatus["loadscreen"]["enable"]
+    static prevLoadOverride  := globalStatus["loadscreen"]["overrideWNDW"]
 
     currPause         := globalStatus["pause"]
     currSuspendScript := globalStatus["suspendScript"]
@@ -84,12 +84,12 @@ statusUpdated() {
     currCurrGui       := globalStatus["currGui"]
     currLoadShow      := globalStatus["loadscreen"]["show"]
     currLoadText      := globalStatus["loadscreen"]["text"]
-    currErrorShow     := globalStatus["error"]["show"]
-    currErrorHwnd     := globalStatus["error"]["hwnd"]
+    currLoadEnable    := globalStatus["loadscreen"]["enable"]
+    currLoadOverride  := globalStatus["loadscreen"]["overrideWNDW"]
 
-    if (prevPause != currPause || prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevDesktopmode != currDesktopmode || prevCurrProgram != currCurrProgram
-        || prevLoadShow != currLoadShow || prevLoadText != currLoadText || prevErrorShow != currErrorShow || prevErrorHwnd != currErrorHwnd
-        || prevCurrGui != currCurrGui) {
+    if (prevPause != currPause || prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevDesktopmode != currDesktopmode 
+        || prevCurrProgram != currCurrProgram || prevLoadShow != currLoadShow || prevLoadText != currLoadText 
+        || prevLoadEnable != currLoadEnable || prevLoadOverride != currLoadOverride || prevCurrGui != currCurrGui) {
             
         prevPause         := currPause
         prevSuspendScript := currSuspendScript
@@ -98,8 +98,8 @@ statusUpdated() {
         prevCurrProgram   := currCurrProgram
         prevLoadShow      := currLoadShow
         prevLoadText      := currLoadText
-        prevErrorShow     := currErrorShow
-        prevErrorHwnd     := currErrorHwnd
+        prevLoadEnable    := currLoadEnable
+        prevLoadOverride  := currLoadOverride
         prevCurrGui       := currCurrGui
 
         return true

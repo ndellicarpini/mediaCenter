@@ -6,7 +6,6 @@
 
     "dir": "C:\\LaunchBox\\",
     "exe": "BigBox.exe",
-    "wndw": "LaunchBox Big Box",
 
     "restore": "bigBoxRestore",
 

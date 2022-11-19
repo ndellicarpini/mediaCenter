@@ -116,11 +116,12 @@ steamGameLaunchHandler(URI, loopCount := 0) {
     }
 
     this.allowExit := true
+    
+    setLoadScreen(restoreLoadText)
+    globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe steam.exe"
 
     ; while launching window is shown, just wait
     while (WinShown(" - Steam")) {
-        setLoadScreen(restoreLoadText)
-
         checkDialogs()
 
         Sleep(250)
@@ -130,16 +131,16 @@ steamGameLaunchHandler(URI, loopCount := 0) {
 
     ; while game updating -> resize update windows for funsies
     while (WinShown("Updating ")) {
-        try {
-            WinActivate("Updating ")
-            
+        try {            
             WinGetPos(&X, &Y, &W, &H, "Updating ")
             if (W != updateWidth) {
                 WinMove((Floor(percentWidth(0.5, false)) - Floor(updateWidth / 2)), Y, updateWidth, H)
             }
         }
 
-        if (this.shouldExit) {    
+        if (this.shouldExit) {   
+            globalStatus["loadscreen"]["overrideWNDW"] := ""
+
             WinClose("Updating ")
             SetTitleMatchMode(restoreTTMM)
 
@@ -156,8 +157,6 @@ steamGameLaunchHandler(URI, loopCount := 0) {
     ; if game finishes updating -> click play button
     while (WinShown("Ready - ")) {  
         try {
-            WinActivate("Ready - ")
-
             WinGetPos(&X, &Y, &W, &H, "Ready - ")
             ; the perfect infinite subpixel
             mouseX := Floor(percentWidthRelativeWndw(0.915, "Ready - "))
@@ -171,7 +170,9 @@ steamGameLaunchHandler(URI, loopCount := 0) {
             MouseMove(percentWidth(1, false), percentHeight(1, false))
         }
 
-        if (this.shouldExit) {    
+        if (this.shouldExit) {   
+            globalStatus["loadscreen"]["overrideWNDW"] := ""
+
             WinClose("Ready - ")
             SetTitleMatchMode(restoreTTMM)
 
@@ -183,6 +184,7 @@ steamGameLaunchHandler(URI, loopCount := 0) {
         Sleep(2000)
     }   
 
+    globalStatus["loadscreen"]["overrideWNDW"] := ""
     this.allowExit := restoreAllowExit
     SetTitleMatchMode(restoreTTMM)
 

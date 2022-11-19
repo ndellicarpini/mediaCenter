@@ -54,6 +54,7 @@ class Program {
     customPostLaunch   := ""
     customPause        := ""
     customResume       := ""
+    customGetWNDW      := ""
 
     customExit         := ""
     customPostExit     := ""
@@ -97,6 +98,7 @@ class Program {
         this.customPostLaunch := (exeConfig.Has("postLaunch")) ? exeConfig["postLaunch"] : this.customPostLaunch 
         this.customPause      := (exeConfig.Has("pause"))      ? exeConfig["pause"]      : this.customPause
         this.customResume     := (exeConfig.Has("resume"))     ? exeConfig["resume"]     : this.customResume 
+        this.customGetWNDW    := (exeConfig.Has("getWNDW"))    ? exeConfig["getWNDW"]    : this.customGetWNDW 
         this.customExit       := (exeConfig.Has("exit"))       ? exeConfig["exit"]       : this.customExit
         this.customPostExit   := (exeConfig.Has("postExit"))   ? exeConfig["postExit"]   : this.customPostExit
         this.customRestore    := (exeConfig.Has("restore"))    ? exeConfig["restore"]    : this.customRestore
@@ -150,17 +152,25 @@ class Program {
     ;
     ; returns null
     launch(args := "") {
+        restoreCritical := A_IsCritical
+        Critical("Off")
+
         restoreAllowExit := this.allowExit
         this.allowExit := true
 
+        restoreHotkeys := this.hotkeys
+        this.hotkeys := Map()
+
         ; if require internet & internet check fails -> return
         if (this.requireInternet) {
-            if (!internetLoadScreen(30, this.id)) {
+            if (!waitForInternetProgram(this.id, 30)) {
+                Critical(restoreCritical)
                 return
             }
         }
 
         if (this.shouldExit) {
+            Critical(restoreCritical)
             resetLoadScreen()
             return
         }
@@ -171,13 +181,28 @@ class Program {
 
         ; run custom launch function
         if (this.customLaunch != "") {
+            preCustomHotkeys := this.hotkeys
             if (runFunction(this.customLaunch, args) = -1) {
                 if (!this.background) {
                     SetTimer(DelayCheckLaunch, -3000)
                 }
 
+                ; restore hotkeys if they weren't overwritten in customLaunch
+                if (this.hotkeys = preCustomHotkeys) {
+                    this.hotkeys := restoreHotkeys
+                }
+
+                this.allowExit := restoreAllowExit
+                Critical(restoreCritical)
+
                 resetLoadScreen()
                 return
+            }
+
+            ; if hotkeys were overwritten in customLaunch update restoreHotkeys
+            if (this.hotkeys != preCustomHotkeys) {
+                restoreHotkeys := this.hotkeys
+                this.hotkeys := Map()
             }
         }
         ; run dir\exe
@@ -205,6 +230,9 @@ class Program {
         ; fail
         else {
             ErrorMsg(this.name . "does not have an exe defined, it cannot be launched with default settings")
+            
+            Critical(restoreCritical)
+            resetLoadScreen()
             return
         }
 
@@ -215,6 +243,7 @@ class Program {
 
             this.allowExit := false
             if (this.shouldExit) {
+                Critical(restoreCritical)
                 resetLoadScreen()
                 return
             }
@@ -235,8 +264,12 @@ class Program {
             SetTimer(DelayCheckLaunch, -3000)
         }
 
-        this.allowExit  := restoreAllowExit
         this.shouldExit := false
+
+
+        this.allowExit := restoreAllowExit
+        this.hotkeys   := restoreHotkeys
+        Critical(restoreCritical)
 
         resetLoadScreen()
         return
@@ -293,7 +326,7 @@ class Program {
 
         this.minimized := false
         
-        window := this.getWND()
+        window := this.getWNDW()
 
         ; if window not available in alt-tab -> not real
         if (!WinShown(window) || WinGetExStyle(window) & 0x00000080) {
@@ -314,7 +347,7 @@ class Program {
                 count := 0
                 maxCount := 150
                 ; try to maximize window
-                while (WinGetMinMax(window) = -1 && count < maxCount) {
+                while (WinGetMinMax(window) != 1 && count < maxCount) {
                     WinMaximize(window)
 
                     Sleep(100)
@@ -470,14 +503,14 @@ class Program {
             return
         }
 
+        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " this.launcher["exe"]
+
         ; try to skip launcher as long as exectuable is shown
         while (WinShown("ahk_exe " this.launcher["exe"])) {
             if (this.exists() || this.shouldExit) {
                 resetLoadScreen()
                 return
             }
-
-            WinActivate("ahk_exe " this.launcher["exe"])
 
             loop (mouseArr.Length / 2) {
                 index := ((A_Index - 1) * 2) + 1
@@ -497,6 +530,8 @@ class Program {
                 MouseMove(percentWidth(1), percentHeight(1))    
             }
         }
+
+        globalStatus["loadscreen"]["overrideWNDW"] := ""
     }
 
     ; minimize program window
@@ -506,6 +541,9 @@ class Program {
         if (this.hungCount > 0) {
             return
         }
+
+        restoreCritical := A_IsCritical
+        Critical("On")
 
         this.pause()
 
@@ -523,11 +561,13 @@ class Program {
         ; run custom minimize
         if (this.customMinimize != "") {
             if (runFunction(this.customMinimize) = -1) {
+                Critical(restoreCritical)
                 return
             }
         }
 
-        WinMinimize(this.getWND())
+        WinMinimize(this.getWNDW())
+        Critical(restoreCritical)
     }
 
     ; fullscreen window if not fullscreened
@@ -537,22 +577,28 @@ class Program {
         if (this.hungCount > 0) {
             return
         }
+        
+        restoreCritical := A_IsCritical
+        Critical("On")
 
         if (this.customFullscreen != "") {
             if (runFunction(this.customFullscreen) = -1) {
+                Critical(restoreCritical)
                 return
             }
         }
 
-        window := this.getWND()
+        window := this.getWNDW()
 
         try {
             if (!WinShown(window)) {
+                Critical(restoreCritical)
                 return
             }
     
             WinGetClientPos(,, &W, &H, window)
             if (W < 1 || H < 1) {
+                Critical(restoreCritical)
                 return
             }
     
@@ -564,6 +610,7 @@ class Program {
             Sleep(50)
         }
         catch {
+            Critical(restoreCritical)
             return
         }
 
@@ -592,6 +639,8 @@ class Program {
 
         WinMove(MONITORX + ((MONITORW - newW) / 2), MONITORY + ((MONITORH - newH) / 2), newW, newH, window)
 
+        Critical(restoreCritical)
+
         Sleep(50)
         this.checkFullscreen()
     }
@@ -602,7 +651,7 @@ class Program {
             return
         }
 
-        window := this.getWND()
+        window := this.getWNDW()
 
         try {
             if (WinGetMinMax(window) = -1 || WinGetExStyle(window) & 0x00000080) {
@@ -807,7 +856,7 @@ class Program {
         this.hotkeys := Map()
         this.shouldExit := true
 
-        window := this.getWND()
+        window := this.getWNDW()
         
         activeEXE := ""
         if (this.currEXE != "") {
@@ -831,9 +880,13 @@ class Program {
         
         setLoadScreen("Exiting " . this.name . "...")
 
+        restoreCritical := A_IsCritical
+        Critical("On")
+
         ; run custom exit
         if (this.customExit != "") {
             if (runFunction(this.customExit) = -1) {
+                Critical(restoreCritical)
                 return
             }
         }
@@ -855,7 +908,7 @@ class Program {
             maxCount := 300
             ; wait for program executable to close
             while (exeExists && count < maxCount) {
-                window := this.getWND()
+                window := this.getWNDW()
 
                 if (this.customExit = "" && window != "") {
                     ; attempt to winclose again @ 10s
@@ -895,6 +948,7 @@ class Program {
         Sleep(500)
         resetLoadScreen()
 
+        Critical(restoreCritical)
         return
     }
 
@@ -911,6 +965,9 @@ class Program {
             return
         }
         
+        restoreCritical := A_IsCritical
+        Critical("On")
+        
         this.paused := true
 
         ; save mouse position to be restored on resume
@@ -926,6 +983,9 @@ class Program {
         if (this.customPause != "") {
             runFunction(this.customPause)
         }
+
+        Critical(restoreCritical)
+        return
     }
 
     ; runs custom resume function after pause close
@@ -933,6 +993,9 @@ class Program {
         if (!this.paused) {
             return
         }
+        
+        restoreCritical := A_IsCritical
+        Critical("On")
         
         Sleep(100)
         this.paused := false
@@ -944,10 +1007,15 @@ class Program {
         if (this.customResume != "") {
             runFunction(this.customResume)
         }
+
+        Critical(restoreCritical)
+        return
     }
 
     ; get program pid
     getPID() {
+        activeWNDW := this.getWNDW()
+
         activeEXE := ""
         if (this.currEXE != "") {
             activeEXE := this.currEXE
@@ -956,16 +1024,8 @@ class Program {
             activeEXE := this.exe
         }
 
-        activeWNDW := ""
-        if (this.currWNDW != "") {
-            activeWNDW := this.currWNDW
-        }
-        else if (!IsObject(this.wndw)) {
-            activeWNDW := this.wndw
-        }
-
         resetDHW := A_DetectHiddenWindows
-        DetectHiddenWindows(false)
+        DetectHiddenWindows(!this.background)
 
         PID := 0
 
@@ -986,7 +1046,11 @@ class Program {
     }
 
     ; get program window name
-    getWND() {  
+    getWNDW() {  
+        if (this.customGetWNDW != "") {
+            return runFunction(this.customGetWNDW)
+        }
+
         activeEXE := ""
         if (this.currEXE != "") {
             activeEXE := this.currEXE
@@ -1015,33 +1079,16 @@ class Program {
 
     ; get program hwnd
     getHWND() {
-        activeEXE := ""
-        if (this.currEXE != "") {
-            activeEXE := this.currEXE
-        }
-        else if (!IsObject(this.exe)) {
-            activeEXE := this.exe
-        }
-
-        activeWNDW := ""
-        if (this.currWNDW != "") {
-            activeWNDW := this.currWNDW
-        }
-        else if (!IsObject(this.wndw)) {
-            activeWNDW := this.wndw
-        }
+        WNDW := this.getWNDW()
 
         resetDHW := A_DetectHiddenWindows
-        DetectHiddenWindows(false)
+        DetectHiddenWindows(!this.background)
 
         HWND := 0
 
         try {
-            if (activeWNDW != "") {
-                HWND := WinGetID(activeWNDW)
-            }
-            else if (activeEXE != "") {
-                HWND := WinGetID("ahk_exe " activeEXE)
+            if (WNDW != "") {
+                HWND := WinGetID(WNDW)
             }
         }
         catch {
@@ -1456,4 +1503,75 @@ exitAllPrograms() {
         globalRunning[name].postExit()
         globalRunning.Delete(name)
     }
+}
+
+; spin waits until either timeout or successful internet connection
+;  programID - id of program waiting, will cancel if shouldExit
+;  timeout - seconds to wait
+;
+; returns true if connected to internet
+waitForInternetProgram(programID, timeout := 30) {
+	global globalRunning
+
+	count := 0
+	wsaData := Buffer(408, 0)
+		
+	setLoadScreen("Waiting for Internet...")
+
+	if (DllCall("Ws2_32\WSAStartup", "UShort", 0x0202, "Ptr", wsaData.Ptr)) {
+		resetLoadScreen()
+		return false
+	}
+	
+	addrPtr := 0
+	while (count < timeout) {
+		if (programID != "" && globalRunning[programID].shouldExit) {
+			DllCall("Ws2_32\WSACleanup")
+			resetLoadScreen()
+			return false
+		}
+
+		try {
+			if (DllCall("Ws2_32\GetAddrInfoW", "WStr", "dns.msftncsi.com", "WStr", "http", "Ptr", 0, "Ptr*", &addrPtr)) {		
+				count += 1
+				Sleep(1000)
+
+				setLoadScreen("Waiting for Internet... (" . (timeout - count) . ")")
+				continue
+			}
+
+			family  := NumGet(addrPtr + 4, 0, "Int")
+			addrLen := NumGet(addrPtr + 16, 0, "Ptr")
+			addr    := NumGet(addrPtr + 16, 16, "Ptr")
+
+			DllCall("Ws2_32\WSAAddressToStringW", "Ptr", addr, "UInt", addrLen, "Ptr", 0, "Str", wsaData.Ptr, "UInt*", 204)
+			DllCall("Ws2_32\FreeAddrInfoW", "Ptr", addrPtr)
+
+			http := ComObject("WinHttp.WinHttpRequest.5.1")
+
+			if (family = 2 && StrGet(wsaData) = "131.107.255.255:80") {
+				http.Open("GET", "http://www.msftncsi.com/ncsi.txt")
+			}
+			else if (family = 23 && StrGet(wsaData) = "[fd3e:4f5a:5b81::1]:80") {
+				http.Open("GET", "http://ipv6.msftncsi.com/ncsi.txt")
+			}
+
+			http.Send()
+
+			if (http.ResponseText = "Microsoft NCSI") {
+				DllCall("Ws2_32\WSACleanup")
+				resetLoadScreen()
+				return true
+			}
+		}
+	
+		count += 1
+		Sleep(1000)
+
+		setLoadScreen("Waiting for Internet... (" . (timeout - count) . ")")
+	}
+
+	DllCall("Ws2_32\WSACleanup")
+	resetLoadScreen()
+	return false
 }

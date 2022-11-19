@@ -83,7 +83,7 @@ enableDesktopMode(showDialog := false) {
         WinSetTransparent(230, GUIDESKTOPTITLE)
     }
 
-    destroyLoadScreen()
+    globalStatus["loadscreen"]["enable"] := false
 }
 
 ; disables desktop & destroys info splash

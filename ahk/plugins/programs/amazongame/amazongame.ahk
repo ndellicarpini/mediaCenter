@@ -22,15 +22,17 @@ amazonGameLaunch(URI, args*) {
     restoreAllowExit := this.allowExit
     this.allowExit := true
 
+    globalStatus["loadscreen"]["overrideWNDW"] := "Amazon Games"
+
     ; wait for amazon to show
     while (!this.exists(true) && count < maxCount) {
-        if (WinShown("Amazon Games")) {
-            WinActivate("Amazon Games")
-            
+        if (WinShown("Amazon Games")) {            
             count := 0
         }
 
         if (this.shouldExit) {
+            globalStatus["loadscreen"]["overrideWNDW"] := ""
+
             amazonGamePostExit()
             SetTitleMatchMode(resetTMM)
 
@@ -42,6 +44,7 @@ amazonGameLaunch(URI, args*) {
     }
 
     this.allowExit := restoreAllowExit
+    globalStatus["loadscreen"]["overrideWNDW"] := ""
 }
 
 ; close amazon game launcher after game exits

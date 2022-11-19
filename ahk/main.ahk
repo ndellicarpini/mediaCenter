@@ -1,9 +1,8 @@
-﻿#SingleInstance Force
+#SingleInstance Force
 ; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include plugins\ahk\boot.ahk
-#Include plugins\ahk\LOADSC~1.AHK
 #Include plugins\inputs\xinput\xinput.ahk
 #Include plugins\programs\AMAZON~1\AMAZON~1.AHK
 #Include plugins\programs\bigbox\bigbox.ahk
@@ -49,7 +48,7 @@
 
 SetKeyDelay 50, 100
 CoordMode "Mouse", "Screen"
-Critical "Off"
+Critical("Off")
 
 ; set dpi scaling per window
 prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
@@ -161,13 +160,10 @@ globalStatus["currGui"] := ""
 ; load screen info
 globalStatus["loadscreen"] := Map()
 globalStatus["loadscreen"]["show"] := false
+globalStatus["loadscreen"]["enable"] := false
+globalStatus["loadscreen"]["overrideWNDW"] := false
 globalStatus["loadscreen"]["text"] := (globalConfig["GUI"].Has("DefaultLoadText")) 
     ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading..."
-
-; error info
-globalStatus["error"] := Map()
-globalStatus["error"]["show"] := false
-globalStatus["error"]["hwnd"] := 0
 
 ; hotkey info
 globalStatus["input"] := Map()
@@ -287,7 +283,7 @@ for item in globalConfig["StartArgs"] {
 
 ; create loadscreen if appropriate
 if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
-    createLoadScreen()
+    globalStatus["loadscreen"]["enable"] := true
 }
 
 ; start non-input threads
@@ -298,7 +294,7 @@ globalThreads["hotkey"] := hotkeyThread(
     ObjPtrAddRef(globalRunning),
 )
 
-globalThreads["windows"] := windowsThread(
+globalThreads["misc"] := miscThread(
     ObjPtrAddRef(globalConfig), 
     ObjPtrAddRef(globalStatus)
 )
@@ -346,57 +342,13 @@ loop {
         hotkeySource := "desktopmode"
     }
 
-    ; --- CHECK ERROR ---
-    currError := globalStatus["error"]["show"]
-
-    ; if errors should be detected, set error here
-    if (!currError && checkErrors && !currSuspended) {
-        resetTMM := A_TitleMatchMode
-
-        SetTitleMatchMode 2
-        for key, value in globalConfig["Plugins"]["ErrorList"] {
-
-            wndwHWND := WinShown(value)
-            if (!wndwHWND) {
-                wndwHWND := WinShown(StrLower(value))
-            }
-
-            if (wndwHWND > 0) {
-                globalStatus["error"]["show"] := true
-                globalStatus["error"]["hwnd"] := wndwHWND
-                
-                break
-            }
-        }
-        SetTitleMatchMode resetTMM
-    }
-
-    if (currError && !currSuspended) {
-        errorHwnd := globalStatus["error"]["hwnd"]
-
-        if (WinShown("ahk_id " errorHwnd)) {
-            if (!activeSet) {
-                if (forceActivate && !WinActive("ahk_id " errorHwnd)) {
-                    WinActivate("ahk_id " errorHwnd)
-                }
-
-                activeSet := true
-            }
-
-            if (hotkeySource = "") {
-                hotkeySource := "error"
-            }
-        }
-        else {
-            globalStatus["error"]["show"] := false
-            globalStatus["error"]["hwnd"] := 0
-        }
-    }
-
     ; --- CHECK LOAD SCREEN ---
-    if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended) {       
-        activateLoadScreen()
+    if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended) {             
         activeSet := true
+
+        if (WinShown(GUIPAUSETITLE)) {
+            destroyPauseMenu()
+        }
     }
 
     ; --- CHECK ALL OPEN ---
@@ -554,14 +506,12 @@ InputBufferTimer() {
     currProgram := globalStatus["currProgram"]
     currGui     := globalStatus["currGui"]
     currLoad    := globalStatus["loadscreen"]["show"]
-    currError   := globalStatus["error"]["show"]
     currKBMM    := globalStatus["kbmmode"]
     currDesktop := globalStatus["desktopmode"]
 
     ; mismatched currHotkeys & status, ignore message
     if ((hotkeySource != currProgram && hotkeySource != currGui)
         && (hotkeySource = "load" && !currLoad) 
-        && (hotkeySource = "error" && !currError) 
         && (hotkeySource = "kbmmode" && !currKBMM) 
         && (hotkeySource = "desktopmode" && !currDesktop)) {
 
@@ -588,10 +538,6 @@ InputBufferTimer() {
 
     ; the nuclear option
     else if (StrLower(bufferedFunc) = "nuclear") {
-        if (globalStatus["error"]["show"]) {
-            try ProcessKill(WinGetPID("ahk_id " globalStatus["error"]["hwnd"]))
-        }
-
         if (currProgram != "" && globalRunning[currProgram].exists()) {
             try ProcessKill(globalRunning[currProgram].getPID())
         }
@@ -615,18 +561,7 @@ InputBufferTimer() {
         tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
         
         if (tempFunc = "exit") {
-            if (globalStatus["error"]["show"]) {
-                errorHwnd := globalStatus["error"]["hwnd"]
-                errorGUI := getGUI(errorHwnd)
-    
-                if (errorGUI) {
-                    errorGUI.Destroy()
-                }
-                else {
-                    CloseErrorMsg(errorHwnd)
-                }
-            }
-            else if (currProgram != "" && globalRunning[currProgram].allowExit) {
+           if (currProgram != "" && globalRunning[currProgram].allowExit) {
                 try globalRunning[currProgram].exit()
     
                 if (globalRunning.Has(currProgram) && !globalRunning[currProgram].exists()) {
@@ -713,10 +648,6 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         createConsole(message)
     }
     else if (StrLower(message[1]) = "nuclear") {
-        if (globalStatus["error"]["show"]) {
-            try ProcessKill(WinGetPID("ahk_id " globalStatus["error"]["hwnd"]))
-        }
-
         if (currProgram != "" && globalRunning[currProgram].exists()) {
             try ProcessKill(globalRunning[currProgram].getPID())
         }
@@ -780,6 +711,8 @@ ShutdownScript(restoreTaskbar := true) {
 ExitScript() {
     global globalConfig
 
+    Critical("On")
+
     statusBackup()
 
     if (WinHidden(MAINLOOP) && globalConfig["General"].Has("ForceMaintainMain") 
@@ -797,6 +730,8 @@ ExitScript() {
 ; resets the script, loading from statusBackup
 ResetScript() {
     global globalConfig
+
+    Critical("On")
 
     statusBackup()
 
@@ -819,6 +754,8 @@ ResetScript() {
 PowerOff() {
     global globalConfig
 
+    Critical("On")
+
     if (globalConfig["Plugins"].Has("DefaultProgram")) {
         globalConfig["Plugins"]["DefaultProgram"] := ""
     }
@@ -837,6 +774,8 @@ PowerOff() {
 Restart() {
     global globalConfig
 
+    Critical("On")
+
     if (globalConfig["Plugins"].Has("DefaultProgram")) {
         globalConfig["Plugins"]["DefaultProgram"] := ""
     }
@@ -854,6 +793,8 @@ Restart() {
 ; clean up running programs & sleep -> restarting script after
 Standby() {
     global globalConfig
+
+    Critical("On")
 
     if (globalConfig["Plugins"].Has("DefaultProgram")) {
         globalConfig["Plugins"]["DefaultProgram"] := ""

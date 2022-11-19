@@ -7,15 +7,25 @@ createLoadScreen() {
 
     guiObj := Gui(GUIOPTIONS, GUILOADTITLE)
 
-	try {
-		guiObj := %"customLoadScreen"%(guiObj)
-	}
-	catch {
-		guiObj.BackColor := COLOR1
-        guiSetFont(guiObj, "italic s30")
+	guiObj.BackColor := COLOR1
+    
+    guiSetFont(guiObj, "s26")
 
-        guiObj.Add("Text", "vLoadText Right x0 y" . percentHeight(0.92, false) " w" . percentWidth(0.985, false), globalStatus["loadscreen"]["text"])
-	}
+    imgSize := percentWidth(0.04)
+    
+    guiObj.Add("Text", "vLoadText Center x0 y" . percentHeight(0.92, false) " w" . percentWidth(1), globalStatus["loadscreen"]["text"])
+
+    imgHTML := (
+        "<html>"
+            "<body style='background-color: transparent' style='overflow:hidden' leftmargin='0' topmargin='0'>"
+                "<img src='" getAssetPath("loading.gif", globalConfig) "' width=" . imgSize . " height=" . imgSize . " border=0 padding=0>"
+            "</body>"
+        "</html>"
+    )
+
+    IMG := guiObj.Add("ActiveX", "w" . imgSize . " h" . imgSize . " x" . percentWidth(0.5, false) - (imgSize / 2) . " yp-" . (imgSize + percentHeight(0.015)), "Shell.Explorer").Value
+    IMG.Navigate("about:blank")
+    IMG.document.write(imgHTML)
 
     guiObj.Show("x0 y0 NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
 }
@@ -27,47 +37,15 @@ activateLoadScreen() {
 	if (WinShown(GUILOADTITLE)) {
 		WinActivate(GUILOADTITLE)
 	}
-	else {
-		createLoadScreen()
-	}
-}
-
-; activates & updates the text the load screen
-;  activate - if to activate the loadscreen
-;
-; returns null
-updateLoadScreen(activate := true) {
-	global globalConfig
-	global globalStatus
-
-	if (!globalConfig["GUI"].Has("EnableLoadScreen") || !globalConfig["GUI"]["EnableLoadScreen"]) {
-		return
-	}
-
-	loadObj := getGUI(GUILOADTITLE)
-	if (loadObj) {
-		loadObj["LoadText"].Text := globalStatus["loadscreen"]["text"]
-		loadObj["LoadText"].Redraw()
-	}
-	else if (activate) {
-		createLoadScreen()
-		Sleep(100)
-	}
-	
-	pauseObj := getGUI(GUIPAUSETITLE)
-	if (pauseObj) {
-		destroyPauseMenu()
-	}
-
-	if (activate) {
-		activateLoadScreen()
-	}
 }
 
 ; destroys the load screen
 ;
 ; returns null
 destroyLoadScreen() {
+    globalStatus["loadscreen"]["enable"] := false
+    globalStatus["loadscreen"]["overrideWNDW"] := ""
+
     if (getGUI(GUILOADTITLE)) {
         getGUI(GUILOADTITLE).Destroy()
     }
@@ -78,13 +56,14 @@ destroyLoadScreen() {
 ;
 ; returns null
 setLoadScreen(text) {
+	global globalConfig
 	global globalStatus
 
     MouseMove(percentWidth(1, false), percentHeight(1, false))
 
+    globalStatus["loadscreen"]["enable"] := true
     globalStatus["loadscreen"]["show"] := true
     globalStatus["loadscreen"]["text"] := text
-    updateLoadScreen()
 }
 
 ; resets the text of the load screen & deactivates it
@@ -94,6 +73,7 @@ resetLoadScreen() {
 	global globalStatus
 
 	globalStatus["loadscreen"]["show"] := false
+	globalStatus["loadscreen"]["overrideWNDW"] := ""
 	SetTimer(DelayResetText.Bind(globalStatus["loadscreen"]["text"]), -1000)
 
 	return
@@ -108,80 +88,7 @@ resetLoadScreen() {
 
 		globalStatus["loadscreen"]["text"] := (globalConfig["GUI"].Has("DefaultLoadText")) 
 			? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading..."
-			
-		updateLoadScreen(false)
 
 		return
 	}
-}
-
-; spin waits until either timeout or successful internet connection
-;  timeout - seconds to wait
-;  programID - if used for a program, will cancel if shouldExit
-;
-; returns true if connected to internet
-internetLoadScreen(timeout := 30, programID := "") {
-	global globalRunning
-
-	count := 0
-	wsaData := Buffer(408, 0)
-		
-	setLoadScreen("Waiting for Internet...")
-
-	if (DllCall("Ws2_32\WSAStartup", "UShort", 0x0202, "Ptr", wsaData.Ptr)) {
-		resetLoadScreen()
-		return false
-	}
-	
-	addrPtr := 0
-	while (count < timeout) {
-		if (programID != "" && globalRunning[programID].shouldExit) {
-			DllCall("Ws2_32\WSACleanup")
-			resetLoadScreen()
-			return false
-		}
-
-		try {
-			if (DllCall("Ws2_32\GetAddrInfoW", "WStr", "dns.msftncsi.com", "WStr", "http", "Ptr", 0, "Ptr*", &addrPtr)) {		
-				count += 1
-				Sleep(1000)
-
-				setLoadScreen("Waiting for Internet... (" . (timeout - count) . ")")
-				continue
-			}
-
-			family  := NumGet(addrPtr + 4, 0, "Int")
-			addrLen := NumGet(addrPtr + 16, 0, "Ptr")
-			addr    := NumGet(addrPtr + 16, 16, "Ptr")
-
-			DllCall("Ws2_32\WSAAddressToStringW", "Ptr", addr, "UInt", addrLen, "Ptr", 0, "Str", wsaData.Ptr, "UInt*", 204)
-			DllCall("Ws2_32\FreeAddrInfoW", "Ptr", addrPtr)
-
-			http := ComObject("WinHttp.WinHttpRequest.5.1")
-
-			if (family = 2 && StrGet(wsaData) = "131.107.255.255:80") {
-				http.Open("GET", "http://www.msftncsi.com/ncsi.txt")
-			}
-			else if (family = 23 && StrGet(wsaData) = "[fd3e:4f5a:5b81::1]:80") {
-				http.Open("GET", "http://ipv6.msftncsi.com/ncsi.txt")
-			}
-
-			http.Send()
-
-			if (http.ResponseText = "Microsoft NCSI") {
-				DllCall("Ws2_32\WSACleanup")
-				resetLoadScreen()
-				return true
-			}
-		}
-	
-		count += 1
-		Sleep(1000)
-
-		setLoadScreen("Waiting for Internet... (" . (timeout - count) . ")")
-	}
-
-	DllCall("Ws2_32\WSACleanup")
-	resetLoadScreen()
-	return false
 }

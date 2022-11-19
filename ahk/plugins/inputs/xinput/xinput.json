@@ -51,7 +51,10 @@
     },
 
     "programHotkeys": {
-        "HOME": "PauseMenu",
+        "HOME": {
+            "down": "PauseMenu",
+            "time": 80
+        },
         "START&SELECT": {
             "down": "program.exit",
             "time": 120
@@ -66,6 +69,7 @@
             "[REPEAT]DR|LSX>0.4": "gui.right",
             "A": "gui.select",
         },
+        ; FIX THIS GARBAGE
         "AHKGUIINPUT": {
             "B": "gui.Destroy",
             "A": {

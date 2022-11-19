@@ -7,24 +7,24 @@ CODE
     - maybe this should be a perfect replacement for a config file
     - allows me to create a GUI for editing config files & maybe save per console/game configs
 - GAMES
-  - create Program abstractions for Game->Emulator/Console
   - figure out good ways to load & save specific game configs
-  - think about just removing borders & sizing window instead of using fullscreen
   - detect & enable/disable drivers for different controllers
-  - create background programs
 
 GUI
-- create Keyboard
+- gui.back functionality -> close gui if appropriate
+- Keyboard?
+- generic component library
+  - button (img or text, press & (optional) unpress functions)
+  - slider (vertical/horizontal, force selection on slider, gui.up/down/left/right to edit value)
+  - checkbox (button w/ on/off state, different img/text if on/off)
+  - text input box?
+  - selection dropdown (close on select/back, back restores original value)
 - create PauseScreen
   - Program Specific Settings
     - Show Controls button
     - Save/Load state dialogs (w/ multiple slot support & taking screenshots)
     - Manuals for games
-    - PIP for chrome
-    - All programs will have exit option
   - Settings Category
-    - Enable KB&Mouse Mode (WITH HOTKEY)
-    - Suspend All Scripts
     - change global settings dialog (updates global.cfg)
     - change windows settings (launch Settings)
 - create GameSettings dialog
@@ -41,5 +41,4 @@ LAUNCHBOX
 - create plugin to launch GameSettings rather than using separate emulator
 - maybe write directly into launchbox data the time played? (it probably wont work default)
 - redesign theme for game details page
-- update theme to work with any resolution?
 - clean theme files

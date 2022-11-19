@@ -1,28 +1,3 @@
-; send keypress(es) after a short delay
-;  key - key to press
-;  delay - delay before keypress(es)
-;  numPress - number of times to press key
-delayedKeypress(key, delay := 2000, numPress := 1) {
-    if (delay = 0 && A_Index = 1) {
-        SendKey((numPress - 1))
-        return
-    }
-
-    SetTimer(SendKey.Bind((numPress - 1)), -1 * delay)
-
-    return
-
-    SendKey(repeat) {
-        SendSafe(key)
-
-        if (repeat > 0) {
-            SetTimer(SendKey.Bind((repeat - 1)), -1 * delay)
-        }
-
-        return
-    }
-}
-
 ; run an steam game from steam URI
 ;  URI - link to launch game
 ;  args - args to use when running game
@@ -100,19 +75,18 @@ steamGamePostLaunch() {
     ; custom action based on which executable is open
     switch(this.currEXE) {
         case "BioshockHD.exe", "Bioshock2HD.exe": ; Bioshock HD & Bioshock 2 HD
-            delayedKeypress("{Enter}")
-        case "gta3.exe": ; GTA 3
-            delayedKeypress("{Enter}",, 2)
-        case "gta-vc.exe": ; GTA VC
-            delayedKeypress("{Enter}")
-        case "gta-sa.exe": ; GTA SA
-            delayedKeypress("^{Enter}")
+            SetTimer(SendSafe.Bind("{Enter}"), -2000)
+        ; case "gta3.exe": ; GTA 3
+        ;     SetTimer(SendSafe.Bind("{Enter}"), -2000)
+        ;     SetTimer(SendSafe.Bind("{Enter}"), -4000)
+        ; case "gta-vc.exe": ; GTA VC
+        ;     SetTimer(SendSafe.Bind("{Enter}"), -2000)
+        ; case "gta-sa.exe": ; GTA SA
+        ;     SetTimer(SendSafe.Bind("^{Enter}"), -2000)
         case "Shenmue.exe", "Shenmue2.exe": ; Shenmue 1 & 2
-            delayedKeypress("{Enter}", 500)
-        case "MBAA.exe": ; Melty Blood
-            delayedKeypress("{Enter}", 500)
+            SetTimer(SendSafe.Bind("{Enter}"), -500)
         case "Clustertruck.exe": ; Clustertruck
-            delayedKeypress("{Enter}", 500)
+            SetTimer(SendSafe.Bind("{Enter}"), -500)
         case "PROA34-Win64-Shipping.exe": ; Blue Fire                
             SetTimer(DelayCheckFullscreen.Bind(this), -6500)  
         case "DarkSoulsIII.exe": ; Dark Souls III                

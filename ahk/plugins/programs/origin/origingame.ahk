@@ -33,15 +33,17 @@ originGameLaunch(game, args*) {
     restoreAllowExit := this.allowExit
     this.allowExit := true
 
+    globalStatus["loadscreen"]["overrideWNDW"] := "Origin"
+
     ; wait for origin to show
     while (!this.exists(true) && count < maxCount) {
-        if (WinShown("Origin")) {
-            WinActivate("Origin")
-            
+        if (WinShown("Origin")) {            
             count := 0
         }
 
         if (this.shouldExit) {
+            globalStatus["loadscreen"]["overrideWNDW"] := ""
+            
             originGamePostExit()
             SetTitleMatchMode(resetTMM)
 
@@ -53,6 +55,7 @@ originGameLaunch(game, args*) {
     }
 
     this.allowExit := restoreAllowExit
+    globalStatus["loadscreen"]["overrideWNDW"] := ""
 }
 
 ; custom post launch action for origin game

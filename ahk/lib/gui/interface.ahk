@@ -79,6 +79,9 @@ class Interface {
     ;
     ; returns null
     Show(options := "") {
+        restoreCritical := A_IsCritical
+        Critical("On")
+
         optionsArr := StrSplit(options, A_Space)
         for item in optionsArr {
             if (StrLower(SubStr(item, 1, 1)) = "x") {
@@ -132,12 +135,18 @@ class Interface {
         }
 
         this.guiObj.Show(options)
+        
+        Critical(restoreCritical)
+        return
     }
 
     ; exactly like gui.destroy
     ; 
     ; returns null
     Destroy() {
+        restoreCritical := A_IsCritical
+        Critical("On")
+
         if (this.overlayObj != "") {
             try this.overlayObj.Destroy()
             SetTimer(OverlayKill, -100)
@@ -145,15 +154,20 @@ class Interface {
 
         if (this.customDestroy != "") {
             runFunction(this.customDestroy)
+            
+            Critical(restoreCritical)
             return 
         }
 
         try this.guiObj.Destroy()
+        
+        Critical(restoreCritical)
+        return
 
         ; omega kill this stupid overlay bc sometimes destroy doesn't work i guess??
         OverlayKill() {
-            if (WinShown("AHKOVERLAY")) {
-                WinKill("AHKOVERLAY")
+            if (WinExist("AHKOVERLAY")) {
+                WinClose("AHKOVERLAY")
             }
 
             return

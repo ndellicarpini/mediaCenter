@@ -27,7 +27,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
         SetKeyDelay 50, 50
         CoordMode "Mouse", "Screen"
-        Critical "Off"
+        Critical("Off")
 
         global exitThread := false
 
@@ -242,8 +242,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         SetTimer(DeviceStatusTimer, globalConfig["General"]["AvgLoopSleep"] * 2)
 
         loop {
-            currStatus := globalStatus["currProgram"] . globalStatus["currGui"]
-                . globalStatus["error"]["show"] . globalStatus["loadscreen"]["show"]
+            currStatus := globalStatus["currProgram"] . globalStatus["currGui"] . globalStatus["loadscreen"]["show"]
 
             thisHotkeys := (globalStatus["input"]["hotkeys"].Has(inputID))
                 ? globalStatus["input"]["hotkeys"][inputID]
@@ -324,7 +323,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         ; ----- TIMERS -----
 
         ButtonTimer(button, time, index, status) {   
-            Critical "Off"
+            Critical("Off")
 
             global globalStatus     
             global thisInput
@@ -348,7 +347,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 return
             }
 
-            if (!((hotkeyData.function = "Exit" || InStr(hotkeyData.function, ".exit")) && globalStatus["pause"] && !globalStatus["error"]["show"])) {
+            if (!((hotkeyData.function = "Exit" || InStr(hotkeyData.function, ".exit")) && globalStatus["pause"])) {
                 if (hotkeyData.time != "" && (time - hotkeyData.time) > 0) {
                     SetTimer(ButtonTimer.Bind(button, hotkeyData.time, index, status), (-1 * (time - hotkeyData.time)))
                     return
@@ -365,7 +364,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         }
 
         WaitButtonTimer(button, index, hotkeyData, status, loopCount) {
-            Critical "On"
+            Critical("On")
             
             global globalStatus
             global thisInput
@@ -670,7 +669,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
         #Include lib\std.ahk
         #Include lib\hotkeys.ahk
         
-        Critical "Off"
+        Critical("Off")
 
         ; --- GLOBAL VARIABLES ---
 
@@ -820,19 +819,22 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
     return ref
 }
 
-; creates a thread that interfaces with Windows OS features independent of main
+; creates a thread that interfaces with miscellaneous features
 ;  globalConfigPtr - ptr to globalConfig
 ;  globalStatusPtr - ptr to globalStatus
 ;
 ; returns ptr to the thread reference
-windowsThread(globalConfigPtr, globalStatusPtr) {
+miscThread(globalConfigPtr, globalStatusPtr) {
     restoreScriptDir := A_ScriptDir
 
     ref := ThreadObj("
     (   
         #Include lib\std.ahk
+        #Include lib\gui\std.ahk
+        #Include lib\gui\constants.ahk
+        #Include lib\gui\loadscreen.ahk
         
-        Critical "Off"
+        Critical("Off")
 
         ; --- GLOBAL VARIABLES ---
 
@@ -842,13 +844,67 @@ windowsThread(globalConfigPtr, globalStatusPtr) {
         global globalConfig := ObjFromPtr(A_Args[1])
         global globalStatus := ObjFromPtr(A_Args[2])
 
-        bypassFirewall := globalConfig["General"].Has("BypassFirewallPrompt") && globalConfig["General"]["BypassFirewallPrompt"]
-        hideTaskbar    := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
+        ; set gui variables from config for loadscreen
+        parseGUIConfig(globalConfig["GUI"])
+        
+        currLoadText   := globalStatus["loadscreen"]["text"]
+        currLoadShow   := globalStatus["loadscreen"]["show"]
+        currLoadEnable := globalStatus["loadscreen"]["enable"]
 
-        loopSleep := Round(globalConfig["General"]["AvgLoopSleep"])
+        allowLoadScreen := globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]
+        bypassFirewall  := globalConfig["General"].Has("BypassFirewallPrompt") && globalConfig["General"]["BypassFirewallPrompt"]
+        hideTaskbar     := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
+
+        loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 1.5)
 
         loop {
             if (!globalStatus["suspendScript"]) {
+                ; check status of load screen & update if appropriate
+                if (allowLoadScreen) {
+                    loadShown := WinShown(GUILOADTITLE)
+
+                    if (globalStatus["loadscreen"]["enable"]) {
+                        ; if loadscreen is supposed to be active window
+                        if (globalStatus["loadscreen"]["show"]) {
+                            ; create loadscreen if doesn't exist
+                            if (!loadShown) {
+                                createLoadScreen()
+                            }
+
+                            ; activate overrideWNDW if it exists
+                            if (globalStatus["loadscreen"]["overrideWNDW"] != "" 
+                                && WinShown(globalStatus["loadscreen"]["overrideWNDW"])) {
+                                
+                                WinActivate(globalStatus["loadscreen"]["overrideWNDW"])
+                            }
+                            ; activate loadscreen
+                            else {
+                                activateLoadScreen()
+                            }
+    
+                            currLoadShow := globalStatus["loadscreen"]["show"]
+                        }
+    
+                        ; update loadscreen text if it has been changed
+                        if (loadShown && currLoadText != globalStatus["loadscreen"]["text"]) {
+                            loadGuiObj := getGUI(GUILOADTITLE)
+                            
+                            if (loadGuiObj) {
+                                loadGuiObj["LoadText"].Text := globalStatus["loadscreen"]["text"]
+                                loadGuiObj["LoadText"].Redraw()
+        
+                                currLoadText := globalStatus["loadscreen"]["text"]
+                            }
+                        }
+    
+                        currLoadEnable := true
+                    }
+                    else if (loadShown) {
+                        destroyLoadScreen()
+                        currLoadEnable := false
+                    }
+                }
+
                 ; check that sound driver hasn't crashed
                 if (SoundGetMute()) {
                     SoundSetMute(false)
@@ -870,6 +926,12 @@ windowsThread(globalConfigPtr, globalStatusPtr) {
                 if (hideTaskbar && !WinShown("ahk_class Shell_TrayWnd")) {
                     try WinShow("ahk_class Shell_TrayWnd")
                 }
+
+                ; destroy load screen if it should not exist (desktopmode)
+                if (allowLoadScreen && currLoadEnable && !globalStatus["loadscreen"]["enable"]) {
+                    destroyLoadScreen()
+                    currLoadEnable := false
+                }
             }
 
             ; close if main is no running
@@ -881,7 +943,7 @@ windowsThread(globalConfigPtr, globalStatusPtr) {
         }
     )"
     , globalConfigPtr . " " . globalStatusPtr
-    , "windowsThread")
+    , "miscThread")
 
     SetWorkingDir(restoreScriptDir)
     return ref

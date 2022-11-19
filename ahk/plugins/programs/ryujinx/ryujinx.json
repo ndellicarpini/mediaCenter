@@ -10,8 +10,6 @@
     
     "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
 
-    "exit": "WinClose 'Ryujinx Console'",
-
     "pause":  "SendSafe {F5}",
     "resume": "SendSafe {F5}",
 

@@ -6,9 +6,12 @@
 
     "dir": "C:\\Program Files\\Google\\Chrome\\Application\\",
     "exe": "chrome.exe",
-    "wndw": "Google Chrome",
+
+    "getWNDW": "chromeGetWNDW",
     
     "exit": "chromeExit",
+    
+    "hotkeyButtonTime": 0,
 
     "mouse": {
         "initialPos": [0.5, 0.5],
@@ -18,7 +21,7 @@
             "vscroll": "-RSY",
             "lclick": "A",
             "rclick": "X",
-            "deadzone": 0.15,
+            "deadzone": 0.15
         }
     },
 

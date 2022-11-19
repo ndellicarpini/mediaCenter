@@ -58,6 +58,8 @@ winGamePostLaunch() {
 
     ; custom action based on which executable is open
     switch(this.currEXE) {
+        case "MBAA.exe": ; Melty Blood
+            SetTimer(SendSafe.Bind("{Enter}"), -500)
         case "TestDriveUnlimited.exe": ; Test Drive Unlimited
             SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -20000)
         case "openmw.exe": ; Morrowind
