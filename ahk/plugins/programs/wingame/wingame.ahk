@@ -8,6 +8,34 @@ winGameLaunch(game, args*) {
 
     this := globalRunning["wingame"]
 
+    ; custom actions based on game before launch
+    switch(game) {
+        case "D:\Games\Ocarina of Time\soh.exe": 
+            this.customFullscreen := "SendSafe !{Enter}"
+            this.hotkeys := this.hotkeys := Map(
+                "xinput", Map(
+                    "HOME&SELECT", "SendSafe {F7}",
+                    "HOME&START", "SendSafe {F5}",
+                )
+            )
+
+            Run "D:\Games\Ocarina of Time\GCN XInput Adapter\DelfinovinUI.exe", "D:\Games\Ocarina of Time\GCN XInput Adapter"
+
+            count := 0
+            maxCount := 100
+            while (!WinShown("MainWindow") && count < maxCount) {
+                Sleep(100)
+                count += 1
+            }
+
+            if (count < maxCount) {
+                Sleep(2000)
+            }
+            else {
+                return -1
+            }
+    }
+
     pathArr := StrSplit(game, "\")
     
     exe := pathArr.RemoveAt(pathArr.Length)
@@ -78,7 +106,6 @@ winGamePostExit() {
         case "GTA5.exe": ; GTA 5
             count := 0
             maxCount := 100
-
             while (!WinShown("Rockstar Games Launcher") && count < maxCount) {
                 count += 1
                 Sleep(100)
@@ -87,6 +114,25 @@ winGamePostExit() {
             if (WinShown("Rockstar Games Launcher")) {
                 WinClose("Rockstar Games Launcher")
                 Sleep(500)
+            }
+        case "soh.exe": 
+            count := 0
+            maxCount := 5
+            while (ProcessExist("DelfinovinUI.exe") && count < maxCount) {
+                if (WinShown("MainWindow")) {
+                    WinActivate("MainWindow")
+                    Sleep(75)
+
+                    MouseClick("Left", percentWidthRelativeWndw(0.96, "MainWindow")
+                    , percentHeightRelativeWndw(0.04, "MainWindow"),,, "D")
+                    Sleep(75)
+                    MouseClick("Left",,,,, "U")
+                    Sleep(75)
+                    MouseMove(percentWidth(1), percentHeight(1))    
+                }
+
+                Sleep(3000)
+                count += 1
             }
     }
 }

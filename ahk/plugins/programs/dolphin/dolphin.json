@@ -8,8 +8,6 @@
     "requireFullscreen": true,
     "priority": "H",
 
-    "exit": "ProcessClose Dolphin.exe",
-
     "pause": "SendSafe {F10}",
     "resume": "SendSafe {F10}",
 

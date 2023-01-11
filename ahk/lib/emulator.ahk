@@ -203,7 +203,7 @@ createConsole(params, launchProgram := true, setCurrent := true, customAttribute
                             ; just set the running program as current
                             if (setCurrent || launchProgram) {
                                 ; reset game if different rom requested
-                                if (rom != value3.rom) {
+                                if (value3.HasOwnProp("rom") && rom != value3.rom) {
                                     value3.exit()
                                     break
                                 }

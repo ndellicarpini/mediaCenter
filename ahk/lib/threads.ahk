@@ -376,7 +376,18 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     if (hotkeyData.function = "program.exit") {
                         ; the nuclear option
                         if (loopCount > 120) {
-                            try ProcessKill(WinGetPID("A"))
+                            winList := WinGetList()
+                            loop winList.Length {
+                                currPath := WinGetProcessPath("ahk_id " winList[A_Index])
+                                currProcess := WinGetProcessName("ahk_id " winList[A_Index])
+
+                                if (currProcess = "explorer.exe" || currPath = A_AhkPath) {
+                                    continue
+                                }
+
+                                try ProcessKill(WinGetPID("ahk_id " winList[A_Index]))
+                                break
+                            }
                         }
                     }
                     else if (hotkeyData.modifier = "repeat") {

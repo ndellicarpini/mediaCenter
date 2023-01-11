@@ -10,8 +10,6 @@
     
     "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
 
-    "exit": "WinClose RPCS3",
-
     "pause":  "Send '{Ctrl down}p{Ctrl up}'",
     "resume": "Send '{Ctrl down}p{Ctrl up}'",
 

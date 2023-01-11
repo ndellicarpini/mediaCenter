@@ -408,8 +408,11 @@ loop {
 
     ; --- CHECK KB & MOUSE MODE ---
     if (globalStatus["kbmmode"] && hotkeySource = "") {
-        activeSet := true
         hotkeySource := "kbmmode"
+    }
+
+    if (keyboardExists()) {
+        activeSet := true
     }
 
     ; --- CHECK OPEN PROGRAMS ---

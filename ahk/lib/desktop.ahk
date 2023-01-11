@@ -33,8 +33,13 @@ enableKBMMode(showDialog := true) {
 disableKBMMode() {
     global globalGuis
 
-    if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-        globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; close the keyboard if open
+    ; if (globalGuis.Has(GUIKEYBOARDTITLE)) {
+    ;     globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; }
+
+    if (keyboardExists()) {
+        closeKeyboard()
     }
     
     globalStatus["kbmmode"] := false
@@ -93,8 +98,13 @@ disableDesktopMode() {
     global globalConfig
     global globalGuis
 
-    if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-        globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; close the keyboard if open
+    ; if (globalGuis.Has(GUIKEYBOARDTITLE)) {
+    ;     globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; }
+
+    if (keyboardExists()) {
+        closeKeyboard()
     }
     
     globalStatus["suspendScript"] := false
@@ -110,67 +120,73 @@ disableDesktopMode() {
 ;
 ; returns true if the keyboard is visible
 keyboardExists() {
-    resetDHW := A_DetectHiddenWindows
-    DetectHiddenWindows(true)
+    return ProcessExist("osk.exe")
 
-    hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+    ; resetDHW := A_DetectHiddenWindows
+    ; DetectHiddenWindows(true)
 
-    DetectHiddenWindows(resetDHW)
-    return (hwnd != 0)
+    ; hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+
+    ; DetectHiddenWindows(resetDHW)
+    ; return (hwnd != 0)
 }
 
 ; turns off gui keyboard
 ;
 ; returns null
 openKeyboard() {
-    resetDHW := A_DetectHiddenWindows
-    resetSTM := A_TitleMatchMode
-
-    DetectHiddenWindows(true)
-    SetTitleMatchMode(3)
-
-    try resetA := WinGetTitle("A")
-
-    if (resetA = "Search") {
-        Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
-    }
-    else {
-        try {
-            WinShow("ahk_class Shell_TrayWnd")
-            WinActivate("ahk_class Shell_TrayWnd")
+    Run "osk.exe"
     
-            Sleep(25)
-            Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
-            Sleep(70)
-        }
-    }
+    ; resetDHW := A_DetectHiddenWindows
+    ; resetSTM := A_TitleMatchMode
 
-    DetectHiddenWindows(resetDHW)
-    SetTitleMatchMode(resetSTM)
+    ; DetectHiddenWindows(true)
+    ; SetTitleMatchMode(3)
 
-    if (resetA && WinShown(resetA)) {
-        WinActivate(resetA)
-    }
+    ; try resetA := WinGetTitle("A")
 
-    Hotkey("Enter", EnterOverrideHotkey)
+    ; if (resetA = "Search") {
+    ;     Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+    ; }
+    ; else {
+    ;     try {
+    ;         WinShow("ahk_class Shell_TrayWnd")
+    ;         WinActivate("ahk_class Shell_TrayWnd")
+    
+    ;         Sleep(25)
+    ;         Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+    ;         Sleep(70)
+    ;     }
+    ; }
+
+    ; DetectHiddenWindows(resetDHW)
+    ; SetTitleMatchMode(resetSTM)
+
+    ; if (resetA && WinShown(resetA)) {
+    ;     WinActivate(resetA)
+    ; }
+
+    ; Hotkey("Enter", EnterOverrideHotkey)
 } 
 
 ; turns off gui keyboard
 ;
 ; returns null
 closeKeyboard() {
-    resetDHW := A_DetectHiddenWindows
-    DetectHiddenWindows(true)
+    ProcessClose("osk.exe")
 
-    hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+    ; resetDHW := A_DetectHiddenWindows
+    ; DetectHiddenWindows(true)
 
-    if (hwnd) {
-        WinClose("ahk_id " hwnd)
-    }
+    ; hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+
+    ; if (hwnd) {
+    ;     WinClose("ahk_id " hwnd)
+    ; }
     
-    DetectHiddenWindows(resetDHW)
+    ; DetectHiddenWindows(resetDHW)
 
-    try Hotkey("Enter", "Off")
+    ; try Hotkey("Enter", "Off")
 }
 
 ; turns on & off gui keyboard

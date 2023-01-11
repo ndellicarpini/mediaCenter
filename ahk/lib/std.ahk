@@ -158,6 +158,30 @@ WinHidden(window) {
 	return retVal
 }
 
+; closes all windows that match the window param
+;  window - window to close based on WinTitle
+;
+; returns null
+WinCloseAll(window) {
+	resetDHW := A_DetectHiddenWindows
+	DetectHiddenWindows(false)
+
+	winList := WinGetList(window)
+	loop winList.Length {
+		currWNDW := "ahk_id " winList[A_Index]
+
+		if (WinExist(currWNDW)) {
+			WinClose(currWNDW)
+
+			if (A_Index < winList.Length) {
+				Sleep(250)
+			}
+		} 
+    }
+
+	DetectHiddenWindows(resetDHW)
+}
+
 ; returns the "Responding" state of the window
 ;  window - window to check based on WinTitle
 ;

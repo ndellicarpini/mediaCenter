@@ -266,7 +266,12 @@ defaultProgramOpen() {
 kbmmodeResume() {
     global globalStatus
 
-    globalStatus["kbmmode"] := !globalStatus["kbmmode"]
+    if (!globalStatus["kbmmode"]) {
+        enableKBMMode()
+    }
+    else {
+        disableKBMMode()
+    }
 
     currProgram := globalStatus["currProgram"]
     if (currProgram != "") {

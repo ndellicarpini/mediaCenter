@@ -39,8 +39,8 @@
             "Y": "Send !{Home}",
             "LB": "Send ^+{Tab}",
             "RB": "Send ^{Tab}",
-            "LT>0.3": "Send !{Left}",
-            "RT>0.3": "Send !{Right}",
+            "LT>0.75": "Send !{Left}",
+            "RT>0.75": "Send !{Right}",
 
             "SELECT": "toggleKeyboard",
             "START": "Send ^t",

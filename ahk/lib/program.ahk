@@ -892,7 +892,7 @@ class Program {
         }
         else if (window != "") {
             if (this.hungCount = 0) {
-                WinClose(window)
+                WinCloseAll(window)
             }
             else {
                 ProcessClose(activeEXE)
@@ -905,7 +905,7 @@ class Program {
             }
 
             count := 0
-            maxCount := 300
+            maxCount := 250
             ; wait for program executable to close
             while (exeExists && count < maxCount) {
                 window := this.getWNDW()
@@ -915,7 +915,7 @@ class Program {
                     if (count = 100 && WinShown(window)) {
                         ; if program is hanging, kill it
                         if (this.hungCount = 0) {
-                            WinClose(window)
+                            WinCloseAll(window)
                         }
                         else {
                             ProcessKill(this.getPID())
@@ -939,7 +939,7 @@ class Program {
                 Sleep(100)
             }
 
-            ; if exists -> go nuclear @ 30s
+            ; if exists -> go nuclear @ 25s
             if (window != "" && WinHidden(window)) {
                 ProcessKill(window)
             }
@@ -1388,6 +1388,14 @@ setCurrentProgram(id) {
     }
     
     if (globalStatus["currProgram"] != id) {
+        if (globalStatus["kbmmode"]) {
+            disableKBMMode()
+        }
+
+        if (keyboardExists()) {
+            closeKeyboard()
+        }
+
         activateLoadScreen()
         MouseMove(percentWidth(1), percentHeight(1))
 

@@ -1,7 +1,7 @@
 chromeGetWNDW() {
     retVal := ""
     for item in WinGetList("ahk_exe chrome.exe") {
-        if (WinGetTitle("ahk_id " item) != "Picture in picture") {
+        if (WinShown("ahk_id " item) && WinGetTitle("ahk_id " item) != "Picture in picture") {
             retVal := "ahk_id " item
             break
         }
@@ -13,11 +13,13 @@ chromeGetWNDW() {
 chromeExit() {
     global globalRunning
 
-    if (keyboardExists()) {
-        closeKeyboard()
-    }
+    currWNDW := globalRunning["chrome"].getWNDW()
+    while(currWNDW != "") {
+        WinClose(currWNDW)
+        Sleep(100)
 
-    WinClose(globalRunning["chrome"].getWNDW())
+        currWNDW := globalRunning["chrome"].getWNDW()
+    }
 }
 
 chromePIP() {
