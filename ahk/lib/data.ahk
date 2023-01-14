@@ -114,10 +114,10 @@ statusUpdated() {
 ;
 ; returns null
 saveScreenshot(name, overridePath := "") {
-    global MONITORX
-    global MONITORY
-    global MONITORW
-    global MONITORH
+    global MONITOR_X
+    global MONITOR_Y
+    global MONITOR_W
+    global MONITOR_H
 
     if (!DirExist("data\thumbnails\")) {
         DirCreate("data\thumbnails\")
@@ -131,8 +131,8 @@ saveScreenshot(name, overridePath := "") {
         
         dibsBuffer := Buffer(40, 0)
         NumPut("UInt", 40, dibsBuffer.Ptr, 0)
-        NumPut("UInt", MONITORW, dibsBuffer.Ptr, 4)
-        NumPut("UInt", MONITORH, dibsBuffer.Ptr, 8)
+        NumPut("UInt", MONITOR_W, dibsBuffer.Ptr, 4)
+        NumPut("UInt", MONITOR_H, dibsBuffer.Ptr, 8)
         NumPut("UShort", 1, dibsBuffer.Ptr, 12)
         NumPut("UShort", 32, dibsBuffer.Ptr, 14)
         NumPut("UInt", 0, dibsBuffer.Ptr, 16)
@@ -141,7 +141,7 @@ saveScreenshot(name, overridePath := "") {
         dibsSection := DllCall("CreateDIBSection", "UPtr", compatibleDC, "UPtr", dibsBuffer.Ptr, "UInt", 0, "UPtr*", &ppvBits, "UPtr", 0, "UInt", 0, "UPtr")
         gdiObject   := DllCall("SelectObject", "UPtr", compatibleDC, "UPtr", dibsSection)
     
-        DllCall("gdi32\BitBlt", "UPtr", compatibleDC, "Int", 0, "Int", 0, "Int", MONITORW, "Int", MONITORH, "UPtr", screenDC, "Int", MONITORX, "Int", MONITORY, "UInt", 0x00CC0020)
+        DllCall("gdi32\BitBlt", "UPtr", compatibleDC, "Int", 0, "Int", 0, "Int", MONITOR_W, "Int", MONITOR_H, "UPtr", screenDC, "Int", MONITOR_X, "Int", MONITOR_Y, "UInt", 0x00CC0020)
     
         ReleaseDC(screenDC)
     

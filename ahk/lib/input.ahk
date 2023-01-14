@@ -38,12 +38,22 @@ class Input {
         this.initDevice()
     }
 
-    ; this should only run once to intialize the controller port instance (beginnning of script)
+    ; this should only run once to intialize the driver (beginning of script)
+    static initialize() {
+
+    }
+
+    ; this should only run once to de-attach the driver (end of script)
+    static destroy() {
+
+    }
+
+    ; this should only run once to intialize the controller port instance (after initialize)
     initDevice() { 
         
     } 
 
-    ; this should only run once to remove the controller port instance (end of script)
+    ; this should only run once to remove the controller port instance (before destroy)
     destroyDevice() {
 
     }

@@ -42,8 +42,8 @@
 ;         "[HOLD]RSY<-0.4", "moveKeyboard 0 1",
 ;     )
 
-;     createInterface(GUIKEYBOARDTITLE, GUIOPTIONS . " +AlwaysOnTop",,, false,, "destroyKeyboard")
-;     kbInt := globalGuis[GUIKEYBOARDTITLE]
+;     createInterface(INTERFACES["keyboard"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop",,, false,, "destroyKeyboard")
+;     kbInt := globalGuis[INTERFACES["keyboard"]["wndw"]]
 
 ;     if (globalStatus["kbmmode"]) {
 ;         kbInt.hotkeys := addHotkeys(kbmmodeHotkeys(), kbInt.hotkeys)
@@ -111,7 +111,7 @@
 ;     Hotkey("Shift up", kbShiftUp)
 
 ;     kbInt.Show("NoActivate x" . (percentWidth(0.5, false) - (guiWidth / 2)) . " y" . percentHeight(0.5, false) . " w" . guiWidth . " h" . guiHeight)
-;     WinSetTransparent(230, GUIKEYBOARDTITLE)
+;     WinSetTransparent(230, INTERFACES["keyboard"]["wndw"])
 ; }
 
 ; guiKeyboardButton(kbInt, text, color, xpos, ypos, w, h) {
@@ -230,7 +230,7 @@
 ; }
 
 ; moveKeyboard(xDir, yDir) {
-;     WinGetPos(&x, &y, &w, &h, GUIKEYBOARDTITLE)
+;     WinGetPos(&x, &y, &w, &h, INTERFACES["keyboard"]["wndw"])
 ;     newX := x
 ;     newY := y
 
@@ -239,8 +239,8 @@
 ;         if (newX < 0) {
 ;             newX := 0
 ;         }
-;         else if (newX + w > MONITORW) {
-;             newX := MONITORW - w
+;         else if (newX + w > MONITOR_W) {
+;             newX := MONITOR_W - w
 ;         }
 ;     }
 
@@ -249,12 +249,12 @@
 ;         if (newY < 0) {
 ;             newY := 0
 ;         }
-;         else if (newY + h > MONITORH) {
-;             newY := MONITORH - h
+;         else if (newY + h > MONITOR_H) {
+;             newY := MONITOR_H - h
 ;         }
 ;     }
 
-;     WinMove(newX, newY,,, GUIKEYBOARDTITLE)
+;     WinMove(newX, newY,,, INTERFACES["keyboard"]["wndw"])
 ; }
 
 ; destroyKeyboard() {
@@ -264,7 +264,7 @@
 ;     global KBCTRLED
 ;     global KBSHIFTED
 
-;     if (getGUI(GUIKEYBOARDTITLE)) {
+;     if (getGUI(INTERFACES["keyboard"]["wndw"])) {
 ;         Hotkey("Alt", "Off")
 ;         Hotkey("Alt up", "Off")
 ;         Hotkey("Ctrl", "Off")
@@ -288,6 +288,6 @@
 ;             SetCapsLockState "Off"
 ;         }
 
-;         globalGuis[GUIKEYBOARDTITLE].guiObj.Destroy()
+;         globalGuis[INTERFACES["keyboard"]["wndw"]].guiObj.Destroy()
 ;     }
 ; }

@@ -5,7 +5,7 @@ createLoadScreen() {
     global globalConfig
     global globalStatus
 
-    guiObj := Gui(GUIOPTIONS, GUILOADTITLE)
+    guiObj := Gui(GUI_OPTIONS, INTERFACES["loadscreen"]["wndw"])
 
 	guiObj.BackColor := COLOR1
     
@@ -34,8 +34,8 @@ createLoadScreen() {
 ;
 ; retuns null
 activateLoadScreen() {
-	if (WinShown(GUILOADTITLE)) {
-		WinActivate(GUILOADTITLE)
+	if (WinShown(INTERFACES["loadscreen"]["wndw"])) {
+		WinActivate(INTERFACES["loadscreen"]["wndw"])
 	}
 }
 
@@ -46,8 +46,8 @@ destroyLoadScreen() {
     globalStatus["loadscreen"]["enable"] := false
     globalStatus["loadscreen"]["overrideWNDW"] := ""
 
-    if (getGUI(GUILOADTITLE)) {
-        getGUI(GUILOADTITLE).Destroy()
+    if (getGUI(INTERFACES["loadscreen"]["wndw"])) {
+        getGUI(INTERFACES["loadscreen"]["wndw"]).Destroy()
     }
 }
 

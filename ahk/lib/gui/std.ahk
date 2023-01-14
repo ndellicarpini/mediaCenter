@@ -12,7 +12,7 @@ parseGUIConfig(guiConfig) {
     
     FONT := (guiConfig.Has("Font")) ? guiConfig["Font"] : ""
 
-    FONTCOLOR := (guiConfig.Has("FontColor") && RegExMatch(guiConfig["FontColor"], "U)#[a-fA-F0-9]{6}"))
+    FONT_COLOR := (guiConfig.Has("FontColor") && RegExMatch(guiConfig["FontColor"], "U)#[a-fA-F0-9]{6}"))
         ? StrReplace(guiConfig["FontColor"], "#") : "ffffff"
 
     COLOR1 := (guiConfig.Has("PrimaryColor") && RegExMatch(guiConfig["PrimaryColor"], "U)#[a-fA-F0-9]{6}"))
@@ -32,20 +32,20 @@ parseGUIConfig(guiConfig) {
 setMonitorInfo(guiConfig) {
     ; TODO - get selecting a monitor actually working
 
-    global MONITORN
-    global MONITORX
-    global MONITORY
-    global MONITORW
-    global MONITORH
+    global MONITOR_N
+    global MONITOR_X
+    global MONITOR_Y
+    global MONITOR_W
+    global MONITOR_H
 
-    MONITORN := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "") ? guiConfig.items["Monitor"] : 0
+    MONITOR_N := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "") ? guiConfig.items["Monitor"] : 0
     
-    MonitorGet(MONITORN, &ML, &MT, &MR, &MB)
+    MonitorGet(MONITOR_N, &ML, &MT, &MR, &MB)
 
-    MONITORX := ML
-    MONITORY := MT
-    MONITORH := Floor(Abs(MB - MT))
-    MONITORW := Floor(Abs(MR - ML))
+    MONITOR_X := ML
+    MONITOR_Y := MT
+    MONITOR_H := Floor(Abs(MB - MT))
+    MONITOR_W := Floor(Abs(MR - ML))
 }
 
 ; gets the proper width in pixels based on pixel size of screen
@@ -55,7 +55,7 @@ setMonitorInfo(guiConfig) {
 ;
 ; returns proper size in pixels
 percentWidth(width, useSize := true, useDPI := false) {
-    return MONITORX + (width * MONITORW * ((useSize && width < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    return MONITOR_X + (width * MONITOR_W * ((useSize && width < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
 }
 
 ; gets the proper height in pixels based on pixel size of screen
@@ -65,7 +65,7 @@ percentWidth(width, useSize := true, useDPI := false) {
 ;
 ; returns proper size in pixels
 percentHeight(height, useSize := true, useDPI := false) {
-    return MONITORY + (height * MONITORH * ((useSize && height < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    return MONITOR_Y + (height * MONITOR_H * ((useSize && height < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
 }
 
 ; gets the proper width in pixels based on pixel size of screen
@@ -97,12 +97,8 @@ percentHeightRelativeWndw(height, wndw) {
 ;
 ; returns null
 guiSetFont(guiObj, options := "s15", enableSizing := true) {
-    if (Type(guiObj) = "Interface") {
-        guiObj := guiObj.guiObj
-    }
-
     optionsMap := Map()
-    optionsMap["c"] := FONTCOLOR
+    optionsMap["c"] := FONT_COLOR
 
     ; set options from parameter
     if (options != "") {
@@ -121,7 +117,7 @@ guiSetFont(guiObj, options := "s15", enableSizing := true) {
     ; the font size is scaled based on the 96 / screen's dpi (96 = default windows dpi)
     ; its also scaled by the monitor width compared to 1080p 
     if (enableSizing) {
-        optionsMap["s"] := toString(Round((96 / A_ScreenDPI) * Float(optionsMap["s"]) * SIZE * (MONITORH / 1080)))
+        optionsMap["s"] := toString(Round((96 / A_ScreenDPI) * Float(optionsMap["s"]) * SIZE * (MONITOR_H / 1080)))
     }
 
     ; convert optionMap into properly formatted options string
@@ -267,7 +263,7 @@ getNvidiaLoad() {
 guiMessage(message, timeout := 0) {
     global 
 
-    guiObj := Gui("+AlwaysOnTop " . GUIOPTIONS, GUIMESSAGETITLE)
+    guiObj := Gui("+AlwaysOnTop " . GUI_OPTIONS, INTERFACES["message"]["wndw"])
     guiObj.BackColor := COLOR1
     guiSetFont(guiObj)
     guiObj.Add("Text", "Center w" . percentWidth(0.3), message)
@@ -279,7 +275,7 @@ guiMessage(message, timeout := 0) {
     }
 
     MsgCloseTimer() {
-        if (WinShown(GUIMESSAGETITLE)) {
+        if (WinShown(INTERFACES["message"]["wndw"])) {
             guiObj.Destroy()
         }
 

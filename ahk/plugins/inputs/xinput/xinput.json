@@ -1,13 +1,10 @@
 {
     "id": "xinput",
     "name": "Xbox Controller",
+    "className": "XInputDevice",
 
     "maxConnected": 4,
     "vibration": true,
-    
-    "className": "XInputDevice",
-    "initialize": "xInitialize",
-    "destroy": "xDestroy",
 
     "kbmmode": {
         "hotkeys": {
@@ -52,7 +49,7 @@
 
     "programHotkeys": {
         "HOME": {
-            "down": "PauseMenu",
+            "down": "pausemenu",
             "time": 80
         },
         "START&SELECT": {
@@ -62,32 +59,18 @@
     },
 
     "interfaceHotkeys": {
-        "default": {
-            "[REPEAT]DU|LSY>0.4": "gui.up",
-            "[REPEAT]DD|LSY<-0.4": "gui.down",
-            "[REPEAT]DL|LSX<-0.4": "gui.left",
-            "[REPEAT]DR|LSX>0.4": "gui.right",
-            "A": "gui.select",
+        "[REPEAT]DU|LSY>0.4": "gui.up",
+        "[REPEAT]DD|LSY<-0.4": "gui.down",
+        "[REPEAT]DL|LSX<-0.4": "gui.left",
+        "[REPEAT]DR|LSX>0.4": "gui.right",
+        "B": "gui.back",
+        "A": {
+            "down": "gui.select",
+            "up": "gui.unselect"
         },
-        ; FIX THIS GARBAGE
-        "AHKGUIINPUT": {
-            "B": "gui.Destroy",
-            "A": {
-                "down": "inputMenuVibrate 1", 
-                "up": "inputMenuVibrate 0"
-            }
-        },
-        "AHKGUIPAUSE": {
-            "B": "gui.Destroy"
-        },
-        "AHKGUIPOWER": {
-            "B": "gui.Destroy"
-        },
-        "AHKGUIPROGRAM": {
-            "B": "gui.Destroy"
-        },
-        "AHKGUIVOLUME": {
-            "B": "gui.Destroy"
-        }  
+        "HOME": {
+            "down": "pausemenu",
+            "time": 80
+        }
     }
 }

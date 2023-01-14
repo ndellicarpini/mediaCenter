@@ -12,7 +12,7 @@ enableKBMMode(showDialog := true) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIKBMMODETITLE)
+        guiObj := Gui(GUI_OPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIKBMMODETITLE)
         guiObj.BackColor := COLOR1
 
         guiWidth := percentWidth(0.16)
@@ -34,8 +34,8 @@ disableKBMMode() {
     global globalGuis
 
     ; close the keyboard if open
-    ; if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-    ;     globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; if (globalGuis.Has(INTERFACES["keyboard"]["wndw"])) {
+    ;     globalGuis[INTERFACES["keyboard"]["wndw"]].Destroy()
     ; }
 
     if (keyboardExists()) {
@@ -56,7 +56,12 @@ disableKBMMode() {
 ; returns null
 enableDesktopMode(showDialog := false) {
     global globalConfig
+    global globalStatus
     global globalRunning
+
+    if (globalStatus["kbmmode"]) {
+        disableKBMMode()
+    }
 
     for key, value in globalRunning {
         if (value.background || value.minimized) {
@@ -74,7 +79,7 @@ enableDesktopMode(showDialog := false) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUIOPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIDESKTOPTITLE)
+        guiObj := Gui(GUI_OPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIDESKTOPTITLE)
         guiObj.BackColor := COLOR1
 
         guiWidth := percentWidth(0.31)
@@ -99,8 +104,8 @@ disableDesktopMode() {
     global globalGuis
 
     ; close the keyboard if open
-    ; if (globalGuis.Has(GUIKEYBOARDTITLE)) {
-    ;     globalGuis[GUIKEYBOARDTITLE].Destroy()
+    ; if (globalGuis.Has(INTERFACES["keyboard"]["wndw"])) {
+    ;     globalGuis[INTERFACES["keyboard"]["wndw"]].Destroy()
     ; }
 
     if (keyboardExists()) {

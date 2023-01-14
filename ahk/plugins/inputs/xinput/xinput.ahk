@@ -9,6 +9,30 @@ class XInputDevice extends Input {
         "RSY", 0
     )
 
+    static initialize() {
+        xLibrary := dllLoadLib("xinput1_3.dll")
+
+        xGetStatusPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'UInt', 100)
+        xGetBatteryPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputGetBatteryInformation')
+        xSetVibrationPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputSetState')
+    
+        return Map(
+            "dllLibPtr", xLibrary,
+            "getStatusPtr", xGetStatusPtr,
+            "getBatteryPtr", xGetBatteryPtr,
+            "setVibrationPtr", xSetVibrationPtr
+        )
+    }
+
+    static destroy() {
+        global globalInputStatus
+
+        xinputControllers := globalInputStatus["xinput"]
+        if (xinputControllers.Length > 0) {
+            dllFreeLib(xinputControllers[1]["initResults"]["dllLibPtr"])
+        }
+    }
+
     initDevice() {
         this.getStatus()
 
@@ -151,29 +175,5 @@ class XInputDevice extends Input {
 
     stopVibration() {
         return DllCall(this.initResults["setVibrationPtr"], "UInt", this.pluginPort, "UInt*", 0)
-    }
-}
-
-xInitialize() {
-    xLibrary := dllLoadLib("xinput1_3.dll")
-
-    xGetStatusPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'UInt', 100)
-    xGetBatteryPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputGetBatteryInformation')
-    xSetVibrationPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputSetState')
-
-    return Map(
-        "dllLibPtr", xLibrary,
-        "getStatusPtr", xGetStatusPtr,
-        "getBatteryPtr", xGetBatteryPtr,
-        "setVibrationPtr", xSetVibrationPtr
-    )
-}
-
-xDestroy() {
-    global globalInputStatus
-
-    xinputControllers := globalInputStatus["xinput"]
-    if (xinputControllers.Length > 0) {
-        dllFreeLib(xinputControllers[1]["initResults"]["dllLibPtr"])
     }
 }

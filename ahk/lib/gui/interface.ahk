@@ -4,50 +4,35 @@
 class Interface {
     ; attributes
     guiObj := ""
-    guiName := ""
-    selectColor := ""
-    deselectColor := ""
+    overlayObj := ""
 
-    allowPause := ""
+    allowPause := false
     allowFocus := true
 
     customDeselect := Map()
-    customDestroy  := ""
-    
+
     ; 2d grid of interactable controls
     control2D := [[]]
+
     ; current pos of user selection
     currentX := 1
     currentY := 1
 
-    guiX := 0
-    guiY := 0
-    guiW := 0
-    guiH := 0
+    _guiX := 0
+    _guiY := 0
+    _guiW := 0
+    _guiH := 0
     
-    scrollVOffset := 0
-    scrollHOffset := 0
+    _scrollVOffset := 0
+    _scrollHOffset := 0
 
-    ; if closing guis on select
-    ;  all - closes all guis
-    ;  current - closes current gui
-    ;  count-all - closes all guis if no new guis
-    ;  count-current - closes current gui if no new guis
-    ;  off - doesn't close guis
-    closeGuiMode := "off"
-
-    overlayObj := ""
-
-    ; same as Program
-    time := 0
-
-    __New(title, options := "", eventObj := "", allowPause := true, allowFocus := true, closeGuiMode := "off", customDestroy := "") {
+    __New(title, options := "", eventObj := "") {
         customOptions := []
 
         optionsArr := StrSplit(options, A_Space)
         for item in optionsArr {
             if (item != "" && InStr(StrLower(item), "overlay")) {
-                this.overlayObj := Gui(GUIOPTIONS . " +Disabled +ToolWindow +E0x20", "AHKOVERLAY")
+                this.overlayObj := Gui(GUI_OPTIONS . " +Disabled +ToolWindow +E0x20", "AHKOVERLAY")
                 this.overlayObj.BackColor := StrReplace(StrLower(item), "overlay", "")
 
                 customOptions.Push(item)
@@ -66,12 +51,7 @@ class Interface {
             this.guiObj := Gui(options, title)
         }
 
-        this.time          := A_TickCount
-        this.guiName       := title
-        this.closeGuiMode  := closeGuiMode
-        this.customDestroy := customDestroy
-        this.allowPause    := allowPause
-        this.allowFocus    := allowFocus
+        this.time := A_TickCount
     }
 
     ; exactly like gui.show except renders the selected item w/ the proper background
@@ -85,27 +65,27 @@ class Interface {
         optionsArr := StrSplit(options, A_Space)
         for item in optionsArr {
             if (StrLower(SubStr(item, 1, 1)) = "x") {
-                this.guiX := MONITORX + Integer(SubStr(item, 2))
-                options := StrReplace(options, item, "x" . this.guiX)
+                this._guiX := MONITOR_X + Integer(SubStr(item, 2))
+                options := StrReplace(options, item, "x" . this._guiX)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "y") {
-                this.guiY := MONITORY + Integer(SubStr(item, 2))
-                options := StrReplace(options, item, "y" . this.guiY)
+                this._guiY := MONITOR_Y + Integer(SubStr(item, 2))
+                options := StrReplace(options, item, "y" . this._guiY)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "w") {
-                this.guiW := Integer(SubStr(item, 2))
+                this._guiW := Integer(SubStr(item, 2))
 
-                if (this.guiW > MONITORW) {
-                    this.guiW := MONITORW
-                    options := StrReplace(options, item, "w" . MONITORW)
+                if (this._guiW > MONITOR_W) {
+                    this._guiW := MONITOR_W
+                    options := StrReplace(options, item, "w" . MONITOR_W)
                 }
             }
             else if (StrLower(SubStr(item, 1, 1)) = "h") {
-                this.guiH := Integer(SubStr(item, 2))
+                this._guiH := Integer(SubStr(item, 2))
 
-                if (this.guiH > MONITORH) {
-                    this.guiH := MONITORH
-                    options := StrReplace(options, item, "h" . MONITORH)
+                if (this._guiH > MONITOR_H) {
+                    this._guiH := MONITOR_H
+                    options := StrReplace(options, item, "h" . MONITOR_H)
                 }
             }
         }
@@ -149,17 +129,14 @@ class Interface {
 
         if (this.overlayObj != "") {
             try this.overlayObj.Destroy()
+            this.overlayObj := ""
             SetTimer(OverlayKill, -100)
         }
 
-        if (this.customDestroy != "") {
-            runFunction(this.customDestroy)
-            
-            Critical(restoreCritical)
-            return 
+        if (this.guiObj != "") {
+            try this.guiObj.Destroy()
+            this.guiObj := ""
         }
-
-        try this.guiObj.Destroy()
         
         Critical(restoreCritical)
         return
@@ -167,7 +144,7 @@ class Interface {
         ; omega kill this stupid overlay bc sometimes destroy doesn't work i guess??
         OverlayKill() {
             if (WinExist("AHKOVERLAY")) {
-                WinClose("AHKOVERLAY")
+                WinCloseAll("AHKOVERLAY")
             }
 
             return
@@ -182,6 +159,7 @@ class Interface {
     ;    ypos - yposition of control in gui (for user selection)
     ;         - if -1 -> gui considered in every y @ current x at time of add
     ;    f(x) - function string (x) to be ran on select of control using runFunction
+    ;    u(x) - function string (x) to be ran on release of control using runFunction
     ;  text - see gui.add
     ;
     ; returns null
@@ -191,24 +169,31 @@ class Interface {
 
         addControl := false
         controlName := ""
-        controlFunc := ""
+        controlSelectFunc := ""
+        controlUnSelectFunc := ""
+
         controlDeselect := ""
         xposArr := []
         yposArr := []
 
         currItem := ""
-        inFunction := false
+        inFunction := ""
         for item in optionsArr {
             ; loop to support functions w/ params
-            if (inFunction) {
+            if (inFunction != "") {
                 currItem .= item . A_Space
 
                 if (SubStr(item, -1, 1) = ")") {
                     currItem := RTrim(currItem, A_Space)
-                    controlFunc := SubStr(currItem, 3, StrLen(currItem) - 3)
+                    if (inFunction = "select") {
+                        controlSelectFunc := SubStr(currItem, 3, StrLen(currItem) - 3)
+                    }
+                    else {
+                        controlUnSelectFunc := SubStr(currItem, 3, StrLen(currItem) - 3)
+                    }
 
                     removeArr.Push(currItem)
-                    inFunction := false
+                    inFunction := ""
                     addControl := true
                 }
 
@@ -225,17 +210,31 @@ class Interface {
                 controlDeselect := SubStr(item, 10)
             }
 
-            ; check for a function string
+            ; check for a select function string
             else if (SubStr(item, 1, 2) = "f(") {
                 if (SubStr(item, -1, 1) = ")") {
-                    controlFunc := SubStr(item, 3, StrLen(item) - 3)
+                    controlSelectFunc := SubStr(item, 3, StrLen(item) - 3)
 
                     removeArr.Push(item)
                     addControl := true
                 }
                 else {
                     currItem := item . A_Space
-                    inFunction := true
+                    inFunction := "select"
+                }
+            }
+
+            ; check for a unselect function string
+            else if (SubStr(item, 1, 2) = "u(") {
+                if (SubStr(item, -1, 1) = ")") {
+                    controlUnSelectFunc := SubStr(item, 3, StrLen(item) - 3)
+
+                    removeArr.Push(item)
+                    addControl := true
+                }
+                else {
+                    currItem := item . A_Space
+                    inFunction := "unselect"
                 }
             }
 
@@ -306,13 +305,13 @@ class Interface {
                                 x_index := A_Index
             
                                 while(this.control2D[x_index].Length < ypos) {
-                                    this.control2D[x_index].Push({control: "", function: ""})
+                                    this.control2D[x_index].Push({control: "", select: "", unselect: ""})
                                 }
                             }
                         }
                         else {
                             while(this.control2D[xpos].Length < ypos) {
-                                this.control2D[xpos].Push({control: "", function: ""})
+                                this.control2D[xpos].Push({control: "", select: "", unselect: ""})
                             }
                         }
                     }
@@ -326,7 +325,11 @@ class Interface {
                                 y_index := A_Index
 
                                 if (this.control2D[x_index][y_index].control = "") {
-                                    this.control2D[x_index][y_index] := {control: controlName, function: controlFunc}
+                                    this.control2D[x_index][y_index] := {
+                                        control: controlName, 
+                                        select: controlSelectFunc,
+                                        unselect: controlUnSelectFunc
+                                    }
                                 }
                             }
                         }
@@ -336,7 +339,11 @@ class Interface {
                     else if (xpos = -1) {
                         loop this.control2D.Length {
                             if (this.control2D[A_Index][ypos].control = "") {
-                                this.control2D[A_Index][ypos] := {control: controlName, function: controlFunc}
+                                this.control2D[A_Index][ypos] := {
+                                    control: controlName, 
+                                    select: controlSelectFunc,
+                                    unselect: controlUnSelectFunc
+                                }
                             }
                         }
                     }
@@ -345,14 +352,22 @@ class Interface {
                     else if (ypos = -1) {
                         loop this.control2D[xpos].Length {
                             if (this.control2D[xpos][A_Index].control = "") {
-                                this.control2D[xpos][A_Index] := {control: controlName, function: controlFunc}
+                                this.control2D[xpos][A_Index] := {
+                                    control: controlName, 
+                                    select: controlSelectFunc,
+                                    unselect: controlUnSelectFunc
+                                }
                             }
                         }
                     }
 
                     ; put the interacable data in the requested slot
                     else {
-                        this.control2D[xpos][ypos] := {control: controlName, function: controlFunc}
+                        this.control2D[xpos][ypos] := {
+                            control: controlName, 
+                            select: controlSelectFunc,
+                            unselect: controlUnSelectFunc
+                        }
                     }
                 }
             }
@@ -375,38 +390,46 @@ class Interface {
         }
     }
 
-    ; runs the function defined in the selected control's interactable data
+    ; works the same as Gui
+    SetFont(options := "s15", enableSizing := true) {
+        return guiSetFont(this.guiObj, options, enableSizing)
+    }
+
+    ; runs the select function defined in the selected control's interactable data
     ;
     ; returns null
     select() {
         global globalStatus
-        global globalGuis
 
-        currGuiCount := globalGuis.Count
-
-        if (SubStr(StrLower(this.control2D[this.currentX][this.currentY].function), 1, 3) = "gui") {
-            runFunction(this.control2D[this.currentX][this.currentY].function)
-        }
-        else {
-            if (StrLower(this.closeGuiMode) = "all" || (StrLower(this.closeGuiMode) = "count-all" && currGuiCount >= globalGuis.Count)) {
-                for key, value in globalGuis {
-                    value.Destroy()
-                    globalGuis.Delete(key)
-                }
+        if (this.control2D[this.currentX][this.currentY].select != "") {
+            try {
+                runFunction(this.control2D[this.currentX][this.currentY].select)
             }
-            else if (StrLower(this.closeGuiMode) = "current" || (StrLower(this.closeGuiMode) = "count-current" && currGuiCount >= globalGuis.Count)) {
-                this.Destroy()
-            }
-
-            if (this.control2D[this.currentX][this.currentY].function != "") {
-                try {
-                    runFunction(this.control2D[this.currentX][this.currentY].function)
-                }
-                catch {
-                    globalStatus["input"]["buffer"].Push(this.control2D[this.currentX][this.currentY].function)
-                }
+            catch {
+                globalStatus["input"]["buffer"].Push(this.control2D[this.currentX][this.currentY].select)
             }
         }
+    }
+
+    ; runs the unselect function defined in the selected control's interactable data
+    ;
+    ; returns null
+    unselect() {
+        global globalStatus
+
+        if (this.control2D[this.currentX][this.currentY].unselect != "") {
+            try {
+                runFunction(this.control2D[this.currentX][this.currentY].unselect)
+            }
+            catch {
+                globalStatus["input"]["buffer"].Push(this.control2D[this.currentX][this.currentY].unselect)
+            }
+        }
+    }
+
+    ; goes back, usually overridden w/ custom function 
+    back() {
+        this.Destroy()
     }
 
     ; --- MOVEMENT FUNCTIONS ---
@@ -420,21 +443,21 @@ class Interface {
         h := 0
         
         ControlGetPos(, &y,, &h, selectedControl)
-        y += this.guiY
+        y += this._guiY
 
         if (this.currentY = 1) {
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", (-1 * this.scrollVOffset), "Ptr", 0, "Ptr", 0)
-            this.scrollVOffset := 0
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", (-1 * this._scrollVOffset), "Ptr", 0, "Ptr", 0)
+            this._scrollVOffset := 0
         }
         else if (y < 0) {
             diff := -1 * (y - percentHeight(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
-            this.scrollVOffset += diff
+            this._scrollVOffset += diff
         }
-        else if ((y + h) > (this.guiY + this.guiH)) {
-            diff := -1 * (Abs((y + h) - (this.guiY + this.guiH)) + percentHeight(0.005))
+        else if ((y + h) > (this._guiY + this._guiH)) {
+            diff := -1 * (Abs((y + h) - (this._guiY + this._guiH)) + percentHeight(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
-            this.scrollVOffset += diff
+            this._scrollVOffset += diff
         }
     }
 
@@ -444,21 +467,21 @@ class Interface {
         w := 0
         
         ControlGetPos(&x,, &w,, selectedControl)
-        x += this.guiX
+        x += this._guiX
 
         if (this.currentX = 1) {
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", (-1 * this.scrollHOffset), "Int", 0, "Ptr", 0, "Ptr", 0)
-            this.scrollHOffset := 0
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", (-1 * this._scrollHOffset), "Int", 0, "Ptr", 0, "Ptr", 0)
+            this._scrollHOffset := 0
         }
         else if (x < 0) {
             diff := -1 * (x - percentWidth(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
-            this.scrollHOffset += diff
+            this._scrollHOffset += diff
         }
-        else if ((x + w) > (this.guiX + this.guiW)) {
-            diff := -1 * (Abs((x + w) - (this.guiX + this.guiW)) + percentWidth(0.005))
+        else if ((x + w) > (this._guiX + this._guiW)) {
+            diff := -1 * (Abs((x + w) - (this._guiX + this._guiW)) + percentWidth(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
-            this.scrollHOffset += diff
+            this._scrollHOffset += diff
         }
     }
 
@@ -706,30 +729,48 @@ class Interface {
 }
 
 ; creates a gui that gets added to globalGuis
-;  title - passed to interface()
-;  options - passed to interface() 
-;  enableAnalog - passed to interface()
-;  closeGuiMode - passed to interface()
-;  customDestroy - passed to interface()
+;  interfaceKey - key from global INTERFACES containing wndw & class
 ;  setCurrent - sets the new gui as currGui
 ;  customTime - override the launch time
 ;
 ; returns null
-createInterface(title, options := "", eventObj := "", allowPause := true, allowFocus := true, closeGuiMode := "off", customDestroy := "", setCurrent := true, customTime := "") {
+createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
     global globalConfig
     global globalStatus
     global globalGuis
 
     setMonitorInfo(globalConfig["GUI"])
-    
-    globalGuis[title] := Interface(title, options, eventObj, allowPause, allowFocus, closeGuiMode, customDestroy)
+
+    if (!INTERFACES.Has(interfaceKey)) {
+        ErrorMsg("Invalid Interface Key `n" . interfaceKey)
+        return
+    }
+
+    interfaceObj := INTERFACES[interfaceKey]
+
+    if (!interfaceObj.Has("wndw") || !interfaceObj.Has("class")) {
+        ErrorMsg("Invalid Interface Definition `n" . toString(interfaceObj))
+        return
+    }
+
+    if (globalGuis.Has(interfaceKey)) {
+        globalStatus["currGui"] := interfaceKey
+        return
+    }
+
+    globalGuis[interfaceKey] := %interfaceObj["class"]%(args*)
+
+    if (globalGuis[interfaceKey].guiObj != "") {
+        globalGuis[interfaceKey].guiObj.Title := interfaceObj["wndw"]
+        globalGuis[interfaceKey].Show()
+    }
 
     if (setCurrent) {
-        globalStatus["currGui"] := title
+        globalStatus["currGui"] := interfaceKey
     }
 
     if (customTime != "") {
-        globalGuis[title].time := customTime
+        globalGuis[interfaceKey].time := customTime
     }
 
     return
@@ -761,7 +802,7 @@ checkAllGuis() {
 
     toDelete := []
     for key, value in globalGuis {
-        if (!WinShown(key)) {
+        if (value.guiObj = "" || !WinShown(value.guiObj.Title)) {
             toDelete.Push(key)
         }
     }

@@ -231,7 +231,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 4)
 
         ; intialize input type & devices
-        inputInit := runFunction(globalInputConfigs[inputID]["initialize"])
+        inputInit := %globalInputConfigs[inputID]["className"]%.initialize()
         loop maxConnected {
             thisInput.Push(%globalInputConfigs[inputID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[inputID]))
             
@@ -305,12 +305,14 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             if (!WinHidden(MAINNAME) || exitThread) {
                 SetTimer(DeviceStatusTimer, 0)
 
-                if (globalInputConfigs[inputID].Has("destroy") && globalInputConfigs[inputID]["destroy"] != "") {
-                    runFunction(globalInputConfigs[inputID]["destroy"])
+                loop thisInput.Length {
+                    thisInput[A_Index].destroyDevice()
                 }
 
+                %globalInputConfigs[inputID]["className"]%.destroy()
+
                 ; clean object of any reference to this thread (allows ObjRelease in main)
-                for item in globalInputStatus[inputID] {
+                loop globalInputStatus[inputID].Length {
                     globalInputStatus[inputID][A_Index] := 0
                 }
                 
@@ -728,9 +730,9 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                 programHotkeys := addHotkeys(programHotkeys, Map(key, value["programHotkeys"]))
             }
 
-            ; add default & individual gui hotkeys
-            if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has("default")) {
-                guiHotkeys := addHotkeys(guiHotkeys, Map(key, value["interfaceHotkeys"]["default"]))
+            ; add default interface hotkeys
+            if (value.Has("interfaceHotkeys")) {
+                guiHotkeys := addHotkeys(guiHotkeys, Map(key, value["interfaceHotkeys"]))
             }
         }
 
@@ -755,18 +757,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
 
             else if (hotkeySource = currGui) {
                 currHotkeys := guiHotkeys
-
-                validHotkeys := false
-                for key, value in globalInputConfigs {
-                    if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has(currGui)) {
-                        currHotkeys := addHotkeys(currHotkeys, Map(key, value["interfaceHotkeys"][currGui]))
-                        validHotkeys := true
-                    }
-                }
-
-                if (validHotkeys) {
-                    globalStatus["input"]["buttonTime"] := 0
-                }
+                globalStatus["input"]["buttonTime"] := 0
             }
 
             else if (hotkeySource = "suspended") {
@@ -872,7 +863,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
             if (!globalStatus["suspendScript"]) {
                 ; check status of load screen & update if appropriate
                 if (allowLoadScreen) {
-                    loadShown := WinShown(GUILOADTITLE)
+                    loadShown := WinShown(INTERFACES["loadscreen"]["wndw"])
 
                     if (globalStatus["loadscreen"]["enable"]) {
                         ; if loadscreen is supposed to be active window
@@ -898,7 +889,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
     
                         ; update loadscreen text if it has been changed
                         if (loadShown && currLoadText != globalStatus["loadscreen"]["text"]) {
-                            loadGuiObj := getGUI(GUILOADTITLE)
+                            loadGuiObj := getGUI(INTERFACES["loadscreen"]["wndw"])
                             
                             if (loadGuiObj) {
                                 loadGuiObj["LoadText"].Text := globalStatus["loadscreen"]["text"]

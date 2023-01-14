@@ -37,14 +37,14 @@
 #Include lib\gui\std.ahk
 #Include lib\gui\constants.ahk
 #Include lib\gui\interface.ahk
-#Include lib\gui\choicedialog.ahk
+#Include lib\gui\interfaces\choice.ahk
 #Include lib\gui\loadscreen.ahk
-#Include lib\gui\pausemenu.ahk
-#Include lib\gui\volumemenu.ahk
-#Include lib\gui\inputmenu.ahk
-#Include lib\gui\programmenu.ahk
-#Include lib\gui\powermenu.ahk
-#Include lib\gui\keyboard.ahk
+#Include lib\gui\interfaces\input.ahk
+#Include lib\gui\interfaces\pause.ahk
+#Include lib\gui\interfaces\power.ahk
+#Include lib\gui\interfaces\program.ahk
+#Include lib\gui\interfaces\volume.ahk
+#Include lib\gui\interfaces\keyboard.ahk
 
 SetKeyDelay 50, 100
 CoordMode "Mouse", "Screen"
@@ -346,8 +346,8 @@ loop {
     if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended) {             
         activeSet := true
 
-        if (WinShown(GUIPAUSETITLE)) {
-            destroyPauseMenu()
+        if (globalGuis.Has("pause")) {
+            globalGuis["pause"].Destroy()
         }
     }
 
@@ -373,10 +373,11 @@ loop {
 
     ; --- CHECK OPEN GUIS ---
     if (currGui != "") {
-        if (globalGuis.Has(currGui) && WinShown(currGui)) {
+        currWNDW := INTERFACES[currGui]["wndw"]
+        if (globalGuis.Has(currGui) && WinShown(currWNDW)) {
             if (!activeSet && globalGuis[currGui].allowFocus) {
-                if (forceActivate && !WinActive(currGui)) {
-                    try WinActivate(currGui)
+                if (forceActivate && !WinActive(currWNDW)) {
+                    try WinActivate(currWNDW)
                 }
 
                 activeSet := true
@@ -390,6 +391,12 @@ loop {
             if (globalGuis.Has(currGui)) {
                 globalGuis[currGui].Destroy()
                 globalGuis.Delete(currGui)
+                
+                Sleep(50)
+
+                if (WinShown(currWNDW)) {
+                    WinClose(currWNDW)
+                }
             }
 
             checkAllGuis()
@@ -531,11 +538,11 @@ InputBufferTimer() {
             return
         }
 
-        if (!globalGuis.Has(GUIPAUSETITLE)) {
-            guiPauseMenu()
+        if (!globalGuis.Has("pause")) {
+            createInterface("pause")
         }
         else {
-            globalGuis[GUIPAUSETITLE].Destroy()
+            globalGuis["pause"].Destroy()
         }
     }
 
@@ -572,43 +579,14 @@ InputBufferTimer() {
                 }
             }
         }
-        else if (currProgram != "" && (tempFunc = "pause" || tempFunc = "resume" 
-            || tempFunc = "minimize" || tempFunc = "restore" || tempFunc = "launch")) {
-
-            try globalRunning[currProgram].%tempFunc%(tempArr*)
-        }
         else {
-            SetTimer(WaitProgramResume.Bind(currProgram, tempFunc, tempArr), -50)
+            try globalRunning[currProgram].%tempFunc%(tempArr*)
         }
     }
 
     ; run function
     else if (bufferedFunc != "") {
         try runFunction(bufferedFunc)
-    }
-
-    return
-}
-
-; wait for current program to resume before requested program function
-WaitProgramResume(id, function, args) {
-    global globalRunning
-
-    if (globalStatus["currProgram"] = "" || globalStatus["currProgram"] != id || !globalRunning.Has(id)) {
-        return
-    }
-
-    this := globalRunning[id]
-    
-    if (!this.exists()) {
-        return
-    }
-
-    if (!this.paused) {
-        try this.%function%(args*)
-    }
-    else { 
-        SetTimer(WaitProgramResume.Bind(id, function, args), -50)
     }
 
     return

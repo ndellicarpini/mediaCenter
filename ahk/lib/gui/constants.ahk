@@ -1,24 +1,53 @@
-global GUIOPTIONS := "-DPIScale -Resize -Caption"
+global GUI_OPTIONS := "-DPIScale -Resize -Caption"
 
-global MONITORN := 0
-global MONITORH := 0
-global MONITORW := 0
-global MONITORX := 0
-global MONITORY := 0
+global MONITOR_N := 0
+global MONITOR_H := 0
+global MONITOR_W := 0
+global MONITOR_X := 0
+global MONITOR_Y := 0
 
 global SIZE := ""
 global FONT := ""
-global FONTCOLOR := ""
+global FONT_COLOR := ""
 global COLOR1 := ""
 global COLOR2 := ""
 global COLOR3 := ""
 
-global GUIMESSAGETITLE    := "AHKGUIMESSAGE"
-global GUICHOICETITLE     := "AHKGUICHOICE"
-global GUICONTROLLERTITLE := "AHKGUIINPUT"
-global GUIKEYBOARDTITLE   := "AHKGUIKEYBOARD"
-global GUILOADTITLE       := "AHKGUILOAD"
-global GUIPAUSETITLE      := "AHKGUIPAUSE"
-global GUIPOWERTITLE      := "AHKGUIPOWER"
-global GUIPROGRAMTITLE    := "AHKGUIPROGRAM"
-global GUIVOLUMETITLE     := "AHKGUIVOLUME"
+global INTERFACES := Map(
+    "message", Map(
+        "wndw", "AHKGUIMESSAGE",
+        "class", "MessageInterface"
+    ),
+    "choice", Map(
+        "wndw", "AHKGUICHOICE",
+        "class", "ChoiceInterface"
+    ),
+    "input", Map(
+        "wndw", "AHKGUIINPUT",
+        "class", "InputInterface"
+    ),
+    "keyboard", Map(
+        "wndw", "AHKGUIKEYBOARD",
+        "class", "KeyboardInterface"
+    ),
+    "loadscreen", Map(
+        "wndw", "AHKGUILOADSCREEN",
+        "class", "LoadscreenInterface"
+    ),
+    "pause", Map(
+        "wndw", "AHKGUIPAUSE",
+        "class", "PauseInterface"
+    ),
+    "power", Map(
+        "wndw", "AHKGUIPOWER",
+        "class", "PowerInterface"
+    ),
+    "program", Map(
+        "wndw", "AHKGUIPROGRAM",
+        "class", "ProgramInterface"
+    ),
+    "volume", Map(
+        "wndw", "AHKGUIVOLUME",
+        "class", "VolumeInterface"
+    )
+)

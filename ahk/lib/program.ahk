@@ -619,8 +619,8 @@ class Program {
         ; currently rounding the INACCURATE client area as returned by WinGetClientPos
         ; bc of that i'm rounding the reported aspect ratios to common ones
 
-        validWidths  := [MONITORW, 21, 16, 4]
-        validHeights := [MONITORH,  9,  9, 3]
+        validWidths  := [MONITOR_W, 21, 16, 4]
+        validHeights := [MONITOR_H,  9,  9, 3]
 
         minDiff := 69
         aspectIndex := 1
@@ -633,11 +633,11 @@ class Program {
             }
         }
 
-        multiplier := Min(MONITORW / validWidths[aspectIndex], MONITORH / validHeights[aspectIndex])
+        multiplier := Min(MONITOR_W / validWidths[aspectIndex], MONITOR_H / validHeights[aspectIndex])
         newW := validWidths[aspectIndex]  * multiplier
         newH := validHeights[aspectIndex] * multiplier
 
-        WinMove(MONITORX + ((MONITORW - newW) / 2), MONITORY + ((MONITORH - newH) / 2), newW, newH, window)
+        WinMove(MONITOR_X + ((MONITOR_W - newW) / 2), MONITOR_Y + ((MONITOR_H - newH) / 2), newW, newH, window)
 
         Critical(restoreCritical)
 
@@ -814,16 +814,18 @@ class Program {
 
         ; repeated check while program is hung
         CheckHungTimer() {
+            global globalGuis
+
             ; if exists & hung
             if (ProcessExist(this.getPID()) && !WinResponsive(this.getHWND())) {               
                 if (this.hungCount > this.maxHungCount) {
                     ; create "wait for program" gui dialog
                     if (!this.waitingHungTimer) {
-                        createChoiceDialog(this.name " has stopped responding", "Wait",,, "Exit", "ProcessKill " . this.getPID(), "FF0000")
+                        createInterface("choice",,, this.name " has stopped responding", "Wait",,, "Exit", "ProcessKill " . this.getPID(), "FF0000")
                         this.waitingHungTimer := true
                     }
                     ; reset hung count if gui dialog doesn't exist
-                    else if (!WinShown(GUICHOICETITLE)) {
+                    else if (!globalGuis.Has("choice")) {
                         this.hungCount := 0
                         this.waitingHungTimer := false
                     }
@@ -837,10 +839,9 @@ class Program {
                 this.hungCount := 0
 
                 ; close gui dialog if it exists
-                hungGUI := getGUI(GUICHOICETITLE)
-                if (this.waitingHungTimer && hungGUI) {
+                if (this.waitingHungTimer && globalGuis.Has("choice")) {
                     this.waitingHungTimer := false
-                    hungGUI.Destroy()
+                    globalGuis["choice"].Destroy()
                 }
             }
             
@@ -1372,6 +1373,25 @@ createProgram(params, launchProgram := true, setCurrent := true, customAttribute
     }
 
     ErrorMsg("Program " . newID . " was not found")
+}
+
+; runs/restores the default program
+;
+; returns null
+createDefaultProgram() {
+    global globalConfig
+    global globalRunning
+
+    if (globalConfig["Plugins"].Has("DefaultProgram") && globalConfig["Plugins"]["DefaultProgram"] != "") {
+        defaultProgram := globalConfig["Plugins"]["DefaultProgram"]
+
+        if (globalRunning.Has(defaultProgram)) {
+            setCurrentProgram(defaultProgram)
+        }
+        else {
+            createProgram(defaultProgram)
+        }
+    }
 }
 
 ; sets the requested id as the current program if it exists
