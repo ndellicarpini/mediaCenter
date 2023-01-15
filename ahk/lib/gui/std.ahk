@@ -1,44 +1,58 @@
 ; cleans up gui config & sets default theming values if not provided in the config
-;  guiConfig - GUI config from global.cfg
 ;
 ; returns null
-parseGUIConfig(guiConfig) {
-    global 
+setGUIConstants() {
+    global globalConfig
+    global SIZE   
+    global FONT
+    global FONT_COLOR
+    global COLOR1
+    global COLOR2
+    global COLOR3 
 
-    setMonitorInfo(guiConfig)
+    setMonitorInfo()
+    setInterfaceOverrides()
+
+    if (!globalConfig.Has("GUI")) {
+        return
+    }
     
-    SIZE := (guiConfig.Has("SizeMultiplier") && guiConfig["SizeMultiplier"] != "")
-        ? guiConfig["SizeMultiplier"] : 1
+    SIZE := (globalConfig["GUI"].Has("SizeMultiplier") && globalConfig["GUI"]["SizeMultiplier"] != "")
+        ? globalConfig["GUI"]["SizeMultiplier"] : 1
     
-    FONT := (guiConfig.Has("Font")) ? guiConfig["Font"] : ""
+    FONT := (globalConfig["GUI"].Has("Font")) ? globalConfig["GUI"]["Font"] : ""
 
-    FONT_COLOR := (guiConfig.Has("FontColor") && RegExMatch(guiConfig["FontColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig["FontColor"], "#") : "ffffff"
+    FONT_COLOR := (globalConfig["GUI"].Has("FontColor") && RegExMatch(globalConfig["GUI"]["FontColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(globalConfig["GUI"]["FontColor"], "#") : "ffffff"
 
-    COLOR1 := (guiConfig.Has("PrimaryColor") && RegExMatch(guiConfig["PrimaryColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig["PrimaryColor"], "#") : "000000"
+    COLOR1 := (globalConfig["GUI"].Has("PrimaryColor") && RegExMatch(globalConfig["GUI"]["PrimaryColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(globalConfig["GUI"]["PrimaryColor"], "#") : "000000"
 
-    COLOR2 := (guiConfig.Has("SecondaryColor") && RegExMatch(guiConfig["SecondaryColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig["SecondaryColor"], "#") : "1a1a1a"
+    COLOR2 := (globalConfig["GUI"].Has("SecondaryColor") && RegExMatch(globalConfig["GUI"]["SecondaryColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(globalConfig["GUI"]["SecondaryColor"], "#") : "1a1a1a"
 
-    COLOR3 := (guiConfig.Has("SelectionColor") && RegExMatch(guiConfig["SelectionColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(guiConfig["SelectionColor"], "#") : "3399ff"
+    COLOR3 := (globalConfig["GUI"].Has("SelectionColor") && RegExMatch(globalConfig["GUI"]["SelectionColor"], "U)#[a-fA-F0-9]{6}"))
+        ? StrReplace(globalConfig["GUI"]["SelectionColor"], "#") : "3399ff"
 }
 
 ; sets global monitor gui variables
-;  guiConfig - GUI config from global.cfg
 ;
 ; returns null
-setMonitorInfo(guiConfig) {
+setMonitorInfo() {
     ; TODO - get selecting a monitor actually working
 
+    global globalConfig
     global MONITOR_N
     global MONITOR_X
     global MONITOR_Y
     global MONITOR_W
     global MONITOR_H
 
-    MONITOR_N := (guiConfig.Has("Monitor") && guiConfig["Monitor"] != "") ? guiConfig.items["Monitor"] : 0
+    if (!globalConfig.Has("GUI")) {
+        return
+    }
+
+    MONITOR_N := (globalConfig["GUI"].Has("Monitor") && globalConfig["GUI"]["Monitor"] != "") ? globalConfig["GUI"].items["Monitor"] : 0
     
     MonitorGet(MONITOR_N, &ML, &MT, &MR, &MB)
 
@@ -46,6 +60,24 @@ setMonitorInfo(guiConfig) {
     MONITOR_Y := MT
     MONITOR_H := Floor(Abs(MB - MT))
     MONITOR_W := Floor(Abs(MR - ML))
+}
+
+; sets global interface classes from overrides in global.cfg
+;
+; returns null
+setInterfaceOverrides() {
+    global globalConfig
+    global INTERFACES
+
+    if (!globalConfig.Has("Overrides")) {
+        return
+    }
+
+    for key, value in INTERFACES {
+        if (globalConfig["Overrides"].Has(key)) {
+            INTERFACES[key]["class"] := globalConfig["Overrides"][key]
+        }
+    }
 }
 
 ; gets the proper width in pixels based on pixel size of screen
@@ -184,101 +216,4 @@ getThumbnailPath(asset, globalConfig) {
 	}
 
     return assetPath
-}
-
-; gets the cpu load as a float percentage
-;
-; returns the cpu load
-getCpuLoad() {
-    static prevKernelUser := 0
-    static prevIdle := 0
-
-    kernel := 0
-    user := 0
-    idle := 0
-
-    DllCall("GetSystemTimes", "Int64P", &idle, "Int64P", &kernel, "Int64P", &user)
-
-    retVal := 100 * (1 - ((idle - prevIdle) / ((kernel + user) - prevKernelUser)))
-
-    prevKernelUser := kernel + user
-    prevIdle := idle
-
-	return retVal
-}
-
-; gets the ram load as a int percentage
-;
-; returns the ram load
-getRamLoad() {
-    status := Buffer(64)
-	NumPut("UInt", status.Size, status)
-    
-	try {
-		if !(DllCall("GlobalMemoryStatusEx", "ptr", status.Ptr)) {
-			ErrorMsg("Failed to get memory status")
-			return 0
-		}
-
-		return NumGet(status, 4, "UInt")
-	}
-
-    return 0
-}
-
-; gets the gpu usage if the user has a nvidia gpu
-; this only works when called from main (has the library initialized)
-; this only works for 1 gpu (gpu0=256)
-;
-; returns the gpu usage
-getNvidiaLoad() {
-    try {
-        static mainGPUPtr := 0
-        
-        if (mainGPUPtr = 0) {
-            hwBuffer := Buffer(256, 0)
-            
-            DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0xE5AC921F, "CDecl UPtr"), "Ptr", hwBuffer.Ptr, "UInt*", &temp := 0, "CDecl")
-            
-            mainGPUPtr := NumGet(hwBuffer, 0, "UInt")
-        }
-        
-        usageBuffer := Buffer(136, 0)
-        NumPut("UInt", 136 | 0x10000, usageBuffer)
-        
-        DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x189A1FDF, "CDecl UPtr"), "Ptr", mainGPUPtr, "Ptr", usageBuffer.Ptr, "CDecl")
-        
-        return NumGet(usageBuffer, 12, "UInt")
-    }
-    
-
-	return 0
-}
-
-; creates a centered message popup that can be closed with A or B
-;  message - message string to show
-;  timeout - if > 0 closes window after # of ms
-;
-; returns null
-guiMessage(message, timeout := 0) {
-    global 
-
-    guiObj := Gui("+AlwaysOnTop " . GUI_OPTIONS, INTERFACES["message"]["wndw"])
-    guiObj.BackColor := COLOR1
-    guiSetFont(guiObj)
-    guiObj.Add("Text", "Center w" . percentWidth(0.3), message)
-
-    guiObj.Show("Center AutoSize NoActivate")
-
-    if (timeout > 0) {
-        SetTimer 'MsgCloseTimer', timeout
-    }
-
-    MsgCloseTimer() {
-        if (WinShown(INTERFACES["message"]["wndw"])) {
-            guiObj.Destroy()
-        }
-
-        return
-    }
 }

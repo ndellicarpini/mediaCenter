@@ -18,6 +18,10 @@ global INTERFACES := Map(
         "wndw", "AHKGUIMESSAGE",
         "class", "MessageInterface"
     ),
+    "notification", Map(
+        "wndw", "AHKGUINOTIFICATION",
+        "class", "NotificationInterface"
+    ),
     "choice", Map(
         "wndw", "AHKGUICHOICE",
         "class", "ChoiceInterface"

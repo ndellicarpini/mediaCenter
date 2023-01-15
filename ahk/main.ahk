@@ -3,6 +3,7 @@
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include plugins\ahk\boot.ahk
+#Include plugins\ahk\LOADSC~1.AHK
 #Include plugins\inputs\xinput\xinput.ahk
 #Include plugins\programs\AMAZON~1\AMAZON~1.AHK
 #Include plugins\programs\bigbox\bigbox.ahk
@@ -37,8 +38,10 @@
 #Include lib\gui\std.ahk
 #Include lib\gui\constants.ahk
 #Include lib\gui\interface.ahk
+#Include lib\gui\interfaces\message.ahk
+#Include lib\gui\interfaces\notification.ahk
 #Include lib\gui\interfaces\choice.ahk
-#Include lib\gui\loadscreen.ahk
+#Include lib\gui\interfaces\loadscreen.ahk
 #Include lib\gui\interfaces\input.ahk
 #Include lib\gui\interfaces\pause.ahk
 #Include lib\gui\interfaces\power.ahk
@@ -65,6 +68,11 @@ global globalInputStatus  := Map()
 global globalInputConfigs := Map()
 global globalThreads      := Map()
 
+globalConsoles.CaseSense := "Off"
+globalPrograms.CaseSense := "Off"
+globalRunning.CaseSense  := "Off"
+globalGuis.CaseSense     := "Off"
+
 
 ; ----- INITIALIZE GLOBALCONFIG -----
 globalConfig["StartArgs"] := A_Args
@@ -87,8 +95,20 @@ if (globalConfig["General"].Has("MainPriority") && globalConfig["General"]["Main
     ProcessSetPriority(globalConfig["General"]["MainPriority"])
 }
 
+; set overrides to case insensitive
+if (globalConfig.Has("Overrides")) {
+    overrides := ObjDeepClone(globalCOnfig["Overrides"])
+
+    globalConfig["Overrides"] := Map()
+    globalConfig["Overrides"].CaseSense := "Off"
+
+    for key, value in overrides {
+        globalConfig["Overrides"][key] := value
+    }
+}
+
 ; set gui variables
-parseGUIConfig(globalConfig["GUI"])
+setGUIConstants()
 
 ; create required folders
 requiredFolders := [expandDir("data")]
@@ -121,10 +141,10 @@ for value in requiredFolders {
 }
 
 ; load process monitoring library for checking process lists
-processLib := dllLoadLib("psapi.dll")
+processLib := DllLoadLib("psapi.dll")
 
 ; load gdi library for screenshot thumbnails
-gdiLib := dllLoadLib("GdiPlus.dll")
+gdiLib := DllLoadLib("GdiPlus.dll")
 
 gdiToken  := 0
 gdiBuffer := Buffer(24, 0)
@@ -134,7 +154,7 @@ DllCall("GdiPlus\GdiplusStartup", "UPtr*", gdiToken, "Ptr", gdiBuffer.Ptr, "Ptr"
 ; load nvidia library for gpu monitoring
 if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) { 
     try {
-        nvLib := dllLoadLib("nvapi64.dll")
+        nvLib := DllLoadLib("nvapi64.dll")
         DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
     }
     catch {
@@ -302,8 +322,10 @@ globalThreads["misc"] := miscThread(
 Sleep(100)
 
 ; ----- BOOT -----
-if (!inArray("-backup", globalConfig["StartArgs"])) {
-    try %"customBoot"%()
+if (!inArray("-backup", globalConfig["StartArgs"]) && globalConfig.Has("Overrides") 
+    && globalConfig["Overrides"].Has("boot") && globalConfig["Overrides"]["boot"] != "") {
+    
+    try %globalConfig["Overrides"]["boot"]%()
 }
 
 ; enables the OnMessage listener for send2Main
@@ -375,16 +397,18 @@ loop {
     if (currGui != "") {
         currWNDW := INTERFACES[currGui]["wndw"]
         if (globalGuis.Has(currGui) && WinShown(currWNDW)) {
-            if (!activeSet && globalGuis[currGui].allowFocus) {
-                if (forceActivate && !WinActive(currWNDW)) {
-                    try WinActivate(currWNDW)
+            if (globalGuis[currGui].allowFocus) {
+                if (!activeSet) {
+                    if (forceActivate && !WinActive(currWNDW)) {
+                        try WinActivate(currWNDW)
+                    }
+    
+                    activeSet := true
                 }
-
-                activeSet := true
-            }
-
-            if (hotkeySource = "") {
-                hotkeySource := currGui
+    
+                if (hotkeySource = "") {
+                    hotkeySource := currGui
+                }
             }
         } 
         else {
@@ -654,13 +678,13 @@ ShutdownScript(restoreTaskbar := true) {
 
     setLoadScreen("Please Wait...")
 
-    dllFreeLib(processLib)
+    DllFreeLib(processLib)
     
     DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
-    dllFreeLib(gdiLib)
+    DllFreeLib(gdiLib)
     
     if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
-        dllFreeLib(nvLib)
+        DllFreeLib(nvLib)
     }
     
     ; reset dpi scaling

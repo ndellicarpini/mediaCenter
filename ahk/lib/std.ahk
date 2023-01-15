@@ -251,6 +251,58 @@ SendSafe(key, time := 100) {
 	Send(key . " up}")
 }
 
+; deep clones an object, supporting Maps & Arrays
+; obj - obj to deep clone
+;
+; returns cloned object
+ObjDeepClone(obj) {
+	if (!IsObject(obj)) {
+		return obj
+	}
+
+	retObj := ""
+	if (Type(obj) = "Map") {
+		retObj := Map()
+		for key, value in obj {
+			retObj[key] := ObjDeepClone(value)
+		}
+	}
+	else if (Type(obj) = "Array") {
+		retObj := []
+		loop obj.Length {
+			retObj.Push(ObjDeepClone(obj[A_Index]))
+		}
+	}
+	else {
+		retObj := {}
+		for key, value in obj.OwnProps() {
+			retObj.%key% := ObjDeepClone(value)
+		}
+	}
+
+	return retObj
+}
+
+; loads the dll library for access in the script
+;  library - string name of library to load
+;
+; returns the library
+DllLoadLib(library) {
+	return DllCall("LoadLibrary", "Str", library)
+}
+
+; frees the dll library for access in the script
+;  library - string name of library to free
+;
+; returns success state
+DllFreeLib(library) {
+	if (library = 0) {
+        return 0
+    }
+
+    return DllCall("FreeLibrary", "uint", library)
+}
+
 ; sums all values in each list
 ;  lists - args lists
 ;
@@ -289,38 +341,6 @@ Sum(lists*) {
 	}
 
 	return retVal
-}
-
-; deep clones an object, supporting Maps & Arrays
-; obj - obj to deep clone
-;
-; returns cloned object
-ObjDeepClone(obj) {
-	if (!IsObject(obj)) {
-		return obj
-	}
-
-	retObj := ""
-	if (Type(obj) = "Map") {
-		retObj := Map()
-		for key, value in obj {
-			retObj[key] := ObjDeepClone(value)
-		}
-	}
-	else if (Type(obj) = "Array") {
-		retObj := []
-		loop obj.Length {
-			retObj.Push(ObjDeepClone(obj[A_Index]))
-		}
-	}
-	else {
-		retObj := {}
-		for key, value in obj.OwnProps() {
-			retObj.%key% := ObjDeepClone(value)
-		}
-	}
-
-	return retObj
 }
 
 ; converts the value to a string by appending it to empty string
@@ -877,22 +897,71 @@ getDynamicIncludes(toRead) {
 	return retString
 }
 
-; loads the dll library for access in the script
-;  library - string name of library to load
+; gets the cpu load as a float percentage
 ;
-; returns the library
-dllLoadLib(library) {
-	return DllCall("LoadLibrary", "Str", library)
+; returns the cpu load
+getCpuLoad() {
+    static prevKernelUser := 0
+    static prevIdle := 0
+
+    kernel := 0
+    user := 0
+    idle := 0
+
+    DllCall("GetSystemTimes", "Int64P", &idle, "Int64P", &kernel, "Int64P", &user)
+
+    retVal := 100 * (1 - ((idle - prevIdle) / ((kernel + user) - prevKernelUser)))
+
+    prevKernelUser := kernel + user
+    prevIdle := idle
+
+	return retVal
 }
 
-; frees the dll library for access in the script
-;  library - string name of library to free
+; gets the ram load as a int percentage
 ;
-; returns success state
-dllFreeLib(library) {
-	if (library = 0) {
-        return 0
-    }
+; returns the ram load
+getRamLoad() {
+    status := Buffer(64)
+	NumPut("UInt", status.Size, status)
+    
+	try {
+		if !(DllCall("GlobalMemoryStatusEx", "ptr", status.Ptr)) {
+			ErrorMsg("Failed to get memory status")
+			return 0
+		}
 
-    return DllCall("FreeLibrary", "uint", library)
+		return NumGet(status, 4, "UInt")
+	}
+
+    return 0
+}
+
+; gets the gpu usage if the user has a nvidia gpu
+; this only works when called from main (has the library initialized)
+; this only works for 1 gpu (gpu0=256)
+;
+; returns the gpu usage
+getNvidiaLoad() {
+    try {
+        static mainGPUPtr := 0
+        
+        if (mainGPUPtr = 0) {
+            hwBuffer := Buffer(256, 0)
+            
+            DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0xE5AC921F, "CDecl UPtr"), "Ptr", hwBuffer.Ptr, "UInt*", &temp := 0, "CDecl")
+            
+            mainGPUPtr := NumGet(hwBuffer, 0, "UInt")
+        }
+        
+        usageBuffer := Buffer(136, 0)
+        NumPut("UInt", 136 | 0x10000, usageBuffer)
+        
+        DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x189A1FDF, "CDecl UPtr"), "Ptr", mainGPUPtr, "Ptr", usageBuffer.Ptr, "CDecl")
+        
+        return NumGet(usageBuffer, 12, "UInt")
+    }
+    
+
+	return 0
 }

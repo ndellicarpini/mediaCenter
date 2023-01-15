@@ -114,10 +114,10 @@ class Interface {
             WinSetTransparent(200, "AHKOVERLAY")
         }
 
-        this.guiObj.Show(options)
+        retVal := this.guiObj.Show(options)
         
         Critical(restoreCritical)
-        return
+        return retVal
     }
 
     ; exactly like gui.destroy
@@ -383,10 +383,10 @@ class Interface {
         }
 
         if (text != "") {
-            this.guiObj.Add(type, cleanOptions, text)
+            return this.guiObj.Add(type, cleanOptions, text)
         }
         else {
-            this.guiObj.Add(type, cleanOptions)
+            return this.guiObj.Add(type, cleanOptions)
         }
     }
 
@@ -739,7 +739,7 @@ createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
     global globalStatus
     global globalGuis
 
-    setMonitorInfo(globalConfig["GUI"])
+    setMonitorInfo()
 
     if (!INTERFACES.Has(interfaceKey)) {
         ErrorMsg("Invalid Interface Key `n" . interfaceKey)
@@ -753,7 +753,7 @@ createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
         return
     }
 
-    if (globalGuis.Has(interfaceKey)) {
+    if (globalGuis.Has(interfaceKey) && WinShown(interfaceObj["wndw"])) {
         globalStatus["currGui"] := interfaceKey
         return
     }

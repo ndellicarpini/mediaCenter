@@ -10,11 +10,10 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
     restoreScriptDir := A_ScriptDir
     
     global globalConfig
-    tempConfig := globalConfig
     
     includeString := ""
-    if (tempConfig["Plugins"].Has("InputPluginDir") && tempConfig["Plugins"]["InputPluginDir"] != "") {
-        loop files (validateDir(tempConfig["Plugins"]["InputPluginDir"]) . "*.ahk"), "R" {
+    if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["InputPluginDir"] != "") {
+        loop files (validateDir(globalConfig["Plugins"]["InputPluginDir"]) . "*.ahk"), "R" {
             includeString .= "#Include " . A_LoopFileShortPath . "`n"
         }
     }
@@ -829,12 +828,30 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
 miscThread(globalConfigPtr, globalStatusPtr) {
     restoreScriptDir := A_ScriptDir
 
-    ref := ThreadObj("
+    global globalConfig
+
+    includeString := ""
+    if (globalConfig.Has("Overrides") && globalConfig["Overrides"].Has("loadscreen")) {
+        loadscreenClass := globalConfig["Overrides"]["loadscreen"]
+        
+        if (loadscreenClass != "" && globalConfig["Plugins"].Has("AHKPluginDir") && globalConfig["Plugins"]["AHKPluginDir"] != "") {
+            loop files (validateDir(globalConfig["Plugins"]["AHKPluginDir"]) . "*.ahk"), "R" {
+                contents := fileOrString(A_LoopFileFullPath)
+
+                if (RegExMatch(contents, "U) *class *" . regexClean(loadscreenClass))) {
+                    includeString .= "#Include " . A_LoopFileShortPath . "`n"
+                }
+            }
+        }
+    }
+    
+    ref := ThreadObj(includeString . "
     (   
         #Include lib\std.ahk
         #Include lib\gui\std.ahk
         #Include lib\gui\constants.ahk
-        #Include lib\gui\loadscreen.ahk
+        #Include lib\gui\interface.ahk
+        #Include lib\gui\interfaces\loadscreen.ahk
         
         Critical("Off")
 
@@ -846,8 +863,11 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         global globalConfig := ObjFromPtr(A_Args[1])
         global globalStatus := ObjFromPtr(A_Args[2])
 
+        ; fake globalGuis for loadscreen
+        global globalGuis := Map()
+
         ; set gui variables from config for loadscreen
-        parseGUIConfig(globalConfig["GUI"])
+        setGUIConstants()
         
         currLoadText   := globalStatus["loadscreen"]["text"]
         currLoadShow   := globalStatus["loadscreen"]["show"]
@@ -870,7 +890,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                         if (globalStatus["loadscreen"]["show"]) {
                             ; create loadscreen if doesn't exist
                             if (!loadShown) {
-                                createLoadScreen()
+                                createInterface("loadscreen", false,, globalStatus["loadscreen"]["text"])
                             }
 
                             ; activate overrideWNDW if it exists
@@ -878,6 +898,10 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                                 && WinShown(globalStatus["loadscreen"]["overrideWNDW"])) {
                                 
                                 WinActivate(globalStatus["loadscreen"]["overrideWNDW"])
+                            }
+                            ; activate message if it exists
+                            else if (WinShown(INTERFACES["message"]["wndw"])) {
+                                WinActivate(INTERFACES["message"]["wndw"])
                             }
                             ; activate loadscreen
                             else {
@@ -888,13 +912,9 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                         }
     
                         ; update loadscreen text if it has been changed
-                        if (loadShown && currLoadText != globalStatus["loadscreen"]["text"]) {
-                            loadGuiObj := getGUI(INTERFACES["loadscreen"]["wndw"])
-                            
-                            if (loadGuiObj) {
-                                loadGuiObj["LoadText"].Text := globalStatus["loadscreen"]["text"]
-                                loadGuiObj["LoadText"].Redraw()
-        
+                        if (loadShown && currLoadText != globalStatus["loadscreen"]["text"]) {                            
+                            if (globalGuis.Has("loadscreen")) {
+                                globalGuis["loadscreen"].updateText(globalStatus["loadscreen"]["text"])       
                                 currLoadText := globalStatus["loadscreen"]["text"]
                             }
                         }

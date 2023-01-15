@@ -1,33 +1,33 @@
-; creates & shows the load screen
-;
-; returns null
-createLoadScreen() {
-    global globalConfig
-    global globalStatus
+class LoadScreenInterface extends Interface {
+    __New(text) {
+        super.__New(INTERFACES["loadscreen"]["wndw"], GUI_OPTIONS)
 
-    guiObj := Gui(GUI_OPTIONS, INTERFACES["loadscreen"]["wndw"])
+        this.guiObj.BackColor := COLOR1
+        this.guiObj.marginX := percentWidth(0.01, false)
 
-	guiObj.BackColor := COLOR1
-    
-    guiSetFont(guiObj, "s26")
+        this.SetFont("italic s30")
+        this.Add("Text", "vLoadText Right 0x200 xm0 w" . (percentWidth(1) - percentWidth(0.03, false)), text)
 
-    imgSize := percentWidth(0.04)
-    
-    guiObj.Add("Text", "vLoadText Center x0 y" . percentHeight(0.92, false) " w" . percentWidth(1), globalStatus["loadscreen"]["text"])
+        this.guiObj["LoadText"].GetPos(&X, &Y, &W, &H)
+        this.guiObj["LoadText"].Move(X, (percentHeight(1) - percentWidth(0.01, false) - H), W, H)
+    }
 
-    imgHTML := (
-        "<html>"
-            "<body style='background-color: transparent' style='overflow:hidden' leftmargin='0' topmargin='0'>"
-                "<img src='" getAssetPath("loading.gif", globalConfig) "' width=" . imgSize . " height=" . imgSize . " border=0 padding=0>"
-            "</body>"
-        "</html>"
-    )
+    Show() {
+        super.Show("x0 y0 NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
+    }
 
-    IMG := guiObj.Add("ActiveX", "w" . imgSize . " h" . imgSize . " x" . percentWidth(0.5, false) - (imgSize / 2) . " yp-" . (imgSize + percentHeight(0.015)), "Shell.Explorer").Value
-    IMG.Navigate("about:blank")
-    IMG.document.write(imgHTML)
+    select() {
+        return
+    }
 
-    guiObj.Show("x0 y0 NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
+    back() {
+        return
+    }
+
+    updateText(text) {
+        this.guiObj["LoadText"].Text := text
+        this.guiObj["LoadText"].Redraw()
+    }
 }
 
 ; activates the load screen
@@ -43,11 +43,15 @@ activateLoadScreen() {
 ;
 ; returns null
 destroyLoadScreen() {
+    global globalStatus
+    global globalGuis
+
     globalStatus["loadscreen"]["enable"] := false
     globalStatus["loadscreen"]["overrideWNDW"] := ""
 
-    if (getGUI(INTERFACES["loadscreen"]["wndw"])) {
-        getGUI(INTERFACES["loadscreen"]["wndw"]).Destroy()
+    if (globalGuis.Has("loadscreen")) {
+        globalGuis["loadscreen"].Destroy()
+        globalGuis.Delete("loadscreen")
     }
 }
 

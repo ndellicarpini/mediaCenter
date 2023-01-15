@@ -12,18 +12,7 @@ enableKBMMode(showDialog := true) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUI_OPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIKBMMODETITLE)
-        guiObj.BackColor := COLOR1
-
-        guiWidth := percentWidth(0.16)
-        guiHeight := percentHeight(0.05)
-        guiSetFont(guiObj, "bold s24")
-
-        guiObj.Add("Text", "0x200 Center x0 y0 w" . guiWidth . " h" . guiHeight, "KB && Mouse Mode")
-        guiObj.Show("NoActivate w" . guiWidth . " h" . guiHeight 
-            . " x" . (percentWidth(1) - (guiWidth + percentWidth(0.01, false))) . " y" . (percentHeight(1) - (guiHeight + percentWidth(0.01, false))))
-        
-        WinSetTransparent(230, GUIKBMMODETITLE)
+        createInterface("notification", false,, "KB && Mouse Mode")
     }
 }
 
@@ -31,6 +20,7 @@ enableKBMMode(showDialog := true) {
 ;
 ; returns null
 disableKBMMode() {
+    global globalStatus
     global globalGuis
 
     ; close the keyboard if open
@@ -45,8 +35,8 @@ disableKBMMode() {
     globalStatus["kbmmode"] := false
     MouseMove(percentWidth(1), percentHeight(1))
 
-    if (WinShown(GUIKBMMODETITLE)) {
-        WinClose(GUIKBMMODETITLE)
+    if (globalGuis.Has("notification")) {
+        globalGuis["notification"].Destroy()
     }
 }
 
@@ -54,7 +44,7 @@ disableKBMMode() {
 ;  showDialog - whether or not to show the info splash
 ;
 ; returns null
-enableDesktopMode(showDialog := false) {
+enableDesktopMode(showDialog := true) {
     global globalConfig
     global globalStatus
     global globalRunning
@@ -79,18 +69,7 @@ enableDesktopMode(showDialog := false) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        guiObj := Gui(GUI_OPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20", GUIDESKTOPTITLE)
-        guiObj.BackColor := COLOR1
-
-        guiWidth := percentWidth(0.31)
-        guiHeight := percentHeight(0.05)
-        guiSetFont(guiObj, "bold s24")
-
-        guiObj.Add("Text", "0x200 Center x0 y0 w" . guiWidth . " h" . guiHeight, "Press HOME to Disable Desktop Mode")
-        guiObj.Show("NoActivate w" . guiWidth . " h" . guiHeight 
-            . " x" . (percentWidth(1) - (guiWidth + percentWidth(0.01, false))) . " y" . (percentHeight(1) - (guiHeight + percentWidth(0.01, false))))
-        
-        WinSetTransparent(230, GUIDESKTOPTITLE)
+        createInterface("notification", false,, "Press HOME to Disable")
     }
 
     globalStatus["loadscreen"]["enable"] := false
@@ -100,7 +79,7 @@ enableDesktopMode(showDialog := false) {
 ;
 ; returns null
 disableDesktopMode() {
-    global globalConfig
+    global globalStatus
     global globalGuis
 
     ; close the keyboard if open
@@ -116,8 +95,8 @@ disableDesktopMode() {
     globalStatus["desktopmode"]   := false
     MouseMove(percentWidth(1), percentHeight(1))
 
-    if (WinShown(GUIDESKTOPTITLE)) {
-        WinClose(GUIDESKTOPTITLE)
+    if (globalGuis.Has("notification")) {
+        globalGuis["notification"].Destroy()
     }
 }
 

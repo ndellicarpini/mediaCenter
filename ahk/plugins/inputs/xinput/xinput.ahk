@@ -10,7 +10,7 @@ class XInputDevice extends Input {
     )
 
     static initialize() {
-        xLibrary := dllLoadLib("xinput1_3.dll")
+        xLibrary := DllLoadLib("xinput1_3.dll")
 
         xGetStatusPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'UInt', 100)
         xGetBatteryPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputGetBatteryInformation')
@@ -29,7 +29,7 @@ class XInputDevice extends Input {
 
         xinputControllers := globalInputStatus["xinput"]
         if (xinputControllers.Length > 0) {
-            dllFreeLib(xinputControllers[1]["initResults"]["dllLibPtr"])
+            DllFreeLib(xinputControllers[1]["initResults"]["dllLibPtr"])
         }
     }
 
