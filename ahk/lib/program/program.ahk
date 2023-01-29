@@ -1411,8 +1411,7 @@ setCurrentProgram(id) {
         if (globalStatus["kbmmode"]) {
             disableKBMMode()
         }
-
-        if (keyboardExists()) {
+        else if (keyboardExists()) {
             closeKeyboard()
         }
 

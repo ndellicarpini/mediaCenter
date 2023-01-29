@@ -1,293 +1,212 @@
-; global KBCAPSED := false
-; global KBSHIFTED := false
-; global KBCTRLED  := false
-; global KBALTED   := false
-; global KBFUNCED  := false
+qwerty := Map(
+    "default", [
+        ["Esc", "``", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Back"],
+        ["Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\", "Del"],
+        ["Caps", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter"],
+        ["Shift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "🡑", "Shift"],
+        ["Fn", "Ctrl", "Alt", "", "Alt", "Ctrl", "🡐", "🡓", "🡒"],
+    ],
+    "shift", [
+        [0, "~", "!", "@", "#", "$", "%", "^", "&&", "*", "(", ")", "_", "+", 0],
+        [0, "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "|", 0],
+        [0, "A", "S", "D", "F", "G", "H", "J", "K", "L", ":", '"', 0],
+        [0, "Z", "X", "C", "V", "B", "N", "M", "<", ">", "?", 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    ],
+    "func", [
+        [0, 0, "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "PgUp", 0],
+        [0, 0, 0, 0, 0, 0, "Home", "PgDn", "End"],
+    ],
+)
 
-; qwerty := {
-;     default: [
-;         ["Esc", "``", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Back"],
-;         ["Tab", "q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "[", "]", "\", "Del"],
-;         ["Caps", "a", "s", "d", "f", "g", "h", "j", "k", "l", ";", "'", "Enter"],
-;         ["Shift", "z", "x", "c", "v", "b", "n", "m", ",", ".", "/", "^", "Shift"],
-;         ["Fn", "Ctrl", "Alt", "", "Alt", "Ctrl", "<", "V", ">"],
-;     ],
-;     shift: [
-;         [0, "~", "!", "@", "#", "$", "%", "^", "&&", "*", "(", ")", "_", "+", 0],
-;         [0, "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "{", "}", "|", 0],
-;         [0, "A", "S", "D", "F", "G", "H", "J", "K", "L", ":", '"', 0],
-;         [0, "Z", "X", "C", "V", "B", "N", "M", "<", ">", "?", 0, 0],
-;         [0, 0, 0, 0, 0, 0, 0, 0, 0],
-;     ],
-;     function: [
-;         [0, 0, "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12", 0],
-;         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,],
-;         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-;         [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "PgUp", 0],
-;         [0, 0, 0, 0, 0, 0, "Home", "PgDn", "End"],
-;     ],
-; }
+class KeyboardInterface extends Interface {
+    allowPause := true
 
-; guiKeyboard() {
-;     global globalStatus
-;     global globalGuis
-;     global globalRunning
+    caps  := false
+    shift := false
+    ctrl  := false
+    alt   := false
+    func  := false
 
-;     currProgram := globalStatus["currProgram"]
+    currText := ""
 
-;     kbHotkeys := Map(
-;         "[HOLD]RSX>0.4", "moveKeyboard 1 0",
-;         "[HOLD]RSX<-0.4", "moveKeyboard -1 0",
-;         "[HOLD]RSY>0.4", "moveKeyboard 0 -1",
-;         "[HOLD]RSY<-0.4", "moveKeyboard 0 1",
-;     )
+    restoreWNDW := -1
+    restoreMousePos := []
 
-;     createInterface(INTERFACES["keyboard"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop",,, false,, "destroyKeyboard")
-;     kbInt := globalGuis[INTERFACES["keyboard"]["wndw"]]
+    layout := Map()
 
-;     if (globalStatus["kbmmode"]) {
-;         kbInt.hotkeys := addHotkeys(kbmmodeHotkeys(), kbInt.hotkeys)
-;         kbInt.mouse := kbmmodeMouse()
-;     }
-;     else if (!globalStatus["desktopmode"] && currProgram != "" && globalRunning.Has(currProgram)) {
-;         currHotkeys := kbInt.hotkeys
-;         currHotkeys := addHotkeys(globalRunning[currProgram].hotkeys, currHotkeys)
+    guiWidth := 0
+    guiHeight := 0
 
-;         kbInt.hotkeys := currHotkeys
-;         kbInt.mouse := globalRunning[currProgram].mouse
-;     }
+    __New() {
+        super.__New(INTERFACES["keyboard"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop +ToolWindow +E0x08000088")
 
-;     kbInt.selectColor := COLOR3
+        this.layout := qwerty
 
-;     kbInt.guiObj.BackColor := COLOR1
+        this.selectColor := COLOR3
+        this.guiObj.BackColor := COLOR1
 
-;     guiWidth := percentWidth(0.39)
-;     guiHeight := (guiWidth / 21) * 7
+        this.guiWidth := percentWidth(0.39)
+        this.guiHeight := (this.guiWidth / 21) * 7
+        this.SetFont("bold s18")
 
-;     keySize  := Round(guiWidth * 0.0588)
+        this._createKeyboard()
 
-;     guiSetFont(kbInt, "bold s18")
+        keySize := Round(this.guiWidth * 0.0588)
+        keySpacing := percentWidth(0.002) * 2
 
-;     loop qwerty.default.Length {
-;         row := A_Index
+        xpos := this.control2D.Length
+        ypos := this.control2D[xpos].Length
 
-;         colOffset := 0
-;         loop qwerty.default[row].Length {
-;             col := A_Index + colOffset
+        this.Add("Text", "Center 0x200 vDEATH f(death) BackgroundFF0000 x" 
+            . (this.guiWidth - keySize - keySpacing) " y" . (this.guiHeight - keySize - keySpacing)
+            . " xpos" . xpos . " ypos" . ypos . " w" . keySize . " h" . keySize, "X")
+    }
+
+    Show() {
+        if (WinShown("A")) {
+            this.restoreWNDW := WinGetID("A")
+        }
+
+        MouseGetPos(&x, &y)
+        this.restoreMousePos := [x, y]
+        MouseMove(percentWidth(1), percentHeight(1))
+
+        super.Show("NoActivate x" . (percentWidth(0.5, false) - (this.guiWidth / 2)) . " y" . percentHeight(0.5, false) . " w" . this.guiWidth . " h" . this.guiHeight)
+    }
+
+    Destroy() {
+        super.Destroy()
+
+        if (this.restoreMousePos.Length = 2) {
+            MouseMove(this.restoreMousePos[1], this.restoreMousePos[2])
+        }
+
+        if (WinShown("ahk_id " this.restoreWNDW)) {
+            WinActivate("ahk_id " this.restoreWNDW)
+            Sleep(100)
+        }
+    }
+
+    select() {
+        key := this.control2D[this.currentX][this.currentY].select
+
+        switch (key) {
+            case "death":
+                this.Destroy()
+            case "Shift":
+                this.shift := !this.shift
+                this._createKeyboard("update")
+            case "Fn":
+                this.func := !this.func
+                this._createKeyboard("update")
+            case "Caps":
+                this.caps := !this.caps
+                this._createKeyboard("update")
+            case "Enter":
+                if (this.shift) {
+                    this.currText .= "`n"
+                }
+                else if (this.currText != "") {
+                    try {
+                        this.Destroy()
+                        
+                        if (this.currText != "") {
+                            Send(this.currText)
+                            this.currText := ""
+                        }
+                    }
+                }
+            default:
+                this.currText .= key
+
+                if (this.shift) {
+                    this.shift := false
+                    this._createKeyboard("update")
+                }
+
+        }
+    }
+
+    back() {
+        if (this.currText = "") {
+            return
+        }
+
+        this.currText := SubStr(this.currText, 1, -1)
+    }
+
+    _createKeyboard(mode := "create") {
+        buttonFunc := "_" . mode . "KBButton"
+
+        loop this.layout["default"].Length {
+            row := A_Index
+
+            colOffset := 0
+            loop qwerty["default"][row].Length {
+                col := A_Index + colOffset
             
-;             currKey := qwerty.default[row][A_Index]
-;             switch (currKey) {
-;                 case "":
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col . "-" . col + 5, row, (keySize * 5.88), keySize)
-;                     colOffset += 5
-;                 case "Back":
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col . "-" . col + 1, row, (keySize * 1.48), keySize)
-;                     colOffset += 1
-;                 case "Tab":
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col . "-" . col + 1, row, (keySize * 1.48), keySize)
-;                     colOffset += 1
-;                 case "Enter":
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col . "-" . col + 2, row, (keySize * 2.75), keySize)
-;                     colOffset += 2
-;                 case "Shift":
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col . "-" . col + 1, row, (keySize * 2.325), keySize)
-;                     colOffset += 1
-;                 case "Caps":
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col . "-" . col + 1, row, (keySize * 1.9), keySize)
-;                     colOffset += 1
-;                 case "Ctrl":
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col, row, (keySize * 1.4), keySize)
-;                 default:
-;                     guiKeyboardButton(kbInt, currKey, COLOR2, col, row, keySize, keySize)
-;             }
-;         }
-;     }
+                currKey := qwerty["default"][row][A_Index]
+                if (((this.shift && !this.caps) || (!this.shift && this.caps)) && qwerty["shift"][row][A_Index] != 0) {
+                    currKey := qwerty["shift"][row][A_Index]
+                }
+                if (this.func && qwerty["func"][row][A_Index] != 0) {
+                    currKey := qwerty["func"][row][A_Index]
+                }
 
-;     Hotkey("Alt", kbAltDown)
-;     Hotkey("Alt up", kbAltUp)
-;     Hotkey("Ctrl", kbCtrlDown)
-;     Hotkey("Ctrl up", kbCtrlUp)
-;     Hotkey("Shift", kbShiftDown)
-;     Hotkey("Shift up", kbShiftUp)
+                switch (currKey) {
+                    case "":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 5, row, 5.88)
+                        colOffset += 5
+                    case "Esc":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1)
+                        colOffset += 1
+                    case "Back":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1.48)
+                        colOffset += 1
+                    case "Tab":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1.48)
+                        colOffset += 1
+                    case "Enter":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 2, row, 2.75)
+                        colOffset += 2
+                    case "Shift":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 2.325)
+                        colOffset += 1
+                    case "Caps":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1.9)
+                        colOffset += 1
+                    case "Ctrl":
+                        this.%buttonFunc%(currKey, COLOR2, col, row, 1.4)
+                    default:
+                        this.%buttonFunc%(currKey, COLOR2, col, row, 1)
+                }
+            }
+        }
 
-;     kbInt.Show("NoActivate x" . (percentWidth(0.5, false) - (guiWidth / 2)) . " y" . percentHeight(0.5, false) . " w" . guiWidth . " h" . guiHeight)
-;     WinSetTransparent(230, INTERFACES["keyboard"]["wndw"])
-; }
+        if (mode = "update") {
+            this.guiObj.Redraw()
+        }
+    }
 
-; guiKeyboardButton(kbInt, text, color, xpos, ypos, w, h) {
-;     keySpacing := percentWidth(0.002)
+    _createKBButton(text, color, xpos, ypos, widthScale) {   
+        keySize := Round(this.guiWidth * 0.0588)
+        keySpacing := percentWidth(0.002)
 
-;     offset := "x+" . keySpacing
-;     if (xpos = 1 || Type(xpos) = "String" && StrSplit(xpos, "-")[1] = 1) {
-;         offset := "x" . (2 * keySpacing) . ((ypos = 1) ? " y" . (2 * keySpacing) : " y+" . keySpacing)
-;     }
+        offset := "x+" . keySpacing
+        if (xpos = 1 || Type(xpos) = "String" && StrSplit(xpos, "-")[1] = 1) {
+            offset := "x" . (2 * keySpacing) . ((ypos = 1) ? " y" . (2 * keySpacing) : " y+" . keySpacing)
+        }
+        
+        ; add 1 for the close button
+        this.Add("Text", "Center 0x200 v" . xpos . ypos . " f(" . text . ") Background" . color . " xpos" . xpos 
+            . " ypos" . ypos . " " . offset . " w" . Round(keySize * widthScale) . " h" . keySize, text)
+    }
 
-;     kbInt.Add("Text", "Center 0x200 v" . xpos . ypos . " f(sendKeyboardButton " . text . ") Background" . color . " xpos" . xpos . " ypos" . ypos
-;         . " " . offset . " w" . w . " h" . h, text)
-; }
-
-; sendKeyboardButton(button := "") {
-;     global KBCAPSED
-;     global KBSHIFTED
-;     global KBCTRLED 
-;     global KBALTED  
-;     global KBFUNCED
-
-;     switch (button) {
-;         case "Esc":
-;             Send("{Escape}")
-;         case "Del":
-;             Send("{Delete}")
-;         case "^":
-;             Send("{Up}")
-;         case "V":
-;             Send("{Down}")
-;         case "<":
-;             Send("{Left}")
-;         case ">":
-;             Send("{Right}")
-;         case "Back":
-;             Send("{Backspace}")
-;         case "Tab":
-;             Send("{Tab}")
-;         case "Enter":
-;             Send("{Enter}")
-;         case "Ctrl":
-;                 if (!KBCTRLED) {
-;                 KBCTRLED := true
-;                 Send("{Ctrl down}")
-;             }
-;             else { 
-;                 KBCTRLED := false
-;                 Send("{Ctrl up}")
-;             }
-;         case "Alt":
-;             if (!KBALTED) {
-;                 KBALTED := true
-;                 Send("{Alt down}")
-;             }
-;             else { 
-;                 KBALTED := false
-;                 Send("{Alt up}")
-;             }
-;         case "Caps":
-;             if (KBSHIFTED) {
-;                 KBSHIFTED := false
-;             }
-
-;             if (!KBCAPSED) {
-;                 KBCAPSED := true
-;                 Send("{Shift down}")
-;             }
-;             else { 
-;                 KBCAPSED := false
-;                 Send("{Shift up}")
-;             }
-;         case "Shift":
-;             if (KBCAPSED) {
-;                 KBCAPSED := false
-;             }
-            
-;             if (!KBSHIFTED) {
-;                 KBSHIFTED := true
-;                 Send("{Shift down}")
-;             }
-;             else { 
-;                 KBSHIFTED := false
-;                 Send("{Shift up}")
-;             }
-;         case "Fn":
-;             Send("TODO")
-;         case "":
-;             Send(" ")
-;         default:
-;             Send(button)
-;     }
-; }
-
-; kbAltDown(_) {
-
-; }
-
-; kbAltUp(_) {
-
-; }
-
-; kbCtrlDown(_) {
-
-; }
-
-; kbCtrlUp(_) {
-
-; }
-
-; kbShiftDown(_) {
-;     MsgBox("hi")
-; }
-
-; kbShiftUp(_) {
-;     MsgBox("bye")
-; }
-
-; moveKeyboard(xDir, yDir) {
-;     WinGetPos(&x, &y, &w, &h, INTERFACES["keyboard"]["wndw"])
-;     newX := x
-;     newY := y
-
-;     if (xDir != 0) {
-;         newX := x + (xDir * percentWidth(0.03))
-;         if (newX < 0) {
-;             newX := 0
-;         }
-;         else if (newX + w > MONITOR_W) {
-;             newX := MONITOR_W - w
-;         }
-;     }
-
-;     if (yDir != 0) {
-;         newY := y + (yDir * percentWidth(0.03))
-;         if (newY < 0) {
-;             newY := 0
-;         }
-;         else if (newY + h > MONITOR_H) {
-;             newY := MONITOR_H - h
-;         }
-;     }
-
-;     WinMove(newX, newY,,, INTERFACES["keyboard"]["wndw"])
-; }
-
-; destroyKeyboard() {
-;     global globalGuis
-
-;     global KBALTED
-;     global KBCTRLED
-;     global KBSHIFTED
-
-;     if (getGUI(INTERFACES["keyboard"]["wndw"])) {
-;         Hotkey("Alt", "Off")
-;         Hotkey("Alt up", "Off")
-;         Hotkey("Ctrl", "Off")
-;         Hotkey("Ctrl up", "Off")
-;         Hotkey("Shift", "Off")
-;         Hotkey("Shift up", "Off")
-
-;         if (KBALTED) {
-;             Send("{Alt up}")
-;             KBALTED := false
-;         }
-;         if (KBCTRLED) {
-;             Send("{Ctrl up}")
-;             KBCTRLED := false
-;         }
-;         if (KBSHIFTED) {
-;             Send("{Shift up}")
-;             KBSHIFTED := false
-;         }
-;         if (GetKeyState("CapsLock", "T")) {
-;             SetCapsLockState "Off"
-;         }
-
-;         globalGuis[INTERFACES["keyboard"]["wndw"]].guiObj.Destroy()
-;     }
-; }
+    _updateKBButton(text, color, xpos, ypos, widthScale) {   
+        this.guiObj[xpos . ypos].Text := text
+    }
+}

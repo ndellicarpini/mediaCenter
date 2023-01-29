@@ -6,6 +6,10 @@ global GUIDESKTOPTITLE := "AHKDESKTOPMODE"
 ;
 ; returns null
 enableKBMMode(showDialog := true) {
+    if (globalStatus["desktopmode"]) {
+        return
+    }
+
     globalStatus["kbmmode"] := true
     MouseMove(percentWidth(0.5, false), percentHeight(0.5, false))
 
@@ -24,10 +28,6 @@ disableKBMMode() {
     global globalGuis
 
     ; close the keyboard if open
-    ; if (globalGuis.Has(INTERFACES["keyboard"]["wndw"])) {
-    ;     globalGuis[INTERFACES["keyboard"]["wndw"]].Destroy()
-    ; }
-
     if (keyboardExists()) {
         closeKeyboard()
     }
@@ -69,7 +69,7 @@ enableDesktopMode(showDialog := true) {
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
     if (showDialog) {
-        createInterface("notification", false,, "Press HOME to Disable")
+        createInterface("notification", false,, "Desktop Mode")
     }
 
     globalStatus["loadscreen"]["enable"] := false
@@ -83,10 +83,6 @@ disableDesktopMode() {
     global globalGuis
 
     ; close the keyboard if open
-    ; if (globalGuis.Has(INTERFACES["keyboard"]["wndw"])) {
-    ;     globalGuis[INTERFACES["keyboard"]["wndw"]].Destroy()
-    ; }
-
     if (keyboardExists()) {
         closeKeyboard()
     }
@@ -104,73 +100,87 @@ disableDesktopMode() {
 ;
 ; returns true if the keyboard is visible
 keyboardExists() {
-    return ProcessExist("osk.exe")
+    ; global globalGuis
 
-    ; resetDHW := A_DetectHiddenWindows
-    ; DetectHiddenWindows(true)
+    ; return globalGuis.Has("keyboard")
 
-    ; hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
+    ; return ProcessExist("osk.exe")
 
-    ; DetectHiddenWindows(resetDHW)
-    ; return (hwnd != 0)
+    if (!ProcessExist("TabTip.exe")) {
+        return false
+    }
+
+    CLSID_FrameworkInputPane := "{D5120AA3-46BA-44C5-822D-CA8092C1FC72}"
+    IID_IFrameworkInputPane  := "{5752238B-24F0-495A-82F1-2FD593056796}"
+
+    buf := Buffer(32, 0)
+    frameworkCOM := ComObject(CLSID_FrameworkInputPane, IID_IFrameworkInputPane)
+    ; IFrameworkInputPane -> Location
+    ComCall(6, frameworkCOM, "Ptr", buf)
+
+    return (StrGet(buf.Ptr, 32) != "")
 }
 
 ; turns off gui keyboard
 ;
 ; returns null
 openKeyboard() {
-    Run "osk.exe"
-    
-    ; resetDHW := A_DetectHiddenWindows
-    ; resetSTM := A_TitleMatchMode
+    ; global globalGuis
 
-    ; DetectHiddenWindows(true)
-    ; SetTitleMatchMode(3)
-
-    ; try resetA := WinGetTitle("A")
-
-    ; if (resetA = "Search") {
-    ;     Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
-    ; }
-    ; else {
-    ;     try {
-    ;         WinShow("ahk_class Shell_TrayWnd")
-    ;         WinActivate("ahk_class Shell_TrayWnd")
-    
-    ;         Sleep(25)
-    ;         Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
-    ;         Sleep(70)
-    ;     }
+    ; if (!globalGuis.Has("keyboard")) {
+    ;     createInterface("keyboard")
     ; }
 
-    ; DetectHiddenWindows(resetDHW)
-    ; SetTitleMatchMode(resetSTM)
+    ; Run "osk.exe"
 
-    ; if (resetA && WinShown(resetA)) {
-    ;     WinActivate(resetA)
-    ; }
+    restoreWNDW := -1
+    if (WinExist("A")) {
+        restoreWNDW := WinGetID("A")
+    }
 
-    ; Hotkey("Enter", EnterOverrideHotkey)
+    if (!ProcessExist("TabTip.exe")) {
+        Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+        Sleep(50)
+    }
+
+    CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
+    IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
+
+    toggleCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
+    ; ITipInvocation -> Toggle
+    ComCall(3, toggleCOM, "Ptr", DllCall("GetDesktopWindow"))
+
+    if (WinShown("ahk_id " restoreWNDW)) {
+        try WinActivate("ahk_id " restoreWNDW)
+    }
+
+    Hotkey("Enter", EnterOverrideHotkey)
 } 
 
 ; turns off gui keyboard
 ;
 ; returns null
 closeKeyboard() {
-    ProcessClose("osk.exe")
+    ; global globalGuis
 
-    ; resetDHW := A_DetectHiddenWindows
-    ; DetectHiddenWindows(true)
-
-    ; hwnd := DllCall("FindWindowEx", "UInt", 0, "UInt", 0, "Str", "IPTip_Main_Window", "UInt", 0)
-
-    ; if (hwnd) {
-    ;     WinClose("ahk_id " hwnd)
+    ; if (globalGuis.Has("keyboard")) {
+    ;     globalGuis["keyboard"].Destroy()
     ; }
-    
-    ; DetectHiddenWindows(resetDHW)
 
-    ; try Hotkey("Enter", "Off")
+    ; ProcessClose("osk.exe")
+
+    if (!ProcessExist("TabTip.exe")) {
+        return
+    }
+
+    CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
+    IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
+
+    toggleCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
+    ; ITipInvocation -> Toggle
+    ComCall(3, toggleCOM, "Ptr", DllCall("GetDesktopWindow"))
+
+    try Hotkey("Enter", "Off")
 }
 
 ; turns on & off gui keyboard
@@ -188,6 +198,7 @@ toggleKeyboard() {
 ; check if keyboard is open when pressing enter to properly close it
 EnterOverrideHotkey(*) { 
     Send("{Enter}")
+    Sleep(50)
 
     if (keyboardExists()) {
         closeKeyboard()

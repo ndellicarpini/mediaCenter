@@ -90,6 +90,7 @@ class Interface {
             }
         }
 
+        selectedControl := ""
         loop this.control2D.Length {
             x_index := A_Index
 
@@ -99,10 +100,11 @@ class Interface {
                 currControl := this.control2D[x_index][y_index].control
 
                 if (currControl != "") {
-                    if (this.currentX = x_index && this.currentY = y_Index) {
+                    if (this.currentX = x_index && this.currentY = y_index) {
                         this.guiObj[currControl].Opt("Background" . this.selectColor)
+                        selectedControl := currControl
                     }
-                    else {
+                    else if (currControl != selectedControl) {
                         this.guiObj[currControl].Opt("Background" . ((this.customDeselect.Has(currControl)) ? this.customDeselect[currControl] : this.unselectColor))
                     }
                 }
@@ -242,12 +244,18 @@ class Interface {
             else if (SubStr(item, 1, 4) = "xpos") {
                 if (InStr(item, "-")) {
                     xposRange := StrSplit(item, "-")
-                    xposRange[1] := Integer(StrReplace(xposRange[1], "xpos", ""))
-                    xposRange[2] := Integer(xposRange[2])
 
-                    xposArr.Push(xposRange[1])
-                    loop (xposRange[2] - xposRange[1]) {
-                        xposArr.Push(xposRange[1] + A_Index)
+                    if (xposRange[1] = "xpos") {
+                        xposArr.Push(xposRange[2])
+                    }
+                    else {
+                        xposRange[1] := Integer(StrReplace(xposRange[1], "xpos", ""))
+                        xposRange[2] := Integer(xposRange[2])
+    
+                        xposArr.Push(xposRange[1])
+                        loop (xposRange[2] - xposRange[1]) {
+                            xposArr.Push(xposRange[1] + A_Index)
+                        }
                     }
                 }
                 else {
@@ -262,13 +270,19 @@ class Interface {
             else if (SubStr(item, 1, 4) = "ypos") {
                 if (InStr(item, "-")) {
                     yposRange := StrSplit(item, "-")
-                    yposRange[1] := Integer(StrReplace(yposRange[1], "ypos", ""))
-                    yposRange[2] := Integer(yposRange[2])
 
-                    yposArr.Push(yposRange[1])
-                    loop (yposRange[2] - yposRange[1]) {
-                        yposArr.Push(yposRange[1] + A_Index)
-                    }
+                    if (yposRange[1] = "ypos") {
+                        yposArr.Push(yposRange[2])
+                    }  
+                    else {
+                        yposRange[1] := Integer(StrReplace(yposRange[1], "ypos", ""))
+                        yposRange[2] := Integer(yposRange[2])
+    
+                        yposArr.Push(yposRange[1])
+                        loop (yposRange[2] - yposRange[1]) {
+                            yposArr.Push(yposRange[1] + A_Index)
+                        }
+                    }                  
                 }
                 else {
                     yposArr.Push(Integer(SubStr(item, 5)))

@@ -35,7 +35,7 @@
             "[REPEAT]B": "Send {Backspace}",
 
             "LT>0.3": "Send !{Tab}",
-            "RT>0.3": "Send !+{Tab}"
+            "RT>0.3": "Send !+{Tab}",
         },
         "mouse": {
             "x": "LSX", 
@@ -59,18 +59,23 @@
     },
 
     "interfaceHotkeys": {
-        "[REPEAT]DU|LSY>0.4": "gui.up",
-        "[REPEAT]DD|LSY<-0.4": "gui.down",
-        "[REPEAT]DL|LSX<-0.4": "gui.left",
-        "[REPEAT]DR|LSX>0.4": "gui.right",
-        "B": "gui.back",
-        "A": {
-            "down": "gui.select",
-            "up": "gui.unselect"
+        "default": {
+            "[REPEAT]DU|LSY>0.4": "gui.up",
+            "[REPEAT]DD|LSY<-0.4": "gui.down",
+            "[REPEAT]DL|LSX<-0.4": "gui.left",
+            "[REPEAT]DR|LSX>0.4": "gui.right",
+            "B": "gui.back",
+            "A": {
+                "down": "gui.select",
+                "up": "gui.unselect"
+            },
+            "HOME": {
+                "down": "pausemenu",
+                "time": 80
+            }
         },
-        "HOME": {
-            "down": "pausemenu",
-            "time": 80
+        "keyboard": {
+            "SELECT": "gui.Destroy"
         }
     }
 }

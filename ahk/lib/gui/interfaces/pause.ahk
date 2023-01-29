@@ -98,7 +98,7 @@ class PauseInterface extends Interface {
         y_index := 1
 
         ; program options
-        if (programOptions.items.Count > 0) {
+        if (!globalStatus["desktopmode"] && programOptions.items.Count > 0) {
             this.SetFont("bold s24")
             this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, globalRunning[currProgram].name)
         
@@ -203,7 +203,12 @@ class PauseInterface extends Interface {
                     }
                 }
                 else if (funcArr[1] = "suspendScript") {
-                    globalStatus["suspendScript"] := !globalStatus["suspendScript"]
+                    if (globalStatus["desktopmode"]) {
+                        disableDesktopMode()
+                    }
+                    else {
+                        globalStatus["suspendScript"] := !globalStatus["suspendScript"]
+                    }
                 }
                 else {
                     super.select()
@@ -223,17 +228,20 @@ class PauseInterface extends Interface {
         global globalStatus
 
         defaultOptions := Map()
-        defaultOptions["DesktopMode"] := {title: "Enable Desktop Mode", function: "desktopmode"}
         defaultOptions["Settings"] := {title: "Consolizer Settings", function: "createSettingsGui global.cfg"}
         
-        currKBMMode := globalStatus["kbmmode"]
-        currSuspend := globalStatus["suspendScript"]
+        currKBMMode     := globalStatus["kbmmode"]
+        currDesktopMode := globalStatus["desktopmode"]
+        currSuspend     := globalStatus["suspendScript"]
 
         defaultOptions["KBMMode"] := {
             title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
             function: "kbmmode"
         }
-
+        defaultOptions["DesktopMode"] := {
+            title: (!currDesktopMode) ? "Enable Desktop Mode" : "Disable Desktop Mode", 
+            function: "desktopmode"
+        }
         defaultOptions["Suspend"] := {
             title: (!currSuspend) ? "Suspend Consolizer" : "Resume Consolizer", 
             function: "suspendScript"

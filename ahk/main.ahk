@@ -27,12 +27,12 @@
 #Include lib\confio.ahk
 #Include lib\std.ahk
 #Include lib\messaging.ahk
-#Include lib\program.ahk
-#Include lib\emulator.ahk
+#Include lib\program\program.ahk
+#Include lib\program\emulator.ahk
 #Include lib\data.ahk
-#Include lib\hotkeys.ahk
-#Include lib\desktop.ahk
-#Include lib\input.ahk
+#Include lib\input\hotkeys.ahk
+#Include lib\input\desktop.ahk
+#Include lib\input\input.ahk
 #Include lib\threads.ahk
 
 #Include lib\gui\std.ahk
@@ -329,6 +329,7 @@ if (!inArray("-backup", globalConfig["StartArgs"]) && globalConfig.Has("Override
 }
 
 ; enables the OnMessage listener for send2Main
+global send2MainBuffer := []
 OnMessage(MESSAGE_VAL, HandleMessage)
 
 ; initial backup of status
@@ -358,42 +359,41 @@ loop {
 
     currSuspended := globalStatus["suspendScript"]
 
-    ; --- CHECK DESKTOP MODE ---
-    if (globalStatus["desktopmode"]) {
-        activeSet := true
-        hotkeySource := "desktopmode"
+    ; --- CHECK SEND2MAIN BUFFER ---
+    if (send2MainBuffer.Length > 0 && !currSuspended) {
+        message := send2MainBuffer.Pop()
+        if (message = "" || message.Length = 0) {
+            continue
+        } 
+
+        if (StrLower(message[1]) = "run") {
+            message.RemoveAt(1)
+            createProgram(message)
+        }
+        else if (StrLower(message[1]) = "console") {           
+            message.RemoveAt(1)
+            createConsole(message)
+        }
+        else {
+            try runFunction(message)
+        }
+
+        Sleep(loopSleep)
     }
 
     ; --- CHECK LOAD SCREEN ---
     if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended) {             
         activeSet := true
+        hotkeySource := "loadscreen"
 
         if (globalGuis.Has("pause")) {
             globalGuis["pause"].Destroy()
         }
     }
 
-    ; --- CHECK ALL OPEN ---
-    currProgram := globalStatus["currProgram"]
-    currGui     := globalStatus["currGui"]
-
-    if ((delayCount > maxDelayCount || (currProgram = "" && currGui = "")) && !currSuspended) {
-        checkAllGuis()
-
-        mostRecentGui := getMostRecentGui()
-        if (mostRecentGui != currGui) {
-            globalStatus["currGui"] := mostRecentGui
-        }
-
-        checkAllPrograms()
-
-        mostRecentProgram := getMostRecentProgram()
-        if (mostRecentProgram != currProgram) {
-            setCurrentProgram(mostRecentProgram)
-        }
-    }
-
     ; --- CHECK OPEN GUIS ---
+    currGui := globalStatus["currGui"]
+
     if (currGui != "") {
         currWNDW := INTERFACES[currGui]["wndw"]
         if (globalGuis.Has(currGui) && WinShown(currWNDW)) {
@@ -437,16 +437,20 @@ loop {
         }
     }
 
-    ; --- CHECK KB & MOUSE MODE ---
-    if (globalStatus["kbmmode"] && hotkeySource = "") {
-        hotkeySource := "kbmmode"
-    }
-
-    if (keyboardExists()) {
-        activeSet := true
+    ; --- CHECK DESKTOP MODE / KB & MOUSE MODE ---
+    if (hotkeySource = "") {
+        if (globalStatus["desktopmode"]) {
+            activeSet := true
+            hotkeySource := "desktopmode"
+        }
+        else if (globalStatus["kbmmode"]) {
+            hotkeySource := "kbmmode"
+        }
     }
 
     ; --- CHECK OPEN PROGRAMS ---
+    currProgram := globalStatus["currProgram"]
+
     if (currProgram != "" && !currSuspended) {
         if (globalRunning.Has(currProgram)) {
             if (globalRunning[currProgram].exists(false, true)) {
@@ -484,6 +488,27 @@ loop {
         else {
             createProgram(currProgram, false, false)
         }   
+    }
+
+    ; --- CHECK ALL OPEN PROGRAMS / GUIS ---
+    if ((delayCount > maxDelayCount || !activeSet) && !currSuspended) {
+        checkAllGuis()
+
+        mostRecentGui := getMostRecentGui()
+        if (mostRecentGui != currGui) {
+            globalStatus["currGui"] := mostRecentGui
+
+            continue
+        }
+
+        checkAllPrograms()
+
+        mostRecentProgram := getMostRecentProgram()
+        if (mostRecentProgram != currProgram) {
+            setCurrentProgram(mostRecentProgram)
+
+            continue
+        }
     }
 
     ; update hotkey source
@@ -617,8 +642,11 @@ InputBufferTimer() {
 }
 
 ; handle when message comes in from send2Main
+; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
 HandleMessage(wParam, lParam, msg, hwnd) {
+    global send2MainBuffer
     global globalConfig
+    global globalStatus
     global globalRunning
 
     message := getMessage(wParam, lParam, msg, hwnd)
@@ -629,30 +657,8 @@ HandleMessage(wParam, lParam, msg, hwnd) {
 
     currProgram := globalStatus["currProgram"]
 
-    ; do something based on external message (like launching app)
-    ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
-    if (SubStr(StrLower(message[1]), 1, 7) = "minthen") {
-        if (currProgram != "") {
-            globalRunning[currProgram].minimize()
-            Sleep(200)
-        }
-
-        message[1] := SubStr(message[1], 8)
-    }
-    else {
-        setLoadScreen((globalConfig["GUI"].Has("DefaultLoadText")) ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
-        Sleep(100)
-    }
-
-    if (StrLower(message[1]) = "run") {
-        message.RemoveAt(1)
-        createProgram(message)
-    }
-    else if (StrLower(message[1]) = "console") {           
-        message.RemoveAt(1)
-        createConsole(message)
-    }
-    else if (StrLower(message[1]) = "nuclear") {
+    ; the nuclear option
+    if (StrLower(message[1]) = "nuclear") {
         if (currProgram != "" && globalRunning[currProgram].exists()) {
             try ProcessKill(globalRunning[currProgram].getPID())
         }
@@ -660,10 +666,26 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         ; need to think about if this is necessary?
         ; i mean if this is working main isn't crashed right?
         ProcessKill(MAINNAME)
+        return
     }
-    else {
-        try runFunction(message)
+    ; minimize the current program before doing the requested action
+    else if (SubStr(StrLower(message[1]), 1, 7) = "minthen") {
+        if (currProgram != "") {
+            globalRunning[currProgram].minimize()
+            Sleep(200)
+        }
+
+        message[1] := SubStr(message[1], 8)
     }
+
+    ; launching a new program -> prioritize showing the load screen
+    if (StrLower(message[1]) = "run" || StrLower(message[1]) = "console") {
+        setLoadScreen((globalConfig["GUI"].Has("DefaultLoadText")) ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
+        activateLoadScreen()
+    }    
+
+    ; buffer all actions bc shit gets wacky being initialized in msg handler
+    send2MainBuffer.Push(message)
 }
 
 ; clean shutdown of script

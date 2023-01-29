@@ -21,8 +21,8 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
     ref := ThreadObj(includeString . "
     (
         #Include lib\std.ahk
-        #Include lib\hotkeys.ahk
-        #Include lib\input.ahk
+        #Include lib\input\hotkeys.ahk
+        #Include lib\input\input.ahk
 
         SetKeyDelay 50, 50
         CoordMode "Mouse", "Screen"
@@ -679,7 +679,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
     ref := ThreadObj("
     (   
         #Include lib\std.ahk
-        #Include lib\hotkeys.ahk
+        #Include lib\input\hotkeys.ahk
         
         Critical("Off")
 
@@ -729,9 +729,9 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                 programHotkeys := addHotkeys(programHotkeys, Map(key, value["programHotkeys"]))
             }
 
-            ; add default interface hotkeys
-            if (value.Has("interfaceHotkeys")) {
-                guiHotkeys := addHotkeys(guiHotkeys, Map(key, value["interfaceHotkeys"]))
+            ; add default & individual gui hotkeys
+            if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has("default")) {
+                guiHotkeys := addHotkeys(guiHotkeys, Map(key, value["interfaceHotkeys"]["default"]))
             }
         }
 
@@ -747,16 +747,24 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             currHotkeys := Map()
             currMouse   := Map()
 
-            if (hotkeySource = "desktopmode") {
+            if (hotkeySource = currGui) {
+                currHotkeys := guiHotkeys
+
+                for key, value in globalInputConfigs {
+                    if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has(currGui)) {
+                        currHotkeys := addHotkeys(currHotkeys, Map(key, value["interfaceHotkeys"][currGui]))
+                        break
+                    }
+                }
+
+                globalStatus["input"]["buttonTime"] := 0
+            }
+
+            else if (hotkeySource = "desktopmode") {
                 globalStatus["input"]["buttonTime"] := 0
 
                 currHotkeys := desktopmodeHotkeys
                 currMouse   := desktopmodeMouse
-            }
-
-            else if (hotkeySource = currGui) {
-                currHotkeys := guiHotkeys
-                globalStatus["input"]["buttonTime"] := 0
             }
 
             else if (hotkeySource = "suspended") {
