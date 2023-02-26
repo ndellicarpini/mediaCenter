@@ -1,18 +1,19 @@
 {
-    "id": "origingame",
+    "id": "eagame",
 	"name": "Windows Game",
+	"className": "EAGameProgram",
 
 	"requireInternet": true,
 	"requireFullscreen": true,
-
-    "launch": "originGameLaunch",
-	"postLaunch": "originGamePostLaunch",
-	"postExit": "originGamePostExit",
 
     "exe": [
 		"AWayOut.exe",
 		"Madden19.exe",
 		"BurnoutPR.exe",
 		"NFS11Remastered.exe"
-    ]
+    ],
+
+	"overrides": {
+		"Madden19\\.exe": "Madden19Program"
+	}
 }

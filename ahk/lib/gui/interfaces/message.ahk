@@ -14,11 +14,11 @@ class MessageInterface extends Interface {
         this.Add("Text", "Center 0x200", message)
     }
 
-    Show() {
-        super.Show("Center AutoSize")
+    _Show() {
+        super._Show("Center AutoSize")
 
-        if (this.timeout > 0) {
-            SetTimer(MsgCloseTimer, -1 * this.timeout)
+        if (this.timeout != 0) {
+            SetTimer(MsgCloseTimer, Neg(this.timeout))
         }
 
         return
@@ -32,7 +32,7 @@ class MessageInterface extends Interface {
         }
     }
 
-    select() {
+    _select() {
         this.Destroy()
     }
 }

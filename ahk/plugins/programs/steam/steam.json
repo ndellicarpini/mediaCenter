@@ -1,14 +1,14 @@
 {
     "id": "steam",
     "name": "Steam",
-    "background": true,
-    "requireInternet": true,
-
-    "allowHungCheck": false,
+    "className": "SteamProgram",
 
     "exe": "steam.exe",
     "dir": "C:\\Steam",
+    "defaultArgs": "-silent",
 
-    "launch": "steamLaunch",
-    "exit": "steamExit",
+    "background": true,
+    "requireInternet": true,
+
+    "allowHungCheck": false
 }

@@ -97,11 +97,11 @@ class VolumeInterface extends Interface {
         }
     }
 
-    Show() {
-        super.Show("y0 x" . percentWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
+    _Show() {
+        super._Show("y0 x" . percentWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
     }
 
-    select() {
+    _select() {
         if (this.changingVolume != "") {
             this._unFocusSlider()
             return
@@ -115,53 +115,55 @@ class VolumeInterface extends Interface {
             this._mute(funcArr[2])
         }
         else {
-            super.select()
+            super._select()
         }
     }
 
-    back() {
+    _back() {
         if (this.changingVolume != "") {
             this._unFocusSlider()
             return
         }
 
-        super.back()
+        super._back()
     }
 
-    up() {
+    ; TODO - handle slider adjustments in interface as a new type of "Add"
+
+    _up() {
         if (this.changingVolume != "") {
             this._changeVolume(this.changingVolume, 10)
             return
         }
 
-        super.up()
+        super._up()
     }
 
-    down() {
+    _down() {
         if (this.changingVolume != "") {
             this._changeVolume(this.changingVolume, -10)
             return
         }
 
-        super.down()
+        super._down()
     }
 
-    left() {
+    _left() {
         if (this.changingVolume != "") {
             this._changeVolume(this.changingVolume, -1)
             return
         }
 
-        super.left()
+        super._left()
     }
 
-    right() {
+    _right() {
         if (this.changingVolume != "") {
             this._changeVolume(this.changingVolume, 1)
             return
         }
 
-        super.right()
+        super._right()
     }
 
     _mute(name) {

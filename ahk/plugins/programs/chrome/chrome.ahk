@@ -1,27 +1,40 @@
-chromeGetWNDW() {
-    retVal := ""
-    for item in WinGetList("ahk_exe chrome.exe") {
-        if (WinShown("ahk_id " item) && WinGetTitle("ahk_id " item) != "Picture in picture") {
-            retVal := "ahk_id " item
-            break
+class ChromeProgram extends Program {
+    _mouseMoveDelay := 0
+
+    _getHWNDList() {
+        hwndList := super._getHWNDList()
+        loop hwndList.Length {
+            if (WinGetTitle(hwndList[A_Index]) = "Picture in picture") {
+                hwndList.RemoveAt(A_Index)
+                break
+            }
+        }
+
+        return hwndList
+    }
+
+    _fullscreen() {
+        SendSafe("{F11}")
+    }
+
+    _exit() {
+        currHWND := this.getHWND()
+        while (currHWND != 0) {
+            WinClose(currHWND)
+            Sleep(100)
+
+            if (WinExist("Leave site?")) {
+                ControlSend("{Enter}",, "Leave site?")
+            }
+
+            currHWND := this.getHWND()
         }
     }
 
-    return retVal
-}
-
-chromeExit() {
-    global globalRunning
-
-    currWNDW := globalRunning["chrome"].getWNDW()
-    while(currWNDW != "") {
-        WinClose(currWNDW)
-        Sleep(100)
-
-        currWNDW := globalRunning["chrome"].getWNDW()
+    ; custom function
+    pip() {
+        Send("{Alt down}")
+        SendSafe("p")
+        Send("{Alt up}")
     }
-}
-
-chromePIP() {
-    Send("{Alt Down}p{Alt Up}")
 }

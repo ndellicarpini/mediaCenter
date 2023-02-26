@@ -1,15 +1,18 @@
-kodiMinimize() {
+class KodiProgram extends Program {
+    _fullscreen() {
+        SendSafe("\")
+    }
+
     ; kodi only properly minimizes if its active?
-    WinActivate("Kodi")
-    Sleep(200)
-    WinMinimize("Kodi")
+    _minimize() {
+        WinActivate("Kodi")
+        Sleep(200)
+        WinMinimize("Kodi")
+    }
 
-    return -1
-}
-
-kodiReload() {
-    global globalRunning
-
-    globalRunning["kodi"].exit()
-    Sleep(500)
+    ; custom function
+    reload() {
+        this.exit()
+        Sleep(500)
+    }
 }

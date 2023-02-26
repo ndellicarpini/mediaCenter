@@ -12,16 +12,6 @@ class PauseInterface extends Interface {
         global globalPrograms
 
         currProgram := globalStatus["currProgram"]
-        
-        ; set activate currProgram pause
-        if (currProgram != "") {
-            globalRunning[currProgram].pause()
-        }
-
-        ; close the keyboard if open
-        if (keyboardExists()) {
-            closeKeyboard()
-        }
 
         super.__New(INTERFACES["pause"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop")
     
@@ -128,8 +118,20 @@ class PauseInterface extends Interface {
         }
     }
     
-    Show() {
-        super.Show("y0 x0 w" . this.guiWidth . " h" . this.guiHeight)
+    _Show() {
+        currProgram := globalStatus["currProgram"]
+
+        ; set activate currProgram pause
+        if (currProgram != "") {
+            globalRunning[currProgram].pause()
+        }
+
+        ; close the keyboard if open
+        if (keyboardExists()) {
+            closeKeyboard()
+        }
+
+        super._Show("y0 x0 w" . this.guiWidth . " h" . this.guiHeight)
     
         MouseMove(percentWidth(1), percentHeight(1))
 
@@ -150,7 +152,7 @@ class PauseInterface extends Interface {
             try {
                 this.guiObj["Time"].Text := currentTimeArr[1]
                 this.guiObj["Date"].Text := currentTimeArr[2]
-    
+                
                 this.guiObj["CPU"].Value := Ceil(getCpuLoad())
                 this.guiObj["RAM"].Value := Ceil(getRamLoad())
     
@@ -158,26 +160,32 @@ class PauseInterface extends Interface {
                     this.guiObj["GPU"].Value := Ceil(getNvidiaLoad())
                 }
             }
-            catch {
-                return
-            }
             
             SetTimer(PauseSecondTimer, -1000)
             return
         }
     }
 
-    Destroy() {
+    _Destroy() {
+        ; little sleep to avoid button press propagating to program
         Sleep(100)
-        super.Destroy()
+        super._Destroy()
     }
 
-    select() {
+    _select() {
         global globalStatus
+        global globalRunning
 
         funcArr := StrSplit(this.control2D[this.currentX][this.currentY].select, A_Space)
 
-        if (funcArr[1] != "createInterface" || funcArr[2] = "power" || funcArr[2] = "program") {
+        if (funcArr[1] = "createInterface") {
+            if (funcArr[2] = "power" || funcArr[2] = "program") {
+                this.Destroy()
+            }
+
+            super._select()
+        }
+        else {
             this.Destroy()
 
             if (funcArr[1] = "desktopmode") {
@@ -191,6 +199,7 @@ class PauseInterface extends Interface {
             else {
                 currProgram := globalStatus["currProgram"]
                 if (currProgram != "") {
+                    Sleep(100)
                     globalRunning[currProgram].resume()
                 }
 
@@ -211,12 +220,9 @@ class PauseInterface extends Interface {
                     }
                 }
                 else {
-                    super.select()
+                    super._select()
                 }
             }
-        }
-        else {
-            super.select()
         }
     }
 
@@ -282,15 +288,6 @@ class PauseInterface extends Interface {
         if (currProgram.pauseOrder.Length > 0) {
             for item in currProgram.pauseOrder {
                 for key, value in programOptions {
-                    if (InStr(item, "?") && InStr(item, value.title)) {
-                        nameArr := StrSplit(item, "?",, 2)
-
-                        if (runFunction(nameArr[1])) {
-                            programOrder.Push(key)
-                            break
-                        }
-                    }
-
                     if (item = value.title) {
                         programOrder.Push(key)
                         break

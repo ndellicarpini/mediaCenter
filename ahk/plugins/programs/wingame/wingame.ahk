@@ -1,25 +1,164 @@
-; launch a standard windows game from an executable path
-;  game - full path of game executable
-;  args - args to use when running game
-;
-; returns null
-winGameLaunch(game, args*) {
-    global globalRunning
+; --- DEFAULT WINDOWS GAME ---
+class WinGameProgram extends Program {
+    _launch(game, args*) {
+        try {
+            pathArr := StrSplit(game, "\")
+        
+            exe := pathArr.RemoveAt(pathArr.Length)
+            path := LTrim(joinArray(pathArr, "\"), '"' . '"')
+        
+            Run(RTrim(game . " " . joinArray(args), A_Space), path)
+        }
+        catch {
+            return false
+        }
+    }
+}
 
-    this := globalRunning["wingame"]
+; --- WINDOWS GAME W/ REQUIRED LAUNCHER TO SKIP ---
+class WinGameProgramWithLauncher extends WinGameProgram {
+    _launcherEXE      := ""   ; exe of launcher application
+    _launcherMousePos := []   ; array of positions to click as a double array
+    _launcherDelay    := 1000 ; delay before clicking
+    
+    _launch(game, args*) {
+        global globalStatus
 
-    ; custom actions based on game before launch
-    switch(game) {
-        case "D:\Games\Ocarina of Time\soh.exe": 
-            this.customFullscreen := "SendSafe !{Enter}"
-            this.hotkeys := this.hotkeys := Map(
-                "xinput", Map(
-                    "HOME&SELECT", "SendSafe {F7}",
-                    "HOME&START", "SendSafe {F5}",
+        if (super._launch(game, args*) = false) {
+            return false
+        }
+
+        if (this._launcherEXE = "") {
+            return
+        }
+
+        restoreAllowExit := this.allowExit
+        this.allowExit   := true
+
+        ; wait for executable
+        while (!WinShown("ahk_exe " this._launcherEXE)) {
+            if (this.exists()) {
+                return
+            }
+            else if (this.shouldExit) {
+                return false
+            }
+
+            Sleep(100)
+        }
+
+        ; flatten double array
+        mouseArr := []
+        loop this._launcherMousePos.Length {
+            if (Type(this._launcherMousePos[A_Index]) = "Array") {
+                currIndex := A_Index
+                loop this._launcherMousePos[currIndex].Length {
+                    mouseArr.Push(this._launcherMousePos[currIndex][A_Index])
+                }
+            }
+            else {
+                mouseArr.Push(this._launcherMousePos[A_Index])
+            }
+        }
+
+        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " this._launcherEXE
+
+        ; try to skip launcher as long as exectuable is shown
+        while (WinShown("ahk_exe " this._launcherEXE)) {
+            if (this.exists()) {
+                return
+            }
+            else if (this.shouldExit) {
+                return false
+            }
+
+            loop (mouseArr.Length / 2) {
+                index := ((A_Index - 1) * 2) + 1
+
+                Sleep(this._launcherDelay)
+
+                if (this.exists() || !WinShown("ahk_exe " this._launcherEXE)) {
+                    return
+                }
+                else if (this.shouldExit) {
+                    return false
+                }
+
+                MouseClick("Left"
+                    , percentWidthRelativeWndw(mouseArr[index], "ahk_exe " this._launcherEXE)
+                    , percentHeightRelativeWndw(mouseArr[index + 1], "ahk_exe " this._launcherEXE)
+                    ,,, "D"
                 )
-            )
+                Sleep(75)
+                MouseClick("Left",,,,, "U")
+                Sleep(75)
+                MouseMove(percentWidth(1), percentHeight(1))    
+            }
+        }
 
-            Run "D:\Games\Ocarina of Time\GCN XInput Adapter\DelfinovinUI.exe", "D:\Games\Ocarina of Time\GCN XInput Adapter"
+        this.allowExit := restoreAllowExit
+        globalStatus["loadscreen"]["overrideWNDW"] := ""
+    }
+
+    ; dank ass bad practice
+    exit() {
+        if (this._launcherEXE != "" && ProcessExist(this._launcherEXE)) {
+            ProcessClose(this._launcherEXE)
+        }
+
+        super.exit()
+    }    
+}
+
+; --- OVERRIDES --- 
+class MBAAProgram extends WinGameProgram {
+    _postLaunchDelay := 1500
+
+    _launch(args*) {
+        global globalStatus
+
+        super._launch(args*)
+
+        ; mbaa's launcher is a garbage piece of shit
+        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe MBAA.exe"
+
+        count := 0
+        maxCount := 150
+        while (!WinExist("ahk_exe MBAA.exe")) {
+            count += 1
+            Sleep(100)
+        }
+
+        if (WinExist("ahk_exe MBAA.exe")) {
+            Sleep(500)
+
+            WinActivate("ahk_exe MBAA.exe")
+            SendSafe("{Enter}")
+        }
+
+        globalStatus["loadscreen"]["overrideWNDW"] := ""
+    }
+}
+
+class TestDriveUnlimitedProgram extends WinGameProgram {
+    _mouseMoveDelay := 18000
+}
+
+class MorrowindProgram extends WinGameProgram {
+    _mouseMoveDelay := 5000
+}
+
+class HarkinianProgram extends WinGameProgram {
+    _launch(game, args*) {
+        pathArr := StrSplit(game, "\")
+        
+        exe := pathArr.RemoveAt(pathArr.Length)
+        path := LTrim(joinArray(pathArr, "\"), '"' . "'")
+
+        gcnAdapterPath := path . "\GCN XInput Adapter"
+
+        if (DirExist(gcnAdapterPath)) {
+            Run('"' . gcnAdapterPath .  "\DelfinovinUI.exe" . '"', gcnAdapterPath)
 
             count := 0
             maxCount := 100
@@ -27,112 +166,76 @@ winGameLaunch(game, args*) {
                 Sleep(100)
                 count += 1
             }
-
+    
             if (count < maxCount) {
                 Sleep(2000)
             }
             else {
-                return -1
+                return false
             }
+        }
+
+        super._launch(game, args*)
     }
 
-    pathArr := StrSplit(game, "\")
-    
-    exe := pathArr.RemoveAt(pathArr.Length)
-    path := joinArray(pathArr, "\")
+    _postExit() {
+        count := 0
+        maxCount := 5
+        while (ProcessExist("DelfinovinUI.exe") && count < maxCount) {
+            if (WinShown("MainWindow")) {
+                WinActivate("MainWindow")
+                Sleep(75)
 
-    if ((Type(args) = "String" && args != "") || (Type(args) = "Array" && args.Length > 0)) {
-        Run game . " " . joinArray(args), path
-    }
-    else {
-        Run game, path
-    }
-
-    ; custom actions based on game
-    switch(game) {
-        case "D:\Rockstar\Grand Theft Auto V\PlayGTAV.exe":
-            this.launcher := Map("exe", "Launcher.exe", "mouseClick", [])
-        case "shell:AppsFolder\Microsoft.OpusPG_8wekyb3d8bbwe!OpusReleaseFinal":
-            this.wndw := "Forza Horizon 3"
-            this.allowPause := false
-        case "D:\Games\Kingdom Hearts 1.5+2.5\KINGDOM HEARTS HD 1.5+2.5 ReMIX.exe"
-        , "D:\Games\Kingdom Hearts 2.8\KINGDOM HEARTS HD 2.8 Final Chapter Prologue.exe"
-        , "D:\Games\Kingdom Hearts III\KINGDOM HEARTS III\Binaries\Win64\KINGDOM HEARTS III.exe":
-            this.hotkeys := Map(
-                "xinput", Map(
-                    "SELECT", Map(
-                        "up", "Send '{Escape up}'", 
-                        "down", "Send '{Escape down}'"
-                    )
+                MouseClick("Left"
+                    , percentWidthRelativeWndw(0.96, "MainWindow")
+                    , percentHeightRelativeWndw(0.04, "MainWindow")
+                    ,,, "D"
                 )
-            )
-        case "D:\Games\Simpsons Hit & Run\Lucas Simpsons Hit & Run Mod Launcher.exe":
-            this.hotkeys := Map(
-                "xinput", Map(
-                    "SELECT", Map(
-                        "up", "Send '{Escape up}'", 
-                        "down", "Send '{Escape down}'"
-                    )
-                )
-            )
+                Sleep(75)
+                MouseClick("Left",,,,, "U")
+                Sleep(75)
+                MouseMove(percentWidth(1), percentHeight(1))    
+            }
+
+            Sleep(3000)
+            count += 1
+        }
+    }
+
+    _fullscreen() {
+        SendSafe("!{Enter}")
+    }
+
+    saveState() {
+        SendSafe("{F5}")
+    }
+
+    loadState() {
+        SendSafe("{F7}")
+    }
+
+    reset() {
+        Send("{Ctrl down}")
+        SendSafe("r")
+        Send("{Ctrl up}")
     }
 }
 
-; custom post launch action for windows game
-winGamePostLaunch() {
-    global globalRunning
+; --- OVERRIDES W/ LAUNCHERS --- 
+class GTA5Program extends WinGameProgramWithLauncher {
+    _launcherEXE := "Launcher.exe"
 
-    this := globalRunning["wingame"]
+    _postExit() {
+        count := 0
+        maxCount := 100
+        while (!WinShown("ahk_exe " this._launcherEXE) && count < maxCount) {
+            count += 1
+            Sleep(100)
+        }
 
-    ; custom action based on which executable is open
-    switch(this.currEXE) {
-        case "MBAA.exe": ; Melty Blood
-            SetTimer(SendSafe.Bind("{Enter}"), -500)
-        case "TestDriveUnlimited.exe": ; Test Drive Unlimited
-            SetTimer(MouseMove.Bind(percentWidth(1, false), percentHeight(1, false)), -20000)
-        case "openmw.exe": ; Morrowind
-            SetTimer(MouseMove.Bind(percentWidth(0.5, false), percentHeight(0.5, false)), -2000)       
-    }
-}
-
-; custom post executable close action for windows game
-winGamePostExit() {
-    global globalRunning
-    
-    this := globalRunning["wingame"]
-
-    ; custom action based on which executable is open
-    switch (this.currEXE) {
-        case "GTA5.exe": ; GTA 5
-            count := 0
-            maxCount := 100
-            while (!WinShown("Rockstar Games Launcher") && count < maxCount) {
-                count += 1
-                Sleep(100)
-            }
-
-            if (WinShown("Rockstar Games Launcher")) {
-                WinClose("Rockstar Games Launcher")
-                Sleep(500)
-            }
-        case "soh.exe": 
-            count := 0
-            maxCount := 5
-            while (ProcessExist("DelfinovinUI.exe") && count < maxCount) {
-                if (WinShown("MainWindow")) {
-                    WinActivate("MainWindow")
-                    Sleep(75)
-
-                    MouseClick("Left", percentWidthRelativeWndw(0.96, "MainWindow")
-                    , percentHeightRelativeWndw(0.04, "MainWindow"),,, "D")
-                    Sleep(75)
-                    MouseClick("Left",,,,, "U")
-                    Sleep(75)
-                    MouseMove(percentWidth(1), percentHeight(1))    
-                }
-
-                Sleep(3000)
-                count += 1
-            }
+        if (WinShown("ahk_exe " this._launcherEXE)) {
+            WinClose("ahk_exe " this._launcherEXE)
+            Sleep(500)
+        }
     }
 }

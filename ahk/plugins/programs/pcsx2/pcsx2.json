@@ -1,26 +1,17 @@
 {
     "id": "pcsx2",
     "name": "PCSX2",
+    "className": "PCSX2Emulator",
 
     "exe": "pcsx2-qtx64-avx2.exe",
     "dir": "C:\\Emulators\\PCSX2",
 
     "requireFullscreen": true,
     "priority": "H",
-    
-    "exit": "pcsx2Exit",
-
-    "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
-
-    "pause": "Send {Space}",
-    "resume": "Send {Space}",
-
-    "reset": "Send r",
 
     "numStates": 1,
-    "saveState": "pcsx2SaveState",
-    "loadState": "pcsx2LoadState",
-    "fastForward": " SendSafe {Tab} 120",
+    "fastForward": true,
+    "reset": true,
 
     "controls": ["Xbox Controller"],
 
@@ -28,7 +19,7 @@
         "xinput": {
             "HOME&START": "program.saveState",
             "HOME&SELECT": "program.loadState",
-            "HOME&RT>0.3": "program.fastForward",
+            "HOME&RT>0.3": "program.fastForward"
         }
-    },
+    }
 }

@@ -53,6 +53,7 @@ class Interface {
 
         this.time := A_TickCount
     }
+    
 
     ; exactly like gui.show except renders the selected item w/ the proper background
     ;  options - see gui.show
@@ -62,6 +63,17 @@ class Interface {
         restoreCritical := A_IsCritical
         Critical("On")
 
+        if (options != "") {
+            retVal := this._Show(options)
+        }
+        else {
+            retVal := this._Show()
+        }
+        
+        Critical(restoreCritical)
+        return retVal
+    }
+    _Show(options) {
         optionsArr := StrSplit(options, A_Space)
         for item in optionsArr {
             if (StrLower(SubStr(item, 1, 1)) = "x") {
@@ -116,10 +128,23 @@ class Interface {
             WinSetTransparent(200, "AHKOVERLAY")
         }
 
-        retVal := this.guiObj.Show(options)
+        return this.guiObj.Show(options)
+    }
+
+    ; exactly like gui.Hide
+    ;
+    ; returns null
+    Hide() {
+        restoreCritical := A_IsCritical
+        Critical("On")
+
+        retVal := this._Hide()
         
         Critical(restoreCritical)
         return retVal
+    }
+    _Hide() {
+        return this.guiObj.Hide()
     }
 
     ; exactly like gui.destroy
@@ -135,11 +160,8 @@ class Interface {
             SetTimer(OverlayKill, -100)
         }
 
-        if (this.guiObj != "") {
-            try this.guiObj.Destroy()
-            this.guiObj := ""
-        }
-        
+        this._Destroy()
+
         Critical(restoreCritical)
         return
 
@@ -150,6 +172,12 @@ class Interface {
             }
 
             return
+        }
+    }
+    _Destroy() {
+        if (this.guiObj != "") {
+            try this.guiObj.Destroy()
+            this.guiObj := ""
         }
     }
 
@@ -166,6 +194,9 @@ class Interface {
     ;
     ; returns null
     Add(type, options := "", text := "") {
+        return this._Add(type, options, text)
+    }
+    _Add(type, options, text) {
         optionsArr := StrSplit(options, A_Space)
         removeArr := []
 
@@ -404,8 +435,14 @@ class Interface {
         }
     }
 
-    ; works the same as Gui
+    ; exactly like gui.setfont, but supports additional params
+    ;  enableSizing - scales the font size based on gui scaling from config
+    ;
+    ; returns gui.setfont
     SetFont(options := "s15", enableSizing := true) {
+        return this._SetFont(options, enableSizing)
+    }
+    _SetFont(options, enableSizing) {
         return guiSetFont(this.guiObj, options, enableSizing)
     }
 
@@ -413,6 +450,9 @@ class Interface {
     ;
     ; returns null
     select() {
+        this._select()
+    }
+    _select() {
         global globalStatus
 
         if (this.control2D[this.currentX][this.currentY].select != "") {
@@ -429,6 +469,9 @@ class Interface {
     ;
     ; returns null
     unselect() {
+        this._unselect()
+    }
+    _unselect() {
         global globalStatus
 
         if (this.control2D[this.currentX][this.currentY].unselect != "") {
@@ -442,7 +485,12 @@ class Interface {
     }
 
     ; goes back, usually overridden w/ custom function 
+    ;
+    ; returns null
     back() {
+        this._back()
+    }
+    _back() {
         this.Destroy()
     }
 
@@ -451,55 +499,10 @@ class Interface {
     ; basically just colors the background of a control to be considered selected
     ; skips controls that don't have a key & wraps around both axis
 
-    ; check if the selected control is outside of the wndw & vertically scroll if it is
-    checkScrollVertical(selectedControl) {
-        y := 0
-        h := 0
-        
-        ControlGetPos(, &y,, &h, selectedControl)
-        y += this._guiY
-
-        if (this.currentY = 1) {
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", (-1 * this._scrollVOffset), "Ptr", 0, "Ptr", 0)
-            this._scrollVOffset := 0
-        }
-        else if (y < 0) {
-            diff := -1 * (y - percentHeight(0.005))
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
-            this._scrollVOffset += diff
-        }
-        else if ((y + h) > (this._guiY + this._guiH)) {
-            diff := -1 * (Abs((y + h) - (this._guiY + this._guiH)) + percentHeight(0.005))
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
-            this._scrollVOffset += diff
-        }
+    up() {
+        this._up()
     }
-
-    ; check if the selected control is outside of the wndw & horizontally scroll if it is
-    checkScrollHorizontal(selectedControl) {
-        x := 0
-        w := 0
-        
-        ControlGetPos(&x,, &w,, selectedControl)
-        x += this._guiX
-
-        if (this.currentX = 1) {
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", (-1 * this._scrollHOffset), "Int", 0, "Ptr", 0, "Ptr", 0)
-            this._scrollHOffset := 0
-        }
-        else if (x < 0) {
-            diff := -1 * (x - percentWidth(0.005))
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
-            this._scrollHOffset += diff
-        }
-        else if ((x + w) > (this._guiX + this._guiW)) {
-            diff := -1 * (Abs((x + w) - (this._guiX + this._guiW)) + percentWidth(0.005))
-            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
-            this._scrollHOffset += diff
-        }
-    }
-
-    up() {  
+    _up() {  
         currControl := this.control2D[this.currentX][this.currentY].control
         nextX := 0
         nextY := 0
@@ -565,10 +568,13 @@ class Interface {
         this.guiObj[newControl].Opt("Background" . this.selectColor)
         this.guiObj[newControl].Redraw()
         
-        this.checkScrollVertical(this.guiObj[newControl])
+        this._checkScrollVertical(this.guiObj[newControl])
     }
     
-    down() {    
+    down() {
+        this._down()
+    }
+    _down() {    
         currControl := this.control2D[this.currentX][this.currentY].control
         nextX := 0
         nextY := 0
@@ -634,10 +640,13 @@ class Interface {
         this.guiObj[newControl].Opt("Background" . this.selectColor)
         this.guiObj[newControl].Redraw()
         
-        this.checkScrollVertical(this.guiObj[newControl])
+        this._checkScrollVertical(this.guiObj[newControl])
     }
     
-    left() {    
+    left() {
+        this._left()
+    }
+    _left() {    
         currControl := this.control2D[this.currentX][this.currentY].control
         nextX := 0
         nextY := 0
@@ -686,10 +695,13 @@ class Interface {
         this.guiObj[newControl].Opt("Background" . this.selectColor)
         this.guiObj[newControl].Redraw()
 
-        this.checkScrollHorizontal(this.guiObj[newControl])
+        this._checkScrollHorizontal(this.guiObj[newControl])
     }
     
-    right() {   
+    right() {
+        this._right()
+    }
+    _right() {   
         currControl := this.control2D[this.currentX][this.currentY].control 
         nextX := 0
         nextY := 0
@@ -738,7 +750,55 @@ class Interface {
         this.guiObj[newControl].Opt("Background" . this.selectColor)
         this.guiObj[newControl].Redraw()
 
-        this.checkScrollHorizontal(this.guiObj[newControl])
+        this._checkScrollHorizontal(this.guiObj[newControl])
+    }
+
+    ; check if the selected control is outside of the wndw & vertically scroll if it is
+    _checkScrollVertical(selectedControl) {
+        y := 0
+        h := 0
+        
+        ControlGetPos(, &y,, &h, selectedControl)
+        y += this._guiY
+
+        if (this.currentY = 1) {
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", (-1 * this._scrollVOffset), "Ptr", 0, "Ptr", 0)
+            this._scrollVOffset := 0
+        }
+        else if (y < 0) {
+            diff := -1 * (y - percentHeight(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
+            this._scrollVOffset += diff
+        }
+        else if ((y + h) > (this._guiY + this._guiH)) {
+            diff := -1 * (Abs((y + h) - (this._guiY + this._guiH)) + percentHeight(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
+            this._scrollVOffset += diff
+        }
+    }
+
+    ; check if the selected control is outside of the wndw & horizontally scroll if it is
+    _checkScrollHorizontal(selectedControl) {
+        x := 0
+        w := 0
+        
+        ControlGetPos(&x,, &w,, selectedControl)
+        x += this._guiX
+
+        if (this.currentX = 1) {
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", (-1 * this._scrollHOffset), "Int", 0, "Ptr", 0, "Ptr", 0)
+            this._scrollHOffset := 0
+        }
+        else if (x < 0) {
+            diff := -1 * (x - percentWidth(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
+            this._scrollHOffset += diff
+        }
+        else if ((x + w) > (this._guiX + this._guiW)) {
+            diff := -1 * (Abs((x + w) - (this._guiX + this._guiW)) + percentWidth(0.005))
+            DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
+            this._scrollHOffset += diff
+        }
     }
 }
 
@@ -776,11 +836,11 @@ createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
 
     if (globalGuis[interfaceKey].guiObj != "") {
         globalGuis[interfaceKey].guiObj.Title := interfaceObj["wndw"]
-        globalGuis[interfaceKey].Show()
     }
 
     if (setCurrent) {
         globalStatus["currGui"] := interfaceKey
+        globalGuis[interfaceKey].Show()
     }
 
     if (customTime != "") {

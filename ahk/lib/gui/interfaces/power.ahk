@@ -40,14 +40,14 @@ class PowerInterface extends Interface {
         this.guiHeight := percentHeight(0.2)        
     }
 
-    Show() {
-        super.Show("Center w" . this.guiWidth . " h" . this.guiHeight)
+    _Show() {
+        super._Show("Center w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
         MouseMove(percentWidth(1), percentHeight(1))
     }
 
-    select() {
+    _select() {
         global globalStatus
 
         selected := this.control2D[this.currentX][this.currentY].select

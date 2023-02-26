@@ -44,7 +44,7 @@ disableKBMMode() {
 ;  showDialog - whether or not to show the info splash
 ;
 ; returns null
-enableDesktopMode(showDialog := true) {
+enableDesktopMode(showDialog := false) {
     global globalConfig
     global globalStatus
     global globalRunning
@@ -94,6 +94,11 @@ disableDesktopMode() {
     if (globalGuis.Has("notification")) {
         globalGuis["notification"].Destroy()
     }
+
+    ; force rebuild loadscreen
+    setLoadScreen()
+    Sleep(1000)
+    resetLoadScreen()
 }
 
 ; checks whether the keyboard is open
@@ -133,7 +138,7 @@ openKeyboard() {
 
     ; Run "osk.exe"
 
-    restoreWNDW := -1
+    restoreWNDW := 0
     if (WinExist("A")) {
         restoreWNDW := WinGetID("A")
     }
@@ -146,12 +151,12 @@ openKeyboard() {
     CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
     IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
 
-    toggleCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
+    invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
     ; ITipInvocation -> Toggle
-    ComCall(3, toggleCOM, "Ptr", DllCall("GetDesktopWindow"))
+    ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
 
-    if (WinShown("ahk_id " restoreWNDW)) {
-        try WinActivate("ahk_id " restoreWNDW)
+    if (restoreWNDW != 0 && WinShown(restoreWNDW)) {
+        try WinActivate(restoreWNDW)
     }
 
     Hotkey("Enter", EnterOverrideHotkey)
@@ -176,9 +181,9 @@ closeKeyboard() {
     CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
     IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
 
-    toggleCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
+    invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
     ; ITipInvocation -> Toggle
-    ComCall(3, toggleCOM, "Ptr", DllCall("GetDesktopWindow"))
+    ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
 
     try Hotkey("Enter", "Off")
 }

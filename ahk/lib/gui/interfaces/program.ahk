@@ -127,14 +127,14 @@ class ProgramInterface extends Interface {
         }        
     }
 
-    Show() {
-        super.Show("Center w" . this.guiWidth . " h" . this.guiHeight)
+    _Show() {
+        super._Show("Center w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
         MouseMove(percentWidth(1), percentHeight(1))
     }
 
-    select() {
+    _select() {
         global globalStatus
         global globalRunning
 
@@ -150,7 +150,7 @@ class ProgramInterface extends Interface {
             globalRunning[funcArr[2]].minimize()
         }
         else {
-            super.select()
+            super._select()
         }
     }
 }

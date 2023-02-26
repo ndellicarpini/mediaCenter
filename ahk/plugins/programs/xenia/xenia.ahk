@@ -1,15 +1,13 @@
-xeniaPause() {
-    global globalRunning
+class XeniaEmulator extends Emulator {      
+    _fullscreen() {
+        SendSafe("{F11}")
+    }
 
-    this := globalRunning["xenia"]
+    _pause() {
+        ProcessSuspend(this.getPID())
+    }
 
-    ProcessSuspend(this.getPID())
-}
-
-xeniaResume() {
-    global globalRunning
-
-    this := globalRunning["xenia"]
-
-    ProcessResume(this.getPID())
+    _resume() {
+        ProcessResume(this.getPID())
+    }
 }

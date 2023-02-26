@@ -1,17 +1,12 @@
 {
     "id": "chrome",
     "name": "Google Chrome",
+    "className": "ChromeProgram",
 
     "allowQuickAccess": true,
 
     "dir": "C:\\Program Files\\Google\\Chrome\\Application\\",
     "exe": "chrome.exe",
-
-    "getWNDW": "chromeGetWNDW",
-    
-    "exit": "chromeExit",
-    
-    "hotkeyButtonTime": 0,
 
     "mouse": {
         "initialPos": [0.5, 0.5],
@@ -26,6 +21,7 @@
     },
 
     "hotkeys": {
+        "buttonTime": 0,
         "xinput": {
             "[REPEAT]RSX>0.4": "Send ^=",
             "[REPEAT]RSX<-0.4": "Send ^-",
@@ -43,13 +39,12 @@
             "RT>0.75": "Send !{Right}",
 
             "SELECT": "toggleKeyboard",
-            "START": "Send ^t",
+            "START": "Send ^t"
         }
     },
 
     "pauseOptions": {
-        "Show Controls": "chromeControls",
-        "Toggle Picture-in-Picture": "chromePIP",
+        "Toggle Picture-in-Picture": "program.pip"
     },
     "pauseOrder": ["Toggle Picture-in-Picture"]
 }

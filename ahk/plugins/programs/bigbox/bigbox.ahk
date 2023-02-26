@@ -1,10 +1,16 @@
-bigBoxRestore() {
-    ; stop while start up screen exists
-    if (WinShown("LaunchBox Game Startup")) {
-        while (WinShown("LaunchBox Game Startup")) {
-            Sleep(5)
+class BigBoxProgram extends Program {
+    _restore() {
+        restoreTTM := A_TitleMatchMode
+        SetTitleMatchMode(3)
+
+        if (WinShown("LaunchBox Game Startup")) {
+            WinActivate("LaunchBox Game Startup")
+
+            SetTitleMatchMode(restoreTTM)
+            return
         }
 
-        return -1
+        SetTitleMatchMode(restoreTTM)
+        super._restore()
     }
 }

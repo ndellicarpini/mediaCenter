@@ -1,12 +1,10 @@
 {
     "id": "amazongame",
 	"name": "Windows Game",
+	"className": "AmazonGameProgram",
 
 	"requireInternet": true,
 	"requireFullscreen": true,
-
-    "launch": "amazonGameLaunch",
-	"postExit": "amazonGamePostExit",
 
     "exe": [
 		"Broforce-798.exe",

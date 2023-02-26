@@ -1,26 +1,38 @@
-ppssppReset() {
-    Send("{Ctrl down}")
-    SendSafe("b")
-    Send("{Ctrl up}")
-}
-
-ppssppSaveState(slot) {
-    SendSafe("{F1}")
-}
-
-ppssppLoadState(slot) {
-    SendSafe("{F3}")
-}
-
-ppssppFastForward() {
-    global globalRunning
-
-    this := globalRunning["ppsspp"]
-
-    if (this.fastForwarding) {
-        Send("{Tab up}")
+class PPSSPPEmulator extends Emulator {
+    _fullscreen() {
+        Send("{Alt down}")
+        SendSafe("{Enter}")
+        Send("{Alt up}")
     }
-    else {
-        Send("{Tab down}")
+
+    _pause() {
+        SendSafe("{Escape}", 120)
+    }
+
+    _resume() {
+        this._pause()
+    }
+    
+    _saveState(slot) {
+        SendSafe("{F1}")
+    }
+
+    _loadState(slot) {
+        SendSafe("{F3}")
+    }
+
+    _reset() {
+        Send("{Ctrl down}")
+        SendSafe("b")
+        Send("{Ctrl up}")
+    }
+
+    _fastForward() {
+        if (this.fastForwarding) {
+            Send("{Tab up}")
+        }
+        else {
+            Send("{Tab down}")
+        }
     }
 }

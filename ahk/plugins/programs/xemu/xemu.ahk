@@ -1,19 +1,28 @@
-xemuLaunch(rom) {
-    global globalRunning
+class XemuEmulator extends Emulator {
+    _fullscreen() {
+        Send("{Ctrl down}")
+        Send("{Alt down}")
+        SendSafe("f")
+        Send("{Alt up}")
+        Send("{Ctrl up}")
+    }
 
-    this := globalRunning["xemu"]
+    _pause() {
+        Send("{Ctrl down}")
+        SendSafe("p")
+        Send("{Ctrl up}")
+    }
 
-    Run validateDir(this.dir) . this.exe . A_Space . '"-full-screen" "-dvd_path" "' . rom . '"', validateDir(this.dir), "Max"
-}
+    _resume() {
+        this._pause()
 
-xemuResume() {
-    Send("{Ctrl down}p{Ctrl up}")
-    Sleep(85)
-    SendSafe("{Escape}")
-}
+        Sleep(85)
+        SendSafe("{Escape}")
+    }
 
-xemuReset() {
-    Send("{Ctrl down}")
-    SendSafe("r")
-    Send("{Ctrl up}")
+    _reset() {
+        Send("{Ctrl down}")
+        SendSafe("r")
+        Send("{Ctrl up}")
+    }
 }

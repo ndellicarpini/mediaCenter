@@ -1,132 +1,444 @@
-; run an steam game from steam URI
-;  URI - link to launch game
-;  args - args to use when running game
-;
-; returns -1 if launch fails
-steamGameLaunch(URI, args*) {
-    global globalRunning
+; --- DEFAULT STEAM APP ---
+class SteamGameProgram extends Program {
+    _launch(URI, args*) {
+        global globalStatus
+        global globalRunning
 
-    this := globalRunning["steamgame"]
-
-    steamResult := steamGameLaunchHandler(URI)
-    if (!steamResult) {
-        return -1
-    }
-
-    ; custom actions based on game
-    switch (URI) {
-        case "steam://rungameid/200260": ; Batman Arkham Asylum
-            this.launcher := Map("exe", "BmLauncher.exe", "mouseClick", [0.5, 0.666])
-        case "steam://rungameid/35140": ; Batman Arkham City
-            this.launcher := Map("exe", "BmLauncher.exe", "mouseClick", [0.5, 0.666])
-        case "steam://rungameid/489830": ; Skyrim SE
-            this.launcher := Map("exe", "SkyrimSELauncher.exe", "mouseClick", [0.925, 0.112])
-        case "steam://rungameid/22370": ; Fallout 3
-            this.launcher := Map("exe", "FalloutLauncherSteam.exe", "mouseClick", [0.922, 0.278])
-        case "steam://rungameid/22380": ; Fallout NV
-            this.launcher := Map("exe", "FalloutNVLauncher.exe", "mouseClick", [0.922, 0.278])
-        case "steam://rungameid/377160": ; Fallout 4
-            this.launcher := Map("exe", "Fallout4Launcher.exe", "mouseClick", [0.922, 0.109])
-        case "steam://rungameid/236870": ; HITMAN
-            this.launcher := Map("exe", "Launcher.exe", "mouseClick", [0.128, 0.621])
-        case "steam://rungameid/55230": ; Saints Row 3
-            this.launcher := Map("exe", "game_launcher.exe", "mouseClick", [0.25, 0.441])
-        case "steam://rungameid/20920": ; Witcher 2
-            this.launcher := Map("exe", "Launcher.exe", "mouseClick", [0.585, 0.875])
-        case "steam://rungameid/22330": ; Oblivion
-            this.launcher := Map("exe", "OblivionLauncher.exe", "mouseClick", [0.664, 0.25])
-        case "steam://rungameid/219150": ; Hotline Miami
-            this.launcher := Map("exe", "HotlineMiami.exe", "mouseClick", [0.216, 0.948])
-        case "steam://rungameid/322500": ; SUPERHOT
-            this.launcher := Map("exe", "SUPERHOT.exe", "mouseClick", [[0.205, 0.5], [0.373, 0.833]])
-        case "steam://rungameid/690040": ; SUPERHOT 2
-            this.launcher := Map("exe", "SUPERHOTMCD.exe", "mouseClick", [[0.497, 0.5], [0.373, 0.833]])
-        case "steam://rungameid/1174180": ; Red Dead Redemption 2
-            this.launcher := Map("exe", "Launcher.exe", "mouseClick", [])
-        case "steam://rungameid/758330": ; Shenmue 1 & 2
-            if (Integer(args[1]) = 1) {
-                this.launcher := Map("exe", "SteamLauncher.exe", "mouseClick", [0.25, 0.5])
-            }
-            else if (Integer(args[1]) = 2) {
-                this.launcher := Map("exe", "SteamLauncher.exe", "mouseClick", [0.75, 0.5])
-            }
-        case "steam://rungameid/107100": ; Bastion
-            this.requireFullscreen := false
-        case "steam://rungameid/374320": ; Dark Souls III
-            this.requireFullscreen := false
-        case "steam://rungameid/12140", "steam://rungameid/12150", "steam://rungameid/400", "steam://rungameid/220":
-            ; Max Payne / Max Payne 2 / Portal / HL2
-            this.mouse := Map("initialPos", [0.5, 0.5])
-    }
-}
-
-; custom post launch action for steamgame
-steamGamePostLaunch() {
-    DelayCheckFullscreen(program) {
-        if (!program.checkFullscreen()) {
-            program.fullscreen()
+        ; checks for common steam windows
+        steamShown() {
+            return WinShown("Install - ") || WinShown("Updating ") || WinShown("Ready - ") 
+                || WinShown(" - Steam") || WinShown("Steam Dialog")
         }
-    }
-
-    global globalRunning
-
-    this := globalRunning["steamgame"]
-
-    ; custom action based on which executable is open
-    switch(this.currEXE) {
-        case "BioshockHD.exe", "Bioshock2HD.exe": ; Bioshock HD & Bioshock 2 HD
-            SetTimer(SendSafe.Bind("{Enter}"), -2000)
-        ; case "gta3.exe": ; GTA 3
-        ;     SetTimer(SendSafe.Bind("{Enter}"), -2000)
-        ;     SetTimer(SendSafe.Bind("{Enter}"), -4000)
-        ; case "gta-vc.exe": ; GTA VC
-        ;     SetTimer(SendSafe.Bind("{Enter}"), -2000)
-        ; case "gta-sa.exe": ; GTA SA
-        ;     SetTimer(SendSafe.Bind("^{Enter}"), -2000)
-        case "Shenmue.exe", "Shenmue2.exe": ; Shenmue 1 & 2
-            SetTimer(SendSafe.Bind("{Enter}"), -500)
-        case "Clustertruck.exe": ; Clustertruck
-            SetTimer(SendSafe.Bind("{Enter}"), -500)
-        case "PROA34-Win64-Shipping.exe": ; Blue Fire                
-            SetTimer(DelayCheckFullscreen.Bind(this), -6500)  
-        case "DarkSoulsIII.exe": ; Dark Souls III                
-            SetTimer(DelayCheckFullscreen.Bind(this), -6500)  
-        case "braid.exe": ; Braid
-            if (this.checkFullscreen()) {
-                Send("!{Enter}")
-                Sleep(500)
-                this.fullscreen()
+    
+        ; checks if the eula is open & accepts it
+        checkDialogs() {
+            if (WinShown(" Dialog")) {
+                WinClose(" Dialog")
             }
-        case "UNDERTALE.exe": ; Undertale
-            while (!this.checkFullscreen()) {
-                Send("{F4}")
+    
+            if (WinShown("Install - ")) {
+                WinActivate("Install - ")
+                Sleep(100)
+                Send "{Enter}"
+            }
+        }
+
+        ; skips all steam dialogs and launches the game
+        launchHandler(game, loopCount := 0) {
+            restoreAllowExit := this.allowExit
+        
+            restoreLoadText := globalStatus["loadscreen"]["text"]
+            setLoadScreen("Waiting for Steam...")
+            loadText := globalStatus["loadscreen"]["text"]
+        
+            restoreTTMM := A_TitleMatchMode
+            SetTitleMatchMode(2)
+        
+            ; launch steam if it doesn't exist
+            if (!globalRunning.Has("steam") || !globalRunning["steam"].exists()) {
+                if (!globalRunning.Has("steam")) {
+                    createProgram("steam", true, false)
+                }
+                else if (!globalRunning["steam"].exists()) {
+                    globalRunning["steam"].launch()
+                }
+            
+                ; TODO - fix getting cucked by the reset timeout
+                setLoadScreen("Waiting for Steam...")
+        
+                this.allowExit := true
+                
+                count := 0
+                maxCount := 100
+                ; buffer wait for steam so that the URI works
+                while (count < maxCount) {
+                    if (this.shouldExit) {    
+                        SetTitleMatchMode(restoreTTMM)
+                        return false
+                    }
+        
+                    count += 1
+                    Sleep(100)
+                }
+        
+                this.allowExit := false
+            }
+        
+            Run(RTrim(game . A_Space . joinArray(args), A_Space))
+        
+            count := 0
+            maxCount := 40
+            ; wait for either the game or a common steam window
+            while (count < maxCount && !steamShown() && !this.exists()) {
+                if (count > 25 && this.shouldExit) {    
+                    SetTitleMatchMode(restoreTTMM)
+                    return false
+                }
+        
+                count += 1
                 Sleep(500)
-                Send("{F4}")
+            }
+        
+            ; if game -> success
+            if (this.exists()) {
+                this.allowExit := restoreAllowExit
+                SetTitleMatchMode(restoreTTMM)
+        
+                return
+            }
+        
+            ; if no steam windows shown -> restart steam
+            if (!steamShown()) {
+                if (loopCount > 2) {
+                    SetTitleMatchMode(restoreTTMM)
+                    return false
+                }
+        
+                globalRunning["steam"].exit()
+                
+                Sleep(2000)
+                return launchHandler(game, loopCount + 1)
+            }
+        
+            this.allowExit := true
+            
+            setLoadScreen(restoreLoadText)
+            globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " globalRunning["steam"].getEXE()
+        
+            ; while launching window is shown, just wait
+            while (WinShown(" - Steam")) {
+                checkDialogs()
+                Sleep(250)
+            }
+        
+            updateWidth := Floor(percentWidth(0.4, false))
+        
+            ; while game updating -> resize update windows for funsies
+            while (WinShown("Updating ")) {
+                try {            
+                    WinGetPos(&X, &Y, &W, &H, "Updating ")
+                    if (W != updateWidth) {
+                        WinMove((Floor(percentWidth(0.5, false)) - Floor(updateWidth / 2)), Y, updateWidth, H)
+                    }
+                }
+        
+                if (this.shouldExit) {   
+                    globalStatus["loadscreen"]["overrideWNDW"] := ""
+        
+                    WinClose("Updating ")
+                    SetTitleMatchMode(restoreTTMM)
+        
+                    return false
+                }
+        
+                checkDialogs()
+        
                 Sleep(500)
-            }          
+            }
+        
+            checkDialogs()
+        
+            ; if game finishes updating -> click play button
+            while (WinShown("Ready - ")) {  
+                try {
+                    WinGetPos(&X, &Y, &W, &H, "Ready - ")
+                    ; the perfect infinite subpixel
+                    mouseX := Floor(percentWidthRelativeWndw(0.915, "Ready - "))
+                    mouseY := Floor(percentHeightRelativeWndw(0.658, "Ready - "))
+            
+                    Sleep(75)
+                    MouseMove(mouseX, mouseY)
+                    Sleep(75)
+                    MouseClick("Left")
+                    Sleep(75)
+                    MouseMove(percentWidth(1, false), percentHeight(1, false))
+                }
+        
+                if (this.shouldExit) {   
+                    globalStatus["loadscreen"]["overrideWNDW"] := ""
+        
+                    WinClose("Ready - ")
+                    SetTitleMatchMode(restoreTTMM)
+        
+                    return false
+                }
+        
+                checkDialogs()
+        
+                Sleep(2000)
+            }   
+        
+            globalStatus["loadscreen"]["overrideWNDW"] := ""
+            this.allowExit := restoreAllowExit
+            SetTitleMatchMode(restoreTTMM)
+        
+            return
+        }
+
+        return launchHandler(URI)
     }
 }
 
-; custom post executable close action for all flavors of windows game
-steamGamePostExit() {
-    global globalRunning
+; --- STEAM APPS W/ REQUIRED LAUNCHER TO SKIP ---
+class SteamGameProgramWithLauncher extends SteamGameProgram {
+    _launcherEXE      := ""   ; exe of launcher application
+    _launcherMousePos := []   ; array of positions to click as a double array
+    _launcherDelay    := 1000 ; delay before clicking
+    
+    _launch(URI, args*) {
+        global globalStatus
 
-    this := globalRunning["steamgame"]
+        if (super._launch(URI, args*) = false) {
+            return false
+        }
 
-    ; custom action based on which executable is open
-    switch (this.currEXE) {
-        case "Shenmue.exe", "Shenmue2.exe": ; Shenmue 1 & 2
-            count := 0
-            maxCount := 100
+        if (this._launcherEXE = "") {
+            return
+        }
 
-            while (!WinShown("Shenmue Launcher") && count < maxCount) {
-                count += 1
-                Sleep(100)
+        restoreAllowExit := this.allowExit
+        this.allowExit   := true
+
+        ; wait for executable
+        while (!WinShown("ahk_exe " this._launcherEXE)) {
+            if (this.exists()) {
+                return
+            }
+            else if (this.shouldExit) {
+                return false
             }
 
-            if (WinShown("Shenmue Launcher")) {
-                WinClose("Shenmue Launcher")
-                Sleep(500)
+            Sleep(100)
+        }
+
+        ; flatten double array
+        mouseArr := []
+        loop this._launcherMousePos.Length {
+            if (Type(this._launcherMousePos[A_Index]) = "Array") {
+                currIndex := A_Index
+                loop this._launcherMousePos[currIndex].Length {
+                    mouseArr.Push(this._launcherMousePos[currIndex][A_Index])
+                }
             }
+            else {
+                mouseArr.Push(this._launcherMousePos[A_Index])
+            }
+        }
+
+
+        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " this._launcherEXE
+
+        ; try to skip launcher as long as exectuable is shown
+        while (WinShown("ahk_exe " this._launcherEXE)) {
+            if (this.exists()) {
+                return
+            }
+            else if (this.shouldExit) {
+                return false
+            }
+
+            loop (mouseArr.Length / 2) {
+                index := ((A_Index - 1) * 2) + 1
+
+                Sleep(this._launcherDelay)
+
+                if (this.exists() || !WinShown("ahk_exe " this._launcherEXE)) {
+                    return
+                }
+                else if (this.shouldExit) {
+                    return false
+                }
+
+                MouseClick("Left"
+                    , percentWidthRelativeWndw(mouseArr[index], "ahk_exe " this._launcherEXE)
+                    , percentHeightRelativeWndw(mouseArr[index + 1], "ahk_exe " this._launcherEXE)
+                    ,,, "D"
+                )
+                Sleep(75)
+                MouseClick("Left",,,,, "U")
+                Sleep(75)
+                MouseMove(percentWidth(1), percentHeight(1))    
+            }
+        }
+
+        this.allowExit := restoreAllowExit
+        globalStatus["loadscreen"]["overrideWNDW"] := ""
+    }
+
+    ; dank ass bad practice
+    exit() {
+        if (this._launcherEXE != "" && ProcessExist(this._launcherEXE)) {
+            ProcessClose(this._launcherEXE)
+        }
+
+        super.exit()
+    }
+}
+
+; --- OVERRIDES ---
+class BioShockHDProgram extends SteamGameProgram {
+    _postLaunchDelay := 2000
+
+    _postLaunch() {
+        SendSafe("{Enter}")
+    }
+}
+
+class BlueFireProgram extends SteamGameProgram {
+    _fullscreenDelay := 6500
+}
+
+class DarkSouls3Program extends SteamGameProgram {
+    _fullscreenDelay := 6500
+}
+
+class ClustertruckProgram extends SteamGameProgram {
+    _postLaunchDelay := 500
+
+    _launch(args*) {
+        global globalStatus
+
+        super._launch(args*)
+
+        ; clustertruck's launcher is a garbage piece of shit
+        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe Clustertruck.exe"
+
+        count := 0
+        maxCount := 150
+        while (!WinExist("ahk_exe Clustertruck.exe")) {
+            count += 1
+            Sleep(100)
+        }
+
+        if (WinExist("ahk_exe Clustertruck.exe")) {
+            Sleep(500)
+
+            WinActivate("ahk_exe Clustertruck.exe")
+            SendSafe("{Enter}")
+        }
+
+        globalStatus["loadscreen"]["overrideWNDW"] := ""
+    }
+}
+
+class BraidProgram extends SteamGameProgram {
+    _postLaunchDelay := 500
+
+    _postLaunch() {
+        if (this.checkFullscreen()) {
+            Send("!{Enter}")
+        }
+
+        Sleep(500)
+        super._fullscreen()
+    }
+}
+
+class UndertaleProgram extends SteamGameProgram {
+    _fullscreenDelay := 1000
+
+    _fullscreen() {
+        SendSafe("{F4}")
+    }
+}
+
+; --- OVERRIDES W/ LAUNCHERS ---
+class BatmanArkhamProgram extends SteamGameProgramWithLauncher {
+    _launcherEXE := "BmLauncher.exe"
+    _launcherMousePos := [0.500, 0.666]
+}
+
+class SkyrimSEProgram extends SteamGameProgramWithLauncher {
+    _launcherEXE := "SkyrimSELauncher.exe"
+    _launcherMousePos := [0.925, 0.112]
+}
+
+class Fallout3Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "FalloutLauncherSteam.exe"
+    _launcherMousePos := [0.922, 0.278]
+}
+
+class FalloutNVProgram extends SteamGameProgramWithLauncher {
+    _launcherEXE := "FalloutNVLauncher.exe"
+    _launcherMousePos := [0.922, 0.278]
+}
+
+class Fallout4Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "Fallout4Launcher.exe"
+    _launcherMousePos := [0.922, 0.109]
+}
+
+class HitmanProgram extends SteamGameProgramWithLauncher {
+    _launcherEXE := "Launcher.exe"
+    _launcherMousePos := [0.128, 0.621]
+}
+
+class SaintsRow3Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "game_launcher.exe"
+    _launcherMousePos := [0.250, 0.441]
+}
+
+class Witcher2Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "Launcher.exe"
+    _launcherMousePos := [0.585, 0.875]
+}
+
+class OblivionProgram extends SteamGameProgramWithLauncher {
+    _launcherEXE := "OblivionLauncher.exe"
+    _launcherMousePos := [0.664, 0.250]
+}
+
+class HotlineMiamiProgram extends SteamGameProgramWithLauncher {
+    _launcherEXE := "HotlineMiami.exe"
+    _launcherMousePos := [0.216, 0.948]
+}
+
+class SuperHotProgram extends SteamGameProgramWithLauncher {
+    _launcherEXE := "SUPERHOT.exe"
+    _launcherMousePos := [[0.205, 0.500], [0.373, 0.833]]
+}
+
+class SuperHot2Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "SUPERHOTMCD.exe"
+    _launcherMousePos := [[0.497, 0.500], [0.373, 0.833]]
+}
+
+class RDR2Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "Launcher.exe"
+}
+
+class ShenmueProgram extends SteamGameProgramWithLauncher {
+    _postLaunchDelay := 500
+    _launcherEXE := "SteamLauncher.exe"
+
+    _launch(URI, args*) {
+        version := Integer(args.RemoveAt(1))
+        if (version = 1) {
+            this._launcherMousePos := [0.250, 0.500]
+        }
+        else if (version = 2) {
+            this._launcherMousePos := [0.750, 0.500]
+        }
+
+        super._launch(URI, args*)
+    }
+
+    _postLaunch() {
+        SendSafe("{Enter}")
+    }
+
+    _postExit() {
+        count := 0
+        maxCount := 100
+
+        while (!WinShown("ahk_exe " this._launcherEXE) && count < maxCount) {
+            count += 1
+            Sleep(100)
+        }
+
+        if (WinShown("ahk_exe " this._launcherEXE)) {
+            WinClose("ahk_exe " this._launcherEXE)
+            Sleep(500)
+        }
     }
 }

@@ -1,23 +1,16 @@
 {
     "id": "citra",
     "name": "Citra",
+    "className": "CitraEmulator",
 
     "exe": "citra-qt.exe",
     "dir": "C:\\Emulators\\Citra",
 
     "requireFullscreen": true,
 
-    "fullscreen": "Send {F11}",
-
-    "pause": "SendSafe {F4}",
-    "resume": "SendSafe {F4}",
-
-    "reset": "SendSafe {F6}",
-
     "numStates": 1,
-    "saveState": "citraSaveState",
-    "loadState": "citraLoadState",
-    "fastForward": "citraFastForward",
+    "fastForward": true,
+    "reset": true,
 
     "controls": ["Xbox Controller"],
 
@@ -28,42 +21,49 @@
             "y": "-RSY",
             "lclick": "RSB",
             "rclick": "LSB",
-            "deadzone": 0.15,
+            "deadzone": 0.15
         }
     },
 
-    "hotkeyButtonTime": 0,
-
     "hotkeys": {
+        "buttonTime": 0,
         "xinput": {
             "HOME&START": {
                 "down": "program.saveState",
-                "time": 70,
+                "time": 70
             },
             "HOME&SELECT": {
                 "down": "program.loadState",
-                "time": 70,
+                "time": 70
             },
             "HOME&RT>0.3": {
                 "down": "program.fastForward",
-                "time": 70,
+                "time": 70
             },
 
+            ; used to duplicate functionality for triggers & bumpers
+            ; uses basic Send commands so that it isn't buffered
             "LB|LT>0.05": {
                 "down": "Send '{q down}'",
-                "up": "Send '{q up}'",
+                "up": "Send '{q up}'"
             },
             "RB|RT>0.05": {
                 "down": "Send '{w down}'",
-                "up": "Send '{w up}'",
-            },
+                "up": "Send '{w up}'"
+            }
         }
     },
 
     "pauseOptions": {
-        "Swap Screens": "SendSafe {F9}",
-        "Change Screen Layout": "SendSafe {F10}",
+        "Swap Screens": "program.swapScreens",
+        "Change Screen Layout": "program.layoutScreens",
     },
 
-    "pauseOrder": ["Save State", "Load State", "Swap Screens", "Change Screen Layout", "Reset Game"]
+    "pauseOrder": [
+        "Save State", 
+        "Load State", 
+        "Swap Screens", 
+        "Change Screen Layout", 
+        "Reset Game"
+    ]
 }

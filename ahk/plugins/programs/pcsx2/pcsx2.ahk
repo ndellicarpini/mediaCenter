@@ -1,15 +1,45 @@
-pcsx2Exit() {
-    global globalRunning
+class PCSX2Emulator extends Emulator {
+    ; _exit() {
+    ;     hwnd := this.getWNDW()
+    ;     if (wndw != "") {
+    ;         WinClose(wndw)
+    ;     }
 
-    WinClose(globalRunning["pcsx2"].getWNDW())
-    Sleep(100)
-    WinClose(globalRunning["pcsx2"].getWNDW())
-}
+    ;     Sleep(100)
 
-pcsx2SaveState(slot) {
-    SendSafe("{F1}")
-}
+    ;     wndw := this.getWNDW()
+    ;     if (wndw != "") {
+    ;         WinClose(wndw)
+    ;     }
+    ; }
 
-pcsx2LoadState(slot) {
-    SendSafe("{F3}")
+    _fullscreen() {
+        Send("{Alt down}")
+        SendSafe("{Enter}")
+        Send("{Alt up}")
+    }
+
+    _pause() {
+        SendSafe("{Space}")
+    }
+
+    _resume() {
+        this._pause()
+    }
+    
+    _saveState(slot) {
+        SendSafe("{F1}")
+    }
+
+    _loadState(slot) {
+        SendSafe("{F3}")
+    }
+
+    _reset() {
+        SendSafe("r")
+    }
+
+    _fastForward() {
+        SendSafe("{Tab}", 120)
+    }
 }

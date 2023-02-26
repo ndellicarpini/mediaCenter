@@ -1,6 +1,7 @@
 {
     "id": "rpcs3",
     "name": "RPCS3",
+    "className": "RPCS3Emulator",
 
     "exe": "rpcs3.exe",
     "dir": "C:\\Emulators\\RPCS3",
@@ -8,10 +9,5 @@
     "requireFullscreen": true,
     "priority": "H",
     
-    "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
-
-    "pause":  "Send '{Ctrl down}p{Ctrl up}'",
-    "resume": "Send '{Ctrl down}p{Ctrl up}'",
-
     "controls": ["Xbox Controller"]
 }

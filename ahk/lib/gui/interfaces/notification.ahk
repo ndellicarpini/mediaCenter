@@ -27,7 +27,7 @@ class NotificationInterface extends Interface {
         this.Add("Text", "vMessage Center 0x200", message)
     }
 
-    Show() {
+    _Show() {
         this.guiObj["Message"].GetPos(,, &W, &H)
 
         guiWidth := W + (this.marginX * 2)
@@ -45,11 +45,11 @@ class NotificationInterface extends Interface {
                 offset := "x" . (percentWidth(0.99, false) - guiWidth) . " y" . (percentHeight(1) - percentWidth(0.01, false) - guiHeight)
         }
     
-        super.Show("NoActivate AutoSize " . offset)
+        super._Show("NoActivate AutoSize " . offset)
         WinSetTransparent(230, INTERFACES["notification"]["wndw"])
 
-        if (this.timeout > 0) {
-            SetTimer(MsgCloseTimer, -1 * this.timeout)
+        if (this.timeout != 0) {
+            SetTimer(MsgCloseTimer, Neg(this.timeout))
         }
 
         return

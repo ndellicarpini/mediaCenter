@@ -101,7 +101,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 			cleanLine := Trim(A_LoopField, " `t`r`n")
 
 			; skip empty lines / comment lines
-			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;" || RegExMatch(cleanLine, "U)^//"))) {
+			if (cleanLine = "" || RegExMatch(cleanLine, "U)^;") || RegExMatch(cleanLine, "U)^//")) {
 				continue
 			}
 
@@ -142,12 +142,12 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 				if (!(inMultiLine > 0 || inQuotes(cleanLine, deliminator)) && InStr(cleanLine, deliminator)) {
 					; save previous left=right to configObj after finding next line withh valid deliminator
 					if (leftItem != "") {
-						configObj.items[leftItem] := StrReplace(Trim(rightItem, ' `t`r`n,'), "\\", "\")
+						configObj.items[leftItem] := Trim(rightItem, ' `t`r`n,')
 					}
 
 					currentItem := StrSplit(cleanLine, deliminator,, 2)
 
-					leftItem  := StrReplace(Trim(currentItem[1], ' `t`r`n,"'), "\\", "\")
+					leftItem  := Trim(currentItem[1], ' `t`r`n,"')
 					rightItem := currentItem[2]
 				}
 				; add lines to right item for multiline right item values
@@ -180,7 +180,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 		; save final left=right items if last item was not saved
 		if (leftItem != "" && !configObj.items.Has(leftItem)) {
 			if (subConfigType = "json") {
-				rightItem := StrReplace(Trim(rightItem, ' `t`r`n,'), "\\", "\")
+				rightItem := Trim(rightItem, ' `t`r`n,')
 			}
 
 			configObj.items[leftItem] := rightItem
@@ -261,7 +261,7 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 					
 					; set currentSubConfig if subconfig title is direct subconfig to current config
 					if (subConfigLevel = 0) {
-						currentSubConfig := StrReplace(Trim(StrSplit(cleanLine, deliminator,, 2)[1], ' "'), "\\", "\")
+						currentSubConfig := Trim(StrSplit(cleanLine, deliminator,, 2)[1], ' "')
 					}
 
 					subConfigLevel += 1
@@ -318,6 +318,9 @@ readConfig(toRead, deliminator := "=", subConfigType := "none", subConfig := "")
 	; just add items to config if there are no subconfigs in file
 	if (subConfigType = "none") {
 		return addItemsToConfig(Config(), configString)
+	}
+	else if (subConfigType = "json") {
+		configString := StrReplace(configString, "\\", "\")
 	}
 
 	retObj := subConfigHelper(configString)

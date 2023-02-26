@@ -5,8 +5,8 @@
 
 ; check that mediacenter is actually running
 DetectHiddenWindows(true)
-if (!WinExist("MediaCenterMain")) {
-    ErrorMsg("MediaCenterMain is not running", true)
+if (!WinExist(MAINNAME)) {
+    ErrorMsg(MAINNAME . " is not running", true)
 }
 
 sendListToMain(A_Args)

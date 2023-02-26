@@ -227,8 +227,6 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
         mouseTimerRunning := false
 
-        loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 4)
-
         ; intialize input type & devices
         inputInit := %globalInputConfigs[inputID]["className"]%.initialize()
         loop maxConnected {
@@ -238,7 +236,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             globalInputStatus[inputID][A_Index]["vibrating"] := false
         }
 
-        SetTimer(DeviceStatusTimer, globalConfig["General"]["AvgLoopSleep"] * 2)
+        SetTimer(DeviceStatusTimer, Round(globalConfig["General"]["AvgLoopSleep"] * 2.5))
 
         loop {
             currStatus := globalStatus["currProgram"] . globalStatus["currGui"] . globalStatus["loadscreen"]["show"]
@@ -318,7 +316,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 ExitApp()
             }
 
-            Sleep(loopSleep)
+            Sleep(16)
         }
 
         ; ----- TIMERS -----
@@ -379,15 +377,15 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         if (loopCount > 120) {
                             winList := WinGetList()
                             loop winList.Length {
-                                currPath := WinGetProcessPath("ahk_id " winList[A_Index])
-                                currProcess := WinGetProcessName("ahk_id " winList[A_Index])
+                                currPath := WinGetProcessPath(winList[A_Index])
+                                currProcess := WinGetProcessName(winList[A_Index])
 
                                 if (currProcess = "explorer.exe" || currPath = A_AhkPath) {
                                     continue
                                 }
-
-                                try ProcessKill(WinGetPID("ahk_id " winList[A_Index]))
-                                break
+                                
+                                try ProcessKill(WinGetPID(winList[A_Index]))
+                                return
                             }
                         }
                     }
@@ -735,7 +733,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             }
         }
 
-        loopSleep := Round(globalConfig["General"]["AvgLoopSleep"])
+        loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 2)
 
         loop {
             currSuspended := globalStatus["suspendScript"]
@@ -885,6 +883,8 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         bypassFirewall  := globalConfig["General"].Has("BypassFirewallPrompt") && globalConfig["General"]["BypassFirewallPrompt"]
         hideTaskbar     := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
+        createInterface("loadscreen", false,, globalStatus["loadscreen"]["text"])
+
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 1.5)
 
         loop {
@@ -898,7 +898,8 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                         if (globalStatus["loadscreen"]["show"]) {
                             ; create loadscreen if doesn't exist
                             if (!loadShown) {
-                                createInterface("loadscreen", false,, globalStatus["loadscreen"]["text"])
+                                globalGuis["loadscreen"].updateText(globalStatus["loadscreen"]["text"])      
+                                globalGuis["loadscreen"].Show()
                             }
 
                             ; activate overrideWNDW if it exists
@@ -930,7 +931,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                         currLoadEnable := true
                     }
                     else if (loadShown) {
-                        destroyLoadScreen()
+                        hideLoadScreen()
                         currLoadEnable := false
                     }
                 }
@@ -959,7 +960,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
 
                 ; destroy load screen if it should not exist (desktopmode)
                 if (allowLoadScreen && currLoadEnable && !globalStatus["loadscreen"]["enable"]) {
-                    destroyLoadScreen()
+                    hideLoadScreen()
                     currLoadEnable := false
                 }
             }

@@ -1,12 +1,9 @@
 {
 	"id": "wingame",
 	"name": "Windows Game",
+	"className": "WinGameProgram",
 
 	"requireFullscreen": true,
-
-	"launch": "winGameLaunch",
-	"postLaunch": "winGamePostLaunch",
-	"postExit": "winGamePostExit",
 
 	"exe": [
 		"gzdoom.exe",
@@ -43,5 +40,92 @@
 		"TestDriveUnlimited.exe",
 		"ItTakesTwo.exe",
 		"soh.exe"
-	]
+	],
+
+	"overrides": {
+		; Grand Theft Auto V
+		"PlayGTAV\\.exe": "GTA5Program",
+		; Melty Blood Actress Again
+		"MBAA\\.exe": "MBAAProgram",
+		; Test Drive Unlimited
+		"TestDriveUnlimited\\.exe": "TestDriveUnlimitedProgram",
+		; Morrowind
+		"openmw\\.exe": {
+			"className": "MorrowindProgram",
+			"mouse": {
+				"initialPos": [0.5, 0.5]
+			}
+		},
+		; Forza Horizon 3
+		"Microsoft\\.OpusPG_8wekyb3d8bbwe!OpusReleaseFinal": {
+			"wndw": "Forza Horizon 3",
+			"allowPause": false
+		},
+		; Kingdom Hearts HD 1.5+2.5
+		"KINGDOM HEARTS HD 1\\.5\\+2\\.5 ReMIX\\.exe": {
+			"hotkeys": {
+				"buttonTime": 0,
+				"xinput": {
+					"SELECT": {
+                        "up": "Send '{Escape up}'", 
+                        "down": "Send '{Escape down}'"
+					}
+				}
+			}
+		},
+		; Kingdom Hearts HD 2.8
+		"KINGDOM HEARTS HD 2\\.8 Final Chapter Prologue\\.exe": {
+			"hotkeys": {
+				"buttonTime": 0,
+				"xinput": {
+					"SELECT": {
+                        "up": "Send '{Escape up}'", 
+                        "down": "Send '{Escape down}'"
+					}
+				}
+			}
+		},
+		; Kindgdom Hearts III
+		"KINGDOM HEARTS III\\.exe": {
+			"hotkeys": {
+				"buttonTime": 0,
+				"xinput": {
+					"SELECT": {
+                        "up": "Send '{Escape up}'", 
+                        "down": "Send '{Escape down}'"
+					}
+				}
+			}
+		},
+		; Simpsons Hit & Run
+		"Lucas Simpsons Hit & Run Mod Launcher\\.exe": {
+			"hotkeys": {
+				"buttonTime": 0,
+				"xinput": {
+					"START": {
+                        "up": "Send '{Escape up}'", 
+                        "down": "Send '{Escape down}'"
+					}
+				}
+			}
+		},
+		; Ocarina of Time Ship of Harkinian
+		"soh\\.exe": {
+			"className": "HarkinianProgram",
+			"hotkeys": {
+				"xinput": {
+					"HOME&SELECT": "program.loadState",
+                    "HOME&START": "program.saveState",
+					"RB&DL": "program.loadState",
+                    "RB&DR": "program.saveState"
+				}
+			},
+			"pauseOptions": {
+				"Save State": "program.saveState",
+				"Load State": "program.loadState",
+				"Reset Game": "program.reset"
+			},
+			"pauseOrder": ["Save State", "Load State", "Reset Game"]
+		}
+	}
 }

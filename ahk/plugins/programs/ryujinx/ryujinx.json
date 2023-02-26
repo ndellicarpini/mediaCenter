@@ -1,19 +1,15 @@
 {
     "id": "ryujinx",
     "name": "Ryujinx",
+    "className": "RyujinxEmulator",
 
     "exe": "Ryujinx.exe",
     "dir": "C:\\Emulators\\Ryujinx",
 
     "requireFullscreen": true,
     "priority": "H",
-    
-    "fullscreen": "Send '{Alt down}{Enter}{Alt up}'",
-
-    "pause":  "SendSafe {F5}",
-    "resume": "SendSafe {F5}",
 
     "controls": ["Xbox Controller"],
 
-    "hotkeys": {},
+    "hotkeys": {}
 }

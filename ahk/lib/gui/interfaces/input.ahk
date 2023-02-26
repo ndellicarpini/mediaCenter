@@ -100,8 +100,8 @@ class InputInterface extends Interface {
         }
     }
 
-    Show() {
-        super.Show("y0 x" . percentWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
+    _Show() {
+        super._Show("y0 x" . percentWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
         SetTimer(InputSecondTimer, -1000)
 
         return 
@@ -173,32 +173,32 @@ class InputInterface extends Interface {
         }
     }
 
-    Destroy() {
+    _Destroy() {
         currVibing := ObjDeepClone(this.vibrating)
         loop currVibing.Length {
             this._unvibe(currVibing[A_Index])
         }
 
-        super.Destroy()
+        super._Destroy()
     }
 
-    select() {
+    _select() {
         funcArr := StrSplit(this.control2D[this.currentX][this.currentY].select, A_Space)
         if (funcArr[1] = "vibe") {
             this._vibe(funcArr[2])
         }
         else {
-            super.select()
+            super._select()
         }
     }
 
-    unselect() {
+    _unselect() {
         funcArr := StrSplit(this.control2D[this.currentX][this.currentY].unselect, A_Space)
         if (funcArr[1] = "unvibe") {
             this._unvibe()
         }
         else {
-            super.unselect()
+            super._unselect()
         }
     }
 

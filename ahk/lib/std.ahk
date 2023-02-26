@@ -69,13 +69,40 @@ ProcessKill(process, includeChildren := true) {
 		PID := process
 	}
 	else if (ProcessExist(process)) {
-		PID := WinGetPID("ahk_exe " . process)
+		PID := WinGetPID("ahk_exe " process)
 	}
 	else {
 		PID := WinGetPID(WinHidden(process))
 	}
 
 	Run "taskkill " . ((includeChildren) ? "/t" : "") . " /f /pid " . PID,, "Hide"
+}
+
+; checks if a process is suspended
+;  process - process to check
+;
+; returns true if process is suspended
+ProcessSuspended(process) {
+	PID := 0
+	
+	if (IsInteger(process)) {
+		PID := process
+	}
+	else if (ProcessExist(process)) {
+		PID := WinGetPID("ahk_exe " process)
+	}
+	else {
+		PID := WinGetPID(WinHidden(process))
+	}
+
+	wmi := ComObjGet("winmgmts:")
+	for thread in wmi.ExecQuery("Select * from Win32_Thread WHERE ProcessHandle = " PID) {
+		if (thread.ThreadWaitReason != 5) {
+			return false
+		}
+	}
+
+	return true
 }
 
 ; suspends a running process
@@ -89,7 +116,7 @@ ProcessSuspend(process) {
 		PID := process
 	}
 	else if (ProcessExist(process)) {
-		PID := WinGetPID("ahk_exe " . process)
+		PID := WinGetPID("ahk_exe " process)
 	}
 	else {
 		PID := WinGetPID(WinHidden(process))
@@ -115,7 +142,7 @@ ProcessResume(process) {
 		PID := process
 	}
 	else if (ProcessExist(process)) {
-		PID := WinGetPID("ahk_exe " . process)
+		PID := WinGetPID("ahk_exe " process)
 	}
 	else {
 		PID := WinGetPID(WinHidden(process))
@@ -158,6 +185,32 @@ WinHidden(window) {
 	return retVal
 }
 
+; returns the parent of the specified window
+;  window - window to check based on WinTitle
+;
+; returns parent window hwnd
+WinGetParent(window) {
+	hwnd := WinGetID(window)
+
+	retVal := 0
+	try {
+		retVal := DllCall("GetAncestor", "Ptr", hwnd, "UInt", 3)
+	}
+
+	return retVal
+}
+
+; returns if window is activatable (checks !DISABLED && !TOOLWINDOW)
+;  window - window to check based on WinTitle
+;
+; returns boolean activatable
+WinActivatable(window) {
+	style := WinGetStyle(window)
+	exStyle := WinGetExStyle(window)
+
+	return !(style & 0x00000080) && !(exStyle & 0x08000000)	
+}
+
 ; closes all windows that match the window param
 ;  window - window to close based on WinTitle
 ;
@@ -168,10 +221,8 @@ WinCloseAll(window) {
 
 	winList := WinGetList(window)
 	loop winList.Length {
-		currWNDW := "ahk_id " winList[A_Index]
-
-		if (WinExist(currWNDW)) {
-			WinClose(currWNDW)
+		if (WinExist(winList[A_Index])) {
+			WinClose(winList[A_Index])
 
 			if (A_Index < winList.Length) {
 				Sleep(250)
@@ -303,6 +354,14 @@ DllFreeLib(library) {
     return DllCall("FreeLibrary", "uint", library)
 }
 
+; forces a number to be negative
+;  num - num to neg
+;
+; returns negative number
+Neg(num) {
+	return (num > 0) ? (-1 * num) : num
+}
+
 ; sums all values in each list
 ;  lists - args lists
 ;
@@ -341,6 +400,98 @@ Sum(lists*) {
 	}
 
 	return retVal
+}
+
+; perfoms StrSplit on value but ignores substrings wrapped in quoteChar
+;  value - string to split
+;  deliminator - deliminator to split the string at [default: Space]
+;  startChar - char or array of chars to combine strings (only combines like parts) [default: [", ']]
+;  endChar - char or array of chars to combine strings (only combines like parts) [default: [", ']]
+;  maxParts - maxParts to split the string into
+;
+; returns an array of the split substrings
+StrSplitIgnoreQuotes(value, deliminator := " ", startChar := "", endChar := "", maxParts := 0) {
+	startArr := []
+	if (startChar = "") {
+		startArr := ['"', "'"]
+	}
+	else {
+		startArr := toArray(startChar)
+	}
+	
+	endArr := []
+	if (endArr = "") {
+		endArr := ['"', "'"]
+	}
+	else {
+		endArr := toArray(endArr)
+	}
+
+	quoteMap := Map()
+	loop startArr {
+		if (endArr.Length < A_Index) {
+			quoteMap[startArr[A_Index] . "-" . startArr[A_Index]] := ""
+		}
+		else {
+			quoteMap[startArr[A_Index] . "-" . endArr[A_Index]] := ""
+		}
+	}
+
+	retArr := []
+	maxString := ""
+
+	stringArr := StrSplit(value, deliminator)
+	index := 1
+	for item in stringArr{
+		if (maxParts != 0 && retArr.Length >= (maxParts - 1)) {
+			maxString .= deliminator . item
+			continue
+		}
+
+		currStart := ""
+		currEnd := ""
+		appendingChar := ""
+		for key, value in quoteMap {
+			currStart := StrSplit(key, "-")[1]
+			currEnd := StrSplit(key, "-")[2]
+
+			if (value != "") {
+				appendingChar := key
+				break
+			}
+			else if (SubStr(item, 1, 1) = currStart) {
+				if (SubStr(item, -1, 1) = currEnd) {
+					retArr.Push(item)
+				}
+				else {
+					quoteMap[appendingChar] := item
+				}
+
+				break
+			}
+		}
+
+		if (appendingChar != "") {
+			if (SubStr(item, -1, 1) = currEnd || index = stringArr.Length) {				
+				retArr.Push(LTrim(quoteMap[appendingChar], deliminator) . deliminator . item)
+				quoteMap[appendingChar] := ""
+			}
+			else {
+				quoteMap[appendingChar] .= deliminator . item
+			}
+		}
+		else {
+			retArr.Push(item)
+		}
+
+		index += 1
+	}
+
+	if (maxString != "") {
+		retArr.Push(LTrim(maxString, deliminator))
+	}
+
+	return retArr
 }
 
 ; converts the value to a string by appending it to empty string
@@ -786,6 +937,8 @@ runFunction(args, params := "") {
 	func := ""
 	funcArr := []
 
+	cleanArgs := ObjDeepClone(args)
+
 	; prepend args to func from additional outside args
 	if (Type(params) = "Array") {
 		for item in params {
@@ -796,8 +949,8 @@ runFunction(args, params := "") {
 		funcArr.Push(params)
 	}
 
-	if (Type(args) = "String") {
-		textArr := StrSplit(args, A_Space)
+	if (Type(cleanArgs) = "String") {
+		textArr := StrSplit(cleanArgs, A_Space)
 		func := textArr.RemoveAt(1)
 
 		; set args for func from words in text
@@ -846,9 +999,9 @@ runFunction(args, params := "") {
 			}
 		}
 	}
-	else if (Type(args) = "Array") {
-		func := args.RemoveAt(1)
-		funcArr := args
+	else if (Type(cleanArgs) = "Array") {
+		func := cleanArgs.RemoveAt(1)
+		funcArr := cleanArgs
 	}
 	else {
 		return

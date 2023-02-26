@@ -25,7 +25,7 @@ if (!FileExist("main.ahk")) {
 ; close main if its already running
 if (WinHidden(MAINNAME)) {
     DetectHiddenWindows(true)
-    pid := WinGetPID("MediaCenterMain")
+    pid := WinGetPID(MAINNAME)
 
     ProcessClose(pid)
 }

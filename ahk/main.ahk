@@ -12,11 +12,13 @@
 #Include plugins\programs\citra\citra.ahk
 #Include plugins\programs\desmume\desmume.ahk
 #Include plugins\programs\dolphin\dolphin.ahk
+#Include plugins\programs\eagame\eagame.ahk
 #Include plugins\programs\kodi\kodi.ahk
-#Include plugins\programs\origin\ORIGIN~1.AHK
 #Include plugins\programs\pcsx2\pcsx2.ahk
 #Include plugins\programs\ppsspp\ppsspp.ahk
 #Include plugins\programs\RETROA~1\RETROA~1.AHK
+#Include plugins\programs\rpcs3\rpcs3.ahk
+#Include plugins\programs\ryujinx\ryujinx.ahk
 #Include plugins\programs\steam\steam.ahk
 #Include plugins\programs\steam\STEAMG~1.AHK
 #Include plugins\programs\wingame\wingame.ahk
@@ -207,7 +209,7 @@ if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["
                 tempMap := Map()
 
                 for item in tempConfig.items["exe"] {
-                    tempMap[item] := ""
+                    tempMap[StrLower(item)] := ""
                 }
 
                 tempConfig.items["exe"] := tempMap
@@ -346,7 +348,7 @@ checkErrors    := globalConfig["Plugins"].Has("ErrorList") && globalConfig["Plug
 loopSleep      := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 
 ; set timer to check the input buffer
-SetTimer(InputBufferTimer, globalConfig["General"]["AvgLoopSleep"])
+SetTimer(InputBufferTimer, 35)
 
 delayCount := 0
 maxDelayCount := 15
@@ -375,10 +377,16 @@ loop {
             createConsole(message)
         }
         else {
-            try runFunction(message)
+            try {
+                runFunction(message)
+            }
+            catch {
+                globalStatus["input"]["buffer"].Push(joinArray(message))
+            }
         }
 
         Sleep(loopSleep)
+        continue
     }
 
     ; --- CHECK LOAD SCREEN ---
@@ -456,9 +464,7 @@ loop {
             if (globalRunning[currProgram].exists(false, true)) {
                 if (!activeSet) {
                     if (forceActivate) {
-                        if (globalRunning[currProgram].hungCount = 0) {
-                            try globalRunning[currProgram].restore()
-                        }
+                        try globalRunning[currProgram].restore()
                     }
                     else {
                         try globalRunning[currProgram].resume()
@@ -680,9 +686,8 @@ HandleMessage(wParam, lParam, msg, hwnd) {
 
     ; launching a new program -> prioritize showing the load screen
     if (StrLower(message[1]) = "run" || StrLower(message[1]) = "console") {
-        setLoadScreen((globalConfig["GUI"].Has("DefaultLoadText")) ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading...")
         activateLoadScreen()
-    }    
+    } 
 
     ; buffer all actions bc shit gets wacky being initialized in msg handler
     send2MainBuffer.Push(message)

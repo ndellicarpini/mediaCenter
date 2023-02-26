@@ -1,29 +1,21 @@
-cemuLaunch(rom) {
-    global globalRunning
+class CemuEmulator extends Emulator {
+    _fullscreen() {
+        Send("{Alt down}")
+        SendSafe("{Enter}")
+        Send("{Alt up}")
+    }
 
-    this := globalRunning["cemu"]
+    _pause() {
+        this.fullscreen()
+        Sleep(100)
 
-    Run validateDir(this.dir) . this.exe . A_Space . '"-f" "-g" "' . rom . '"', validateDir(this.dir), ((this.background) ? "Hide" : "Max")
-}
+        ProcessSuspend(this.getPID())
+    }
 
-cemuPause() {
-    global globalRunning
+    _resume() {
+        ProcessResume(this.getPID())
 
-    this := globalRunning["cemu"]
-
-    this.fullscreen()
-    Sleep(100)
-
-    ProcessSuspend(this.getPID())
-}
-
-cemuResume() {
-    global globalRunning
-
-    this := globalRunning["cemu"]
-
-    ProcessResume(this.getPID())
-
-    Sleep(100)
-    this.fullscreen()
+        Sleep(100)
+        this.fullscreen()
+    }
 }

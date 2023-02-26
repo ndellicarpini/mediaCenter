@@ -1,13 +1,10 @@
 {
     "id": "steamgame",
 	"name": "Windows Game",
+	"className": "SteamGameProgram",
 
 	"requireInternet": true,
 	"requireFullscreen": true,
-
-    "launch": "steamGameLaunch",
-	"postLaunch": "steamGamePostLaunch",
-	"postExit": "steamGamePostExit",
 
     "exe": [
         "20XX.exe",
@@ -244,5 +241,80 @@
 		"noita.exe",
 		"FightCrab.exe",
 		"re3.exe"
-    ]
+    ],
+
+	"overrides": {
+		; Batman Arkham Asylum
+		"\/200260([^0-9]|$)": "BatmanArkhamProgram",
+		; BatMan Arkham City
+        "\/35140([^0-9]|$)": "BatmanArkhamProgram",
+		; Skyrim SE
+        "\/489830([^0-9]|$)": "SkyrimSEProgram",
+		; Fallout 3
+        "\/22370([^0-9]|$)": "Fallout3Program",
+		; Fallout New Vegas
+        "\/22380([^0-9]|$)": "FalloutNVProgram",
+		; Fallout 4
+        "\/377160([^0-9]|$)": "Fallout4Program",
+		; HITMAN
+        "\/236870([^0-9]|$)": "HitmanProgram",
+		; Saints Row 3 
+        "\/55230([^0-9]|$)": "SaintsRow3Program",
+		; Witcher 2
+        "\/20920([^0-9]|$)": "Witcher2Program",
+		; Oblivion
+        "\/22330([^0-9]|$)": "OblivionProgram",
+		; Hotline Miami
+        "\/219150([^0-9]|$)": "HotlineMiamiProgram",
+		; SUPERHOT
+        "\/322500([^0-9]|$)": "SuperHotProgram",
+		; SUPERHOT 2
+        "\/690040([^0-9]|$)": "SuperHot2Program",
+		; Red Dead Redemption 2
+        "\/1174180([^0-9]|$)": "RDR2Program",
+		; Shenmue 1 & 2
+        "\/758330([^0-9]|$)": "ShenmueProgram",
+		; Dark Souls III
+        "\/374320([^0-9]|$)": "DarkSouls3Program",
+		; BioShock HD
+		"\/409710([^0-9]|$)": "BioShockHDProgram",
+		; BioShock 2 HD
+		"\/409720([^0-9]|$)": "BioShockHDProgram",
+		; Clustertruck
+		"\/397950([^0-9]|$)": "ClustertruckProgram",
+		; Blue Fire
+		"\/1220150([^0-9]|$)": "BlueFireProgram",
+		; Braid
+		"\/26800([^0-9]|$)": "BraidProgram",
+		; Undertale
+		"\/391540([^0-9]|$)": "UndertaleProgram",
+		; Bastion
+        "\/107100([^0-9]|$)": {
+			"requireFullscreen": false
+		},
+		; Max Payne
+		"\/12140([^0-9]|$)": {
+			"mouse": {
+				"initialPos": [0.5, 0.5]
+			}
+		},
+		; Max Payne 2
+		"\/12150([^0-9]|$)": {
+			"mouse": {
+				"initialPos": [0.5, 0.5]
+			}
+		},
+		; Portal
+		"\/400([^0-9]|$)": {
+			"mouse": {
+				"initialPos": [0.5, 0.5]
+			}
+		}, 
+		; Half-Life 2
+		"\/220([^0-9]|$)": {
+			"mouse": {
+				"initialPos": [0.5, 0.5]
+			}
+		}
+	}
 }

@@ -1,45 +1,77 @@
-retroarchLaunch(rom) {
-    global globalRunning
+class RetroArchEmulator extends Emulator {
+    _launch(args*) {
+        retArgs := []
+        if (this.HasOwnProp("core") && this.core != "") {
+            ; remove mame menu from pause options if not mame
+            if (this.core != "mame") {
+                loop this.pauseOrder.Length {
+                    item := this.pauseOrder[A_Index]
 
-    this := globalRunning["retroarch"]
-    core := "cores\" . this.core . "_libretro.dll"
+                    if (this.pauseOptions.Has(item) && this.pauseOptions[item] = "program.mameMenu") {
+                        this.pauseOrder.RemoveAt(A_Index)
+                        break
+                    }
+                }
+            }
 
-    Run validateDir(this.dir) . this.exe . A_Space . '"-L" "' . core . '" "' . rom . '"', validateDir(this.dir), "Max"
-}
+            retArgs.Push("-L", "cores\" . this.core . "_libretro.dll")
+        }
+        
+        if (args.Length > 0) {
+            retArgs.Push(args*)
+        }
 
-retroarchSaveState(slot) {
-    SendSafe("{F2}")
-}
-
-retroarchLoadState(slot) {
-    SendSafe("{F4}")
-}
-
-retroarchRewind() {
-    global globalRunning
-
-    this := globalRunning["retroarch"]
-
-    if (this.rewinding) {
-        Send("{r up}")
+        super._launch(retArgs*)
     }
-    else {
-        Send("{r down}")
+
+    _fullscreen() {
+        Send("{Alt down}")
+        SendSafe("{Enter}")
+        Send("{Alt up}")
     }
-}
 
-retroarchMAMECheck() {
-    global globalRunning
-    return (globalRunning["retroarch"].console = "arcade") ? true : false
-}
+    _pause() {
+        SendSafe("p")
+    }
 
-retroarchToggleMAMEMenu() {
-    global globalRunning
-
-    this := globalRunning["retroarch"]
-
-    this.resume()
-    Sleep(50)
+    _resume() {
+        this._pause()
+    }
     
-    SendSafe("{Tab}")
+    _saveState(slot) {
+        SendSafe("{F2}")
+    }
+
+    _loadState(slot) {
+        SendSafe("{F4}")
+    }
+
+    _reset() {
+        SendSafe("h")
+    }
+
+    _fastForward() {
+        SendSafe("{Space}")
+    }
+
+    _rewind() {
+        if (this.rewinding) {
+            Send("{r up}")
+        }
+        else {
+            Send("{r down}")
+        }
+    }
+
+    ; custom function
+    menu() {
+        Sleep(50)
+        SendSafe("{F1}")
+    }
+
+    ; custom function
+    mameMenu() { 
+        Sleep(50)       
+        SendSafe("{Tab}")
+    }
 }

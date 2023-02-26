@@ -12,15 +12,15 @@ class LoadScreenInterface extends Interface {
         this.guiObj["LoadText"].Move(X, (percentHeight(1) - percentWidth(0.01, false) - H), W, H)
     }
 
-    Show() {
-        super.Show("x0 y0 NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
+    _Show() {
+        super._Show("x0 y0 NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
     }
 
-    select() {
+    _select() {
         return
     }
 
-    back() {
+    _back() {
         return
     }
 
@@ -55,11 +55,26 @@ destroyLoadScreen() {
     }
 }
 
+; hides the load screen
+;
+; returns null
+hideLoadScreen() {
+    global globalStatus
+    global globalGuis
+
+    globalStatus["loadscreen"]["enable"] := false
+    globalStatus["loadscreen"]["overrideWNDW"] := ""
+
+    if (globalGuis.Has("loadscreen")) {
+        globalGuis["loadscreen"].Hide()
+    }
+}
+
 ; sets the text of the load screen & activates it
 ;  text - new load screen text
 ;
 ; returns null
-setLoadScreen(text) {
+setLoadScreen(text := "") {
 	global globalConfig
 	global globalStatus
 
@@ -67,22 +82,36 @@ setLoadScreen(text) {
 
     globalStatus["loadscreen"]["enable"] := true
     globalStatus["loadscreen"]["show"] := true
-    globalStatus["loadscreen"]["text"] := text
+
+    if (text != "") {
+        globalStatus["loadscreen"]["text"] := text
+    }
+    else {
+        globalStatus["loadscreen"]["text"] := (globalConfig["GUI"].Has("DefaultLoadText")) 
+            ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading..."
+    }
 }
 
 ; resets the text of the load screen & deactivates it
+;  delay - delays updating the load text
 ;
 ; returns null
-resetLoadScreen() {
+resetLoadScreen(delay := 1000) {
 	global globalStatus
 
 	globalStatus["loadscreen"]["show"] := false
 	globalStatus["loadscreen"]["overrideWNDW"] := ""
-	SetTimer(DelayResetText.Bind(globalStatus["loadscreen"]["text"]), -1000)
+
+    if (delay = 0) {
+        ResetText(globalStatus["loadscreen"]["text"])
+    }
+    else {
+        SetTimer(ResetText.Bind(globalStatus["loadscreen"]["text"]), Neg(delay))
+    }
 
 	return
 
-	DelayResetText(currText) {
+	ResetText(currText) {
 		global globalConfig
 
 		; don't reset if the text has been changed by another loadText update

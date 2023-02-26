@@ -35,16 +35,16 @@ class ChoiceInterface extends Interface {
         this.Add("Text", "vRight f(" . rFunc . ") Center 0x200 Background" . rColor . " xpos2 ypos1 yp0 x" . (this.guiWidth * 0.575) . " hp0 wp0", rText) 
     }
 
-    Show() {
-        super.Show("Center w" . this.guiWidth . " h" . this.guiHeight)
+    _Show() {
+        super._Show("Center w" . this.guiWidth . " h" . this.guiHeight)
     }
 
-    select() {
-        super.select()
+    _select() {
+        super._select()
         this.Destroy()
     }
 
-    back() {
+    _back() {
         return
     }
 }

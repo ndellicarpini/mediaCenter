@@ -66,7 +66,7 @@ class KeyboardInterface extends Interface {
             . " xpos" . xpos . " ypos" . ypos . " w" . keySize . " h" . keySize, "X")
     }
 
-    Show() {
+    _Show() {
         if (WinShown("A")) {
             this.restoreWNDW := WinGetID("A")
         }
@@ -75,11 +75,11 @@ class KeyboardInterface extends Interface {
         this.restoreMousePos := [x, y]
         MouseMove(percentWidth(1), percentHeight(1))
 
-        super.Show("NoActivate x" . (percentWidth(0.5, false) - (this.guiWidth / 2)) . " y" . percentHeight(0.5, false) . " w" . this.guiWidth . " h" . this.guiHeight)
+        super._Show("NoActivate x" . (percentWidth(0.5, false) - (this.guiWidth / 2)) . " y" . percentHeight(0.5, false) . " w" . this.guiWidth . " h" . this.guiHeight)
     }
 
-    Destroy() {
-        super.Destroy()
+    _Destroy() {
+        super._Destroy()
 
         if (this.restoreMousePos.Length = 2) {
             MouseMove(this.restoreMousePos[1], this.restoreMousePos[2])
@@ -91,7 +91,7 @@ class KeyboardInterface extends Interface {
         }
     }
 
-    select() {
+    _select() {
         key := this.control2D[this.currentX][this.currentY].select
 
         switch (key) {
@@ -131,7 +131,7 @@ class KeyboardInterface extends Interface {
         }
     }
 
-    back() {
+    _back() {
         if (this.currText = "") {
             return
         }
