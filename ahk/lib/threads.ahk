@@ -155,7 +155,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                 hotkeyList := StrSplit(item, ["&", "|"])
 
-                if (inputCheckStatus(hotkeyList, status)) {
+                if (inputCheckStatus(hotkeyList, status) && hotkeyList.Length > maxInvalidAmp) {
                     maxInvalidAmp := hotkeyList.Length
                 }
             }
@@ -171,7 +171,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                 hotkeyList := StrSplit(item, ["&", "|"])
 
-                if (inputCheckStatus(hotkeyList, status)) {
+                if (inputCheckStatus(hotkeyList, status) && hotkeyList.Length > maxValidAmp) {
                     maxValidAmp := hotkeyList.Length
                     maxValidItem := item
                 }

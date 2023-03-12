@@ -631,7 +631,7 @@ InputBufferTimer() {
         tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
         
         if (tempFunc = "exit") {
-           if (currProgram != "" && globalRunning[currProgram].allowExit) {
+            if (currProgram != "" && globalRunning[currProgram].allowExit) {
                 try globalRunning[currProgram].exit()
     
                 if (globalRunning.Has(currProgram) && !globalRunning[currProgram].exists()) {
