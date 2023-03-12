@@ -16,41 +16,37 @@
 
     "mouse": {
         "initialPos": [0.5, 0.5],
-        "xinput": {
-            "x": "RSX",
-            "y": "-RSY",
-            "lclick": "RSB",
-            "rclick": "LSB",
-            "deadzone": 0.15
-        }
+        "x": 3,
+        "y": -4,
+        "lclick": 10,
+        "rclick": 9,
+        "deadzone": 0.15
     },
 
     "hotkeys": {
         "buttonTime": 0,
-        "xinput": {
-            "HOME&START": {
-                "down": "program.saveState",
-                "time": 70
-            },
-            "HOME&SELECT": {
-                "down": "program.loadState",
-                "time": 70
-            },
-            "HOME&RT>0.3": {
-                "down": "program.fastForward",
-                "time": 70
-            },
+        "15&8": {
+            "down": "program.saveState",
+            "time": 70
+        },
+        "15&7": {
+            "down": "program.loadState",
+            "time": 70
+        },
+        "15&6>0.3": {
+            "down": "program.fastForward",
+            "time": 70
+        },
 
-            ; used to duplicate functionality for triggers & bumpers
-            ; uses basic Send commands so that it isn't buffered
-            "LB|LT>0.05": {
-                "down": "Send '{q down}'",
-                "up": "Send '{q up}'"
-            },
-            "RB|RT>0.05": {
-                "down": "Send '{w down}'",
-                "up": "Send '{w up}'"
-            }
+        ; used to duplicate functionality for triggers & bumpers
+        ; uses basic Send commands so that it isn't buffered
+        "5|5>0.05": {
+            "down": "Send '{q down}'",
+            "up": "Send '{q up}'"
+        },
+        "6|6>0.05": {
+            "down": "Send '{w down}'",
+            "up": "Send '{w up}'"
         }
     },
 

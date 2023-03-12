@@ -1099,22 +1099,38 @@ getNvidiaLoad() {
     try {
         static mainGPUPtr := 0
         
-        if (mainGPUPtr = 0) {
-            hwBuffer := Buffer(256, 0)
-            
-            DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0xE5AC921F, "CDecl UPtr"), "Ptr", hwBuffer.Ptr, "UInt*", &temp := 0, "CDecl")
-            
-            mainGPUPtr := NumGet(hwBuffer, 0, "UInt")
+        if (mainGPUPtr = 0) {            
+            DllCall("nvml\nvmlDeviceGetHandleByIndex_v2", "UInt", 0, "Ptr*", &mainGPUPtr, "CDecl")
         }
         
-        usageBuffer := Buffer(136, 0)
-        NumPut("UInt", 136 | 0x10000, usageBuffer)
-        
-        DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x189A1FDF, "CDecl UPtr"), "Ptr", mainGPUPtr, "Ptr", usageBuffer.Ptr, "CDecl")
-        
-        return NumGet(usageBuffer, 12, "UInt")
+        usageBuffer := Buffer(8, 0)        
+		if (!DllCall("nvml\nvmlDeviceGetUtilizationRates", "Ptr", mainGPUPtr, "Ptr", usageBuffer, "CDecl") ) {
+			return NumGet(usageBuffer, 0, "UInt")
+		}   
+
+        return 0
     }
     
-
 	return 0
+}
+
+; hides the windows taskbar
+; 
+; returns null
+hideTaskbar() {
+    try WinHide("ahk_class Shell_TrayWnd")
+}
+
+; shows the windows taskbar
+; 
+; returns null
+showTaskbar() {
+    try WinShow("ahk_class Shell_TrayWnd")
+}
+
+; returns whether the windows taskbar exists
+; 
+; returns true if the taskbar exists
+taskbarExists() {
+    return WinShown("ahk_class Shell_TrayWnd")
 }

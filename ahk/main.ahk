@@ -156,8 +156,8 @@ DllCall("GdiPlus\GdiplusStartup", "UPtr*", gdiToken, "Ptr", gdiBuffer.Ptr, "Ptr"
 ; load nvidia library for gpu monitoring
 if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) { 
     try {
-        nvLib := DllLoadLib("nvapi64.dll")
-        DllCall(DllCall("nvapi64.dll\nvapi_QueryInterface", "UInt", 0x0150E828, "CDecl UPtr"), "CDecl")
+        nvLib := DllLoadLib("nvml.dll")
+        DllCall("nvml\nvmlInit_v2", "CDecl")
     }
     catch {
         globalConfig["GUI"]["EnablePauseGPUMonitor"] := false
@@ -359,7 +359,8 @@ loop {
     activeSet := false
     hotkeySource := ""
 
-    currSuspended := globalStatus["suspendScript"]
+    currSuspended   := globalStatus["suspendScript"]
+    currDesktopMode := globalStatus["desktopmode"]
 
     ; --- CHECK SEND2MAIN BUFFER ---
     if (send2MainBuffer.Length > 0 && !currSuspended) {
@@ -390,7 +391,7 @@ loop {
     }
 
     ; --- CHECK LOAD SCREEN ---
-    if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended) {             
+    if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended && !currDesktopMode) {             
         activeSet := true
         hotkeySource := "loadscreen"
 
@@ -435,7 +436,7 @@ loop {
 
             mostRecentGui := getMostRecentGui()
             if (mostRecentGui != currGui) {
-                globalStatus["currGui"] := mostRecentGui
+                setCurrentGui(mostRecentGui)
 
                 continue
             }
@@ -443,6 +444,11 @@ loop {
                 globalStatus["currGui"] := ""
             }
         }
+    }
+
+    ; --- CHECK SUSPENDED HOTKEYS ---
+    if (hotkeySource = "" && currSuspended) {
+        hotkeySource := "suspended"
     }
 
     ; --- CHECK DESKTOP MODE / KB & MOUSE MODE ---
@@ -459,7 +465,7 @@ loop {
     ; --- CHECK OPEN PROGRAMS ---
     currProgram := globalStatus["currProgram"]
 
-    if (currProgram != "" && !currSuspended) {
+    if (currProgram != "" && !currSuspended && !currDesktopMode) {
         if (globalRunning.Has(currProgram)) {
             if (globalRunning[currProgram].exists(false, true)) {
                 if (!activeSet) {
@@ -502,7 +508,7 @@ loop {
 
         mostRecentGui := getMostRecentGui()
         if (mostRecentGui != currGui) {
-            globalStatus["currGui"] := mostRecentGui
+            setCurrentGui(mostRecentGui)
 
             continue
         }
@@ -518,12 +524,7 @@ loop {
     }
 
     ; update hotkey source
-    if (hotkeySource = "" && currSuspended) {
-        globalStatus["input"]["source"] := "suspended"
-    }
-    else {
-        globalStatus["input"]["source"] := hotkeySource
-    }
+    globalStatus["input"]["source"] := hotkeySource
 
     ; check if status has updated & backup
     if (statusUpdated()) {
@@ -622,6 +623,10 @@ InputBufferTimer() {
 
     ; run current program function
     else if (StrLower(SubStr(bufferedFunc, 1, 8)) = "program.") {
+        if (globalStatus["suspendScript"]) {
+            return
+        }
+
         tempArr  := StrSplit(bufferedFunc, A_Space)
         tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
         
@@ -657,7 +662,7 @@ HandleMessage(wParam, lParam, msg, hwnd) {
 
     message := getMessage(wParam, lParam, msg, hwnd)
 
-    if (message.Length = 0) {
+    if (message.Length = 0 || globalStatus["suspendScript"]) {
         return
     }
 
@@ -718,8 +723,8 @@ ShutdownScript(restoreTaskbar := true) {
     DllCall("SetThreadDpiAwarenessContext", "Ptr", prevDPIContext, "Ptr")
     
     ; reset taskbar
-    if (restoreTaskbar && !WinShown("ahk_class Shell_TrayWnd") && WinHidden("ahk_class Shell_TrayWnd")) {
-        try WinShow("ahk_class Shell_TrayWnd")
+    if (restoreTaskbar && !taskbarExists()) {
+        showTaskbar()
     }
 
     ; tell the threads to close

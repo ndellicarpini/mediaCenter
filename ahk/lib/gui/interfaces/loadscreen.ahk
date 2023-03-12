@@ -78,6 +78,10 @@ setLoadScreen(text := "") {
 	global globalConfig
 	global globalStatus
 
+    if (globalStatus["suspendScript"] || globalStatus["desktopmode"]) {
+        return
+    }
+
     MouseMove(percentWidth(1, false), percentHeight(1, false))
 
     globalStatus["loadscreen"]["enable"] := true

@@ -65,11 +65,9 @@
 		"KINGDOM HEARTS HD 1\\.5\\+2\\.5 ReMIX\\.exe": {
 			"hotkeys": {
 				"buttonTime": 0,
-				"xinput": {
-					"SELECT": {
-                        "up": "Send '{Escape up}'", 
-                        "down": "Send '{Escape down}'"
-					}
+				"7": {
+					"up": "Send '{Escape up}'", 
+					"down": "Send '{Escape down}'"
 				}
 			}
 		},
@@ -77,11 +75,9 @@
 		"KINGDOM HEARTS HD 2\\.8 Final Chapter Prologue\\.exe": {
 			"hotkeys": {
 				"buttonTime": 0,
-				"xinput": {
-					"SELECT": {
-                        "up": "Send '{Escape up}'", 
-                        "down": "Send '{Escape down}'"
-					}
+				"7": {
+					"up": "Send '{Escape up}'", 
+					"down": "Send '{Escape down}'"
 				}
 			}
 		},
@@ -89,11 +85,9 @@
 		"KINGDOM HEARTS III\\.exe": {
 			"hotkeys": {
 				"buttonTime": 0,
-				"xinput": {
-					"SELECT": {
-                        "up": "Send '{Escape up}'", 
-                        "down": "Send '{Escape down}'"
-					}
+				"7": {
+					"up": "Send '{Escape up}'", 
+					"down": "Send '{Escape down}'"
 				}
 			}
 		},
@@ -101,11 +95,9 @@
 		"Lucas Simpsons Hit & Run Mod Launcher\\.exe": {
 			"hotkeys": {
 				"buttonTime": 0,
-				"xinput": {
-					"START": {
-                        "up": "Send '{Escape up}'", 
-                        "down": "Send '{Escape down}'"
-					}
+				"8": {
+					"up": "Send '{Escape up}'", 
+					"down": "Send '{Escape down}'"
 				}
 			}
 		},
@@ -113,12 +105,10 @@
 		"soh\\.exe": {
 			"className": "HarkinianProgram",
 			"hotkeys": {
-				"xinput": {
-					"HOME&SELECT": "program.loadState",
-                    "HOME&START": "program.saveState",
-					"RB&DL": "program.loadState",
-                    "RB&DR": "program.saveState"
-				}
+				"15&7": "program.loadState",
+				"15&8": "program.saveState",
+				"6&13": "program.loadState",
+				"6&14": "program.saveState"
 			},
 			"pauseOptions": {
 				"Save State": "program.saveState",

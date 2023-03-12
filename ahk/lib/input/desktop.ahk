@@ -62,7 +62,6 @@ enableDesktopMode(showDialog := false) {
         Sleep(100)
     }
 
-    globalStatus["suspendScript"] := true
     globalStatus["desktopmode"]   := true
     MouseMove(percentWidth(0.5, false), percentHeight(0.5, false))
 
@@ -87,7 +86,6 @@ disableDesktopMode() {
         closeKeyboard()
     }
     
-    globalStatus["suspendScript"] := false
     globalStatus["desktopmode"]   := false
     MouseMove(percentWidth(1), percentHeight(1))
 

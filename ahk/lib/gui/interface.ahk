@@ -828,7 +828,7 @@ createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
     }
 
     if (globalGuis.Has(interfaceKey) && WinShown(interfaceObj["wndw"])) {
-        globalStatus["currGui"] := interfaceKey
+        setCurrentGui(interfaceKey)
         return
     }
 
@@ -839,7 +839,7 @@ createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
     }
 
     if (setCurrent) {
-        globalStatus["currGui"] := interfaceKey
+        setCurrentGui(interfaceKey)
         globalGuis[interfaceKey].Show()
     }
 
@@ -848,6 +848,17 @@ createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
     }
 
     return
+}
+
+; sets the requested id as the current gui if it exists
+;  id - id of gui to set as current
+;
+; returns null
+setCurrentGui(id) {
+    global globalStatus
+
+    globalStatus["currGui"] := id
+    globalStatus["input"]["source"] := id
 }
 
 ; get the most recently opened gui if it exists, otherwise return blank

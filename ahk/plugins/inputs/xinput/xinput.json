@@ -6,76 +6,81 @@
     "maxConnected": 4,
     "vibration": true,
 
+    "buttons": ["A", "B", "X", "Y", "LB", "RB", "SELECT", "START", "LSB", "RSB", "DU", "DD", "DL", "DR", "HOME"],
+    "axis": ["LSX", "LSY", "RSX", "RSY", "LT", "RT"],
+
     "kbmmode": {
         "hotkeys": {
-            "SELECT": "toggleKeyboard",
-            "[REPEAT]B": "Send {Backspace}"
+            "7": "toggleKeyboard",
+            "[REPEAT]2": "Send {Backspace}"
         },
         "mouse": {
-            "x": "LSX", 
-            "y": "-LSY", 
-            "lclick": "A",
-            "rclick": "X",
-            "hscroll": "RSX",
-            "vscroll": "-RSY"
+            "x": 1, 
+            "y": -2, 
+            "lclick": 1,
+            "rclick": 3,
+            "hscroll": 3,
+            "vscroll": -4
         }
     },
 
     "desktopmode": {
         "hotkeys": {
-            "HOME": "disableDesktopMode",
-            "SELECT": "toggleKeyboard",
-            "START": "Send {LWin}",
+            "15": "pausemenu",
+            "7": "toggleKeyboard",
+            "8": "Send {LWin}",
 
-            "[REPEAT]DU": "Send {Up}",
-            "[REPEAT]DD": "Send {Down}",
-            "[REPEAT]DL": "Send {Left}",
-            "[REPEAT]DR": "Send {Right}",
+            "[REPEAT]11": "Send {Up}",
+            "[REPEAT]12": "Send {Down}",
+            "[REPEAT]13": "Send {Left}",
+            "[REPEAT]14": "Send {Right}",
 
-            "[REPEAT]B": "Send {Backspace}",
+            "[REPEAT]2": "Send {Backspace}",
 
-            "LT>0.3": "Send !{Tab}",
-            "RT>0.3": "Send !+{Tab}",
+            "5>0.3": "Send !{Tab}",
+            "6>0.3": "Send !+{Tab}"
         },
         "mouse": {
-            "x": "LSX", 
-            "y": "-LSY", 
-            "lclick": "A",
-            "rclick": "X",
-            "hscroll": "RSX",
-            "vscroll": "-RSY"
-        }
+            "x": 1, 
+            "y": -2, 
+            "lclick": 1,
+            "rclick": 3,
+            "hscroll": 3,
+            "vscroll": -4
+       }
     },
 
     "programHotkeys": {
-        "HOME": {
-            "down": "pausemenu",
-            "time": 80
-        },
-        "START&SELECT": {
-            "down": "program.exit",
-            "time": 120
+        "default": {
+            "15": {
+                "down": "pausemenu",
+                "time": 80
+            },
+            "7&8": {
+                "down": "program.exit",
+                "time": 120
+            }
         }
     },
 
     "interfaceHotkeys": {
         "default": {
-            "[REPEAT]DU|LSY>0.4": "gui.up",
-            "[REPEAT]DD|LSY<-0.4": "gui.down",
-            "[REPEAT]DL|LSX<-0.4": "gui.left",
-            "[REPEAT]DR|LSX>0.4": "gui.right",
-            "B": "gui.back",
-            "A": {
+            "[REPEAT]11|2>0.4": "gui.up",
+            "[REPEAT]12|2<-0.4": "gui.down",
+            "[REPEAT]13|1<-0.4": "gui.left",
+            "[REPEAT]14|1>0.4": "gui.right",
+            "2": "gui.back",
+            "1": {
                 "down": "gui.select",
                 "up": "gui.unselect"
             },
-            "HOME": {
+            "15": {
                 "down": "pausemenu",
                 "time": 80
             }
         },
         "keyboard": {
-            "SELECT": "gui.Destroy"
+            "7": "gui.Destroy"
         }
     }
 }

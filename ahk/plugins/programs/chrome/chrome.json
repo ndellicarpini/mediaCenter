@@ -10,37 +10,33 @@
 
     "mouse": {
         "initialPos": [0.5, 0.5],
-        "xinput": {
-            "x": "LSX",
-            "y": "-LSY",
-            "vscroll": "-RSY",
-            "lclick": "A",
-            "rclick": "X",
-            "deadzone": 0.15
-        }
+        "x": 1,
+        "y": -2,
+        "vscroll": -4,
+        "lclick": 1,
+        "rclick": 3,
+        "deadzone": 0.15
     },
 
     "hotkeys": {
         "buttonTime": 0,
-        "xinput": {
-            "[REPEAT]RSX>0.4": "Send ^=",
-            "[REPEAT]RSX<-0.4": "Send ^-",
+        "[REPEAT]3>0.4": "Send ^=",
+        "[REPEAT]3<-0.4": "Send ^-",
 
-            "[REPEAT]DU": "Send {Up}",
-            "[REPEAT]DD": "Send {Down}",
-            "[REPEAT]DL": "Send {Left}",
-            "[REPEAT]DR": "Send {Right}",
+        "[REPEAT]11": "Send {Up}",
+        "[REPEAT]12": "Send {Down}",
+        "[REPEAT]13": "Send {Left}",
+        "[REPEAT]14": "Send {Right}",
 
-            "[REPEAT]B": "Send {Backspace}",
-            "Y": "Send !{Home}",
-            "LB": "Send ^+{Tab}",
-            "RB": "Send ^{Tab}",
-            "LT>0.75": "Send !{Left}",
-            "RT>0.75": "Send !{Right}",
+        "[REPEAT]2": "Send {Backspace}",
+        "4": "Send !{Home}",
+        "5": "Send ^+{Tab}",
+        "6": "Send ^{Tab}",
+        "5>0.75": "Send !{Left}",
+        "6>0.75": "Send !{Right}",
 
-            "SELECT": "toggleKeyboard",
-            "START": "Send ^t"
-        }
+        "7": "toggleKeyboard",
+        "8": "Send ^t"
     },
 
     "pauseOptions": {

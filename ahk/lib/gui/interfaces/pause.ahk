@@ -4,6 +4,8 @@ class PauseInterface extends Interface {
     monitorTimer := 0
     guiWidth := 0
     guiHeight := 0
+
+    _restoreMousePos := []
     
     __New() {
         global globalConfig
@@ -119,8 +121,14 @@ class PauseInterface extends Interface {
     }
     
     _Show() {
-        currProgram := globalStatus["currProgram"]
+        global globalStatus
 
+        if (globalStatus["kbmmode"] || globalStatus["desktopmode"]) {
+            MouseGetPos(&x, &y)
+            this._restoreMousePos := [x, y]
+        }
+
+        currProgram := globalStatus["currProgram"]
         ; set activate currProgram pause
         if (currProgram != "") {
             globalRunning[currProgram].pause()
@@ -167,9 +175,16 @@ class PauseInterface extends Interface {
     }
 
     _Destroy() {
+        global globalStatus
+
         ; little sleep to avoid button press propagating to program
         Sleep(100)
         super._Destroy()
+
+        if ((globalStatus["kbmmode"] || globalStatus["desktopmode"]) && this._restoreMousePos.Length = 2) {
+            MouseMove(this._restoreMousePos[1], this._restoreMousePos[2])
+            this._restoreMousePos := []
+        }
     }
 
     _select() {
@@ -212,12 +227,7 @@ class PauseInterface extends Interface {
                     }
                 }
                 else if (funcArr[1] = "suspendScript") {
-                    if (globalStatus["desktopmode"]) {
-                        disableDesktopMode()
-                    }
-                    else {
-                        globalStatus["suspendScript"] := !globalStatus["suspendScript"]
-                    }
+                    globalStatus["suspendScript"] := !globalStatus["suspendScript"]
                 }
                 else {
                     super._select()

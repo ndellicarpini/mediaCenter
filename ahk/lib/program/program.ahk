@@ -60,6 +60,7 @@ class Program {
 
     _restoreMousePos := []
     _restoreWNDWs := []
+    _launchArgs := []
 
     ; used when exe/wndw are lists - keep current active
     _currEXE  := ""
@@ -158,23 +159,23 @@ class Program {
 
         setLoadScreen("Waiting for " . this.name . "...")
 
-        retArgs := []
+        this._launchArgs := []
         if (Type(this.defaultArgs) = "Array") {
             for item in this.defaultArgs {
                 if (InStr(item, A_Space) && (!(SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"')
                     || !(SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'"))) {
 
-                    retArgs.Push('"' . item . '"')
+                    this._launchArgs.Push('"' . item . '"')
                 }
                 else {
-                    retArgs.Push(item)
+                    this._launchArgs.Push(item)
                 }
             }
         }
         else if (this.defaultArgs != "") {
             argArr := StrSplitIgnoreQuotes(this.defaultArgs)
             if (argArr.Length > 0) {
-                retArgs.Push(argArr*)
+                this._launchArgs.Push(argArr*)
             }
         }
 
@@ -183,22 +184,22 @@ class Program {
                 if (InStr(item, A_Space) && (!(SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"')
                     || !(SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'"))) {
 
-                    retArgs.Push('"' . item . '"')
+                    this._launchArgs.Push('"' . item . '"')
                 }
                 else {
-                    retArgs.Push(item)
+                    this._launchArgs.Push(item)
                 }
             }
         }
         else {
             argArr := StrSplitIgnoreQuotes(args)
             if (argArr.Length > 0) {
-                retArgs.Push(argArr*)
+                this._launchArgs.Push(argArr*)
             }
         }
 
         ; if launch returns false -> assume failed
-        if (this._launch(retArgs*) = false) {
+        if (this._launch(this._launchArgs*) = false) {
             Critical(restoreCritical)
             resetLoadScreen()
             return
@@ -1295,6 +1296,8 @@ setCurrentProgram(id) {
         ErrorMsg("Requested current program doesn't exist / is background")
         return
     }
+
+    currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
     
     if (globalStatus["currProgram"] != id) {
         if (globalStatus["kbmmode"]) {
@@ -1304,19 +1307,21 @@ setCurrentProgram(id) {
             closeKeyboard()
         }
 
-        activateLoadScreen()
-        MouseMove(percentWidth(1), percentHeight(1))
-
+        globalStatus["currProgram"] := id
         globalRunning[id].time := A_TickCount
 
-        globalStatus["currProgram"] := id
-        globalStatus["input"]["source"] := id
-        Sleep(200)
-
-        resetLoadScreen()
+        if (!currSuspended) {
+            activateLoadScreen()
+            MouseMove(percentWidth(1), percentHeight(1))
+            
+            globalStatus["input"]["source"] := id
+            
+            Sleep(200)
+            resetLoadScreen()
+        }
     }
 
-    if (globalRunning[id].exists(true) && !globalStatus["suspendScript"]) {
+    if (globalRunning[id].exists(true) && !currSuspended) {
         globalRunning[id].restore()
     }
 }
@@ -1350,6 +1355,7 @@ getMostRecentProgram(checkBackground := false) {
 ; returns null
 checkAllPrograms() {
     global globalConfig
+    global globalStatus
     global globalRunning
     global globalPrograms
     global globalConsoles
@@ -1379,10 +1385,16 @@ checkAllPrograms() {
         }
     }
 
+    currSuspended   := globalStatus["suspendScript"]
+    currDesktopMode := globalStatus["desktopmode"]
+
     activeProgram := false
     for key in runningKeys {
         if (!globalRunning[key].exists()) {
-            globalRunning[key].postExit()
+            if (!currSuspended && !currDesktopMode) {
+                globalRunning[key].postExit()
+            }
+
             globalRunning.Delete(key)
         }
         else if (!globalRunning[key].background) {
@@ -1390,7 +1402,9 @@ checkAllPrograms() {
         }
     }
 
-    if (!activeProgram && globalConfig["Plugins"].Has("DefaultProgram") && globalConfig["Plugins"]["DefaultProgram"] != "") {
+    if (!activeProgram && !currSuspended && !currDesktopMode
+        && globalConfig["Plugins"].Has("DefaultProgram") && globalConfig["Plugins"]["DefaultProgram"] != "") {
+        
         if (!globalPrograms.Has(globalConfig["Plugins"]["DefaultProgram"])) {
             ErrorMsg("Default Program" . globalConfig["Plugins"]["DefaultProgram"] . " has no config", true)
         }

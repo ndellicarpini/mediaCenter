@@ -10,51 +10,49 @@
 
     "hotkeys": {
         "buttonTime": 0,
-        "xinput": {
-            "A": {
-                "down": "Send '{Enter down}'",
-                "up": "Send '{Enter up}'"
-            },
-            "B": {
-                "down": "Send '{Escape down}'",
-                "up": "Send '{Escape up}'"
-            },
-            "X": {
-                "down": "Send '{Y down}'",
-                "up": "Send '{Y up}'"
-            },
-            "Y": {
-                "down": "Send '{T down}'",
-                "up": "Send '{T up}'"
-            },
-            "START": {
-                "down": "Send '{S down}'",
-                "up": "Send '{S up}'"
-            },
-            "[REPEAT]LB": {
-                "down": "Send '{PgUp down}'",
-                "up": "Send '{PgUp up}'"
-            },
-            "[REPEAT]RB": {
-                "down": "Send '{PgDn down}'",
-                "up": "Send '{PgDn up}'"
-            },
-            "[REPEAT]DU|LSY>0.4": {
-                "down": "Send '{Up down}'",
-                "up": "Send '{Up up}'"
-            },
-            "[REPEAT]DD|LSY<-0.4": {
-                "down": "Send '{Down down}'",
-                "up": "Send '{Down up}'"
-            },
-            "[REPEAT]DL|LSX<-0.4": {
-                "down": "Send '{Left down}'",
-                "up": "Send '{Left up}'"
-            },
-            "[REPEAT]DR|LSX>0.4": {
-                "down": "Send '{Right down}'",
-                "up": "Send '{Right up}'"
-            },
+        "1": {
+            "down": "Send '{Enter down}'",
+            "up": "Send '{Enter up}'"
+        },
+        "2": {
+            "down": "Send '{Escape down}'",
+            "up": "Send '{Escape up}'"
+        },
+        "3": {
+            "down": "Send '{Y down}'",
+            "up": "Send '{Y up}'"
+        },
+        "4": {
+            "down": "Send '{T down}'",
+            "up": "Send '{T up}'"
+        },
+        "8": {
+            "down": "Send '{S down}'",
+            "up": "Send '{S up}'"
+        },
+        "[REPEAT]5": {
+            "down": "Send '{PgUp down}'",
+            "up": "Send '{PgUp up}'"
+        },
+        "[REPEAT]6": {
+            "down": "Send '{PgDn down}'",
+            "up": "Send '{PgDn up}'"
+        },
+        "[REPEAT]11|2>0.4": {
+            "down": "Send '{Up down}'",
+            "up": "Send '{Up up}'"
+        },
+        "[REPEAT]12|2<-0.4": {
+            "down": "Send '{Down down}'",
+            "up": "Send '{Down up}'"
+        },
+        "[REPEAT]13|1<-0.4": {
+            "down": "Send '{Left down}'",
+            "up": "Send '{Left up}'"
+        },
+        "[REPEAT]14|1>0.4": {
+            "down": "Send '{Right down}'",
+            "up": "Send '{Right up}'"
         }
     }
 }

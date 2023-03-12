@@ -240,7 +240,12 @@
         "EXO ONE.exe",
 		"noita.exe",
 		"FightCrab.exe",
-		"re3.exe"
+		"re3.exe",
+		"re5dx9.exe",
+		"Journey.exe",
+		"LEGOSTARWARSSKYWALKERSAGA_DX11.exe",
+		"Demon Turf.exe",
+		"Demon Turf TOWER.exe"
     ],
 
 	"overrides": {

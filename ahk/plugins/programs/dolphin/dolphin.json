@@ -16,10 +16,8 @@
     "controls": ["Xbox Controller"],
 
     "hotkeys": {
-        "xinput": {
-            "HOME&START": "program.saveState",
-            "HOME&SELECT": "program.loadState",
-            "HOME&RT>0.3": "program.fastForward"
-        }
+        "15&8": "program.saveState",
+        "15&7": "program.loadState",
+        "15&6>0.3": "program.fastForward"
     }
 }

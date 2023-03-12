@@ -2,6 +2,8 @@ class PowerInterface extends Interface {
     guiWidth := 0
     guiHeight := 0
 
+    _restoreMousePos := []
+
     __New() {
         global globalConfig
 
@@ -41,10 +43,28 @@ class PowerInterface extends Interface {
     }
 
     _Show() {
+        global globalStatus
+
+        if (globalStatus["kbmmode"] || globalStatus["desktopmode"]) {
+            MouseGetPos(&x, &y)
+            this._restoreMousePos := [x, y]
+        }
+
         super._Show("Center w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
         MouseMove(percentWidth(1), percentHeight(1))
+    }
+
+    _Destroy() {
+        global globalStatus
+
+        super._Destroy()
+
+        if ((globalStatus["kbmmode"] || globalStatus["desktopmode"]) && this._restoreMousePos.Length = 2) {
+            MouseMove(this._restoreMousePos[1], this._restoreMousePos[2])
+            this._restoreMousePos := []
+        }
     }
 
     _select() {

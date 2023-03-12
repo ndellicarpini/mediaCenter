@@ -45,10 +45,20 @@ statusRestore() {
         if (key = "globalRunning") {
             for name, attr in backup["globalRunning"] {
                 if (attr.Has("console")) {
-                    createConsole([attr["console"], attr["rom"]], false, false, attr)
+                    params := [attr["console"]]
+                    if (attr["_launchArgs"].Length > 0) {
+                        params.Push(attr["_launchArgs"]*)
+                    }
+
+                    createConsole(params, false, false, attr)
                 }
                 else {
-                    createProgram(name, false, false, attr)
+                    params := [name]
+                    if (attr["_launchArgs"].Length > 0) {
+                        params.Push(attr["_launchArgs"]*)
+                    }
+
+                    createProgram(params, false, false, attr)
                 }
             }
         }

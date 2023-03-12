@@ -7,45 +7,34 @@ addHotkeys(currHotkeys, newHotkeys) {
     oldHotkeys := ObjDeepClone(currHotkeys)
 
     ; parse currHotkeys & replace shared hotkeys with newHotkeys
-    for key, value in oldHotkeys {
-        if (newHotkeys.Has(key)) {
-            for key2, value2 in newHotkeys[key] {
-                currModifier := checkHotkeyModifier(key2)
-                currKey := (currModifier != "") ? StrReplace(key2, currModifier, "") : key2
-        
-                if (InStr(currKey, ">")) {
-                    currKey := StrSplit(currKey, ">")[1] . ">"
-                }
-                else if (InStr(currKey, "<")) {
-                    currKey := StrSplit(currKey, "<")[1] . "<"
-                }
-        
-                for key3, value3 in oldHotkeys[key] {
-                    currModifier2 := checkHotkeyModifier(key3)
-                    currKey2 := (currModifier2 != "") ? StrReplace(key3, currModifier2, "") : key3
-        
-                    if (InStr(currKey2, ">")) {
-                        currKey2 := StrSplit(currKey2, ">")[1] . ">"
-                    }
-                    else if (InStr(currKey, "<")) {
-                        currKey2 := StrSplit(currKey2, "<")[1] . "<"
-                    }
-        
-                    if (currKey = currKey2) {
-                        oldHotkeys[key].Delete(key3)
-                    }
-                }
-        
-                oldHotkeys[key][key2] := value2
+    for key, value in newHotkeys {
+        currModifier := checkHotkeyModifier(key)
+        currKey := (currModifier != "") ? StrReplace(key, currModifier, "") : key
+
+        if (InStr(currKey, ">")) {
+            currKey := StrSplit(currKey, ">")[1] . ">"
+        }
+        else if (InStr(currKey, "<")) {
+            currKey := StrSplit(currKey, "<")[1] . "<"
+        }
+
+        for key2, value2 in oldHotkeys {
+            currModifier2 := checkHotkeyModifier(key2)
+            currKey2 := (currModifier2 != "") ? StrReplace(key2, currModifier2, "") : key2
+
+            if (InStr(currKey2, ">")) {
+                currKey2 := StrSplit(currKey2, ">")[1] . ">"
+            }
+            else if (InStr(currKey, "<")) {
+                currKey2 := StrSplit(currKey2, "<")[1] . "<"
+            }
+
+            if (currKey = currKey2) {
+                oldHotkeys.Delete(key2)
             }
         }
-    }
 
-    ; add newHotkeys to currHotkeys that didn't exist in currHotkeys
-    for key, value in newHotkeys {
-        if (!oldHotkeys.Has(key)) {
-            oldHotkeys[key] := value
-        }
+        oldHotkeys[key] := value
     }
 
     return oldHotkeys

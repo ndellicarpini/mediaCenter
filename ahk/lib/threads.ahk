@@ -474,77 +474,69 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                 ; check mouse move x axis
                 if (checkX) {
-                    currAxis := currMouse["x"]
+                    currAxis := Integer(currMouse["x"])
                     inverted := false
 
-                    if (SubStr(currAxis, 1, 1) = "-") {
-                        currAxis := SubStr(currAxis, 2)
+                    if (currAxis < 0) {
+                        currAxis := Abs(currAxis)
                         inverted := true
                     }
 
-                    if (currStatusData["axis"].Has(currAxis)) {
-                        axis := currStatusData["axis"][currAxis]
-                        if (Abs(axis) > deadzone) {
-                            xvel := (inverted) ? (xvel - axis) : (xvel + axis)
-                        }
-                    }                    
+                    axis := currStatusData["axis"][currAxis]
+                    if (Abs(axis) > deadzone) {
+                        xvel := (inverted) ? (xvel - axis) : (xvel + axis)
+                    }                   
                 }
                 ; check mouse move y axis
                 if (checkY) {
-                    currAxis := currMouse["y"]
+                    currAxis := Integer(currMouse["y"])
                     inverted := false
 
-                    if (SubStr(currAxis, 1, 1) = "-") {
-                        currAxis := SubStr(currAxis, 2)
+                    if (currAxis < 0) {
+                        currAxis := Abs(currAxis)
                         inverted := true
                     }
 
-                    if (currStatusData["axis"].Has(currAxis)) {
-                        axis := currStatusData["axis"][currAxis]
-                        if (Abs(axis) > deadzone) {
-                            yvel := (inverted) ? (yvel - axis) : (yvel + axis)
-                        }
+                    axis := currStatusData["axis"][currAxis]
+                    if (Abs(axis) > deadzone) {
+                        yvel := (inverted) ? (yvel - axis) : (yvel + axis)
                     }
                 }
 
                 ; check mouse horizontal scroll axis
                 if (checkH) {
-                    currAxis := currMouse["hscroll"]
+                    currAxis := Integer(currMouse["hscroll"])
                     inverted := false
 
-                    if (SubStr(currAxis, 1, 1) = "-") {
-                        currAxis := SubStr(currAxis, 2)
+                    if (currAxis < 0) {
+                        currAxis := Abs(currAxis)
                         inverted := true
                     }
 
-                    if (currStatusData["axis"].Has(currAxis)) {
-                        axis := currStatusData["axis"][currAxis]
-                        if (Abs(axis) > deadzone) {
-                            hscroll := (inverted) ? (hscroll - axis) : (hscroll + axis)
-                        }
+                    axis := currStatusData["axis"][currAxis]
+                    if (Abs(axis) > deadzone) {
+                        hscroll := (inverted) ? (hscroll - axis) : (hscroll + axis)
                     }
                 }
                 ; check mouse vertical scroll axis
                 if (checkV) {
-                    currAxis := currMouse["vscroll"]
+                    currAxis := Integer(currMouse["vscroll"])
                     inverted := false
 
-                    if (SubStr(currAxis, 1, 1) = "-") {
-                        currAxis := SubStr(currAxis, 2)
+                    if (currAxis < 0) {
+                        currAxis := Abs(currAxis)
                         inverted := true
                     }
 
-                    if (currStatusData["axis"].Has(currAxis)) {
-                        axis := currStatusData["axis"][currAxis]
-                        if (Abs(axis) > deadzone) {
-                            vscroll := (inverted) ? (vscroll - axis) : (vscroll + axis)
-                        }
+                    axis := currStatusData["axis"][currAxis]
+                    if (Abs(axis) > deadzone) {
+                        vscroll := (inverted) ? (vscroll - axis) : (vscroll + axis)
                     }
                 }
 
                 ; check left click button
                 if (checkL) {
-                    if (inArray(currMouse["lclick"], currStatusData["buttons"])) {
+                    if (currStatusData["buttons"][Integer(currMouse["lclick"])]) {
                         if (!(mouseStatus["lclick"] & (2 ** A_Index))) {
                             MouseClick("Left",,,,, "D")
                             mouseStatus["lclick"] := mouseStatus["lclick"] | (2 ** A_Index)
@@ -559,7 +551,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 }
                 ; check right click button
                 if (checkR) {
-                    if (inArray(currMouse["rclick"], currStatusData["buttons"])) {
+                    if (currStatusData["buttons"][Integer(currMouse["rclick"])]) {
                         if (!(mouseStatus["rclick"] & (2 ** A_Index))) {
                             MouseClick("Right",,,,, "D")
                             mouseStatus["rclick"] := mouseStatus["rclick"] | (2 ** A_Index)
@@ -574,7 +566,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 }
                 ; check middle click button
                 if (checkM) {
-                    if (inArray(currMouse["mclick"], currStatusData["buttons"])) {
+                    if (currStatusData["buttons"][Integer(currMouse["mclick"])]) {
                         if (!(mouseStatus["mclick"] & (2 ** A_Index))) {
                             MouseClick("Middle",,,,, "D")
                             mouseStatus["mclick"] := mouseStatus["mclick"] | (2 ** A_Index)
@@ -705,7 +697,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             ; add desktopmode hotkeys
             if (value.Has("desktopmode")) {
                 if (value["desktopmode"].Has("hotkeys")) {
-                    desktopmodeHotkeys := addHotkeys(desktopmodeHotkeys, Map(key, value["desktopmode"]["hotkeys"]))
+                    desktopmodeHotkeys[key] := value["desktopmode"]["hotkeys"]
                 }
                 if (value["desktopmode"].Has("mouse")) {
                     desktopmodeMouse[key] := value["desktopmode"]["mouse"]
@@ -715,7 +707,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             ; add kbmmode hotkeys
             if (value.Has("kbmmode")) {
                 if (value["kbmmode"].Has("hotkeys")) {
-                    kbmmodeHotkeys := addHotkeys(kbmmodeHotkeys, Map(key, value["kbmmode"]["hotkeys"]))
+                    kbmmodeHotkeys[key] := value["kbmmode"]["hotkeys"]
                 }
                 if (value["kbmmode"].Has("mouse")) {
                     kbmmodeMouse[key] := value["kbmmode"]["mouse"]
@@ -723,20 +715,20 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             }
 
             ; add default program hotkeys
-            if (value.Has("programHotkeys")) {
-                programHotkeys := addHotkeys(programHotkeys, Map(key, value["programHotkeys"]))
+            if (value.Has("programHotkeys") && value["programHotkeys"].Has("default")) {
+                programHotkeys[key] := value["programHotkeys"]["default"]
             }
 
             ; add default & individual gui hotkeys
             if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has("default")) {
-                guiHotkeys := addHotkeys(guiHotkeys, Map(key, value["interfaceHotkeys"]["default"]))
+                guiHotkeys[key] := value["interfaceHotkeys"]["default"]
             }
         }
 
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 2)
 
         loop {
-            currSuspended := globalStatus["suspendScript"]
+            currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
             hotkeySource  := globalStatus["input"]["source"]
 
             currProgram := globalStatus["currProgram"]
@@ -746,58 +738,68 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             currMouse   := Map()
 
             if (hotkeySource = currGui) {
-                currHotkeys := guiHotkeys
+                currHotkeys := ObjDeepClone(guiHotkeys)
 
                 for key, value in globalInputConfigs {
                     if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has(currGui)) {
-                        currHotkeys := addHotkeys(currHotkeys, Map(key, value["interfaceHotkeys"][currGui]))
-                        break
+                        currHotkeys[key] := addHotkeys(currHotkeys[key], value["interfaceHotkeys"][currGui])
                     }
                 }
 
                 globalStatus["input"]["buttonTime"] := 0
             }
 
-            else if (hotkeySource = "desktopmode") {
-                globalStatus["input"]["buttonTime"] := 0
-
-                currHotkeys := desktopmodeHotkeys
-                currMouse   := desktopmodeMouse
+            else if (hotkeySource = "suspended") {
+                currHotkeys := ObjDeepClone(programHotkeys)
             }
 
-            else if (hotkeySource = "suspended") {
-                currHotkeys := programHotkeys
+            else if (hotkeySource = "desktopmode") {
+                currHotkeys := ObjDeepClone(desktopmodeHotkeys)
+                currMouse   := ObjDeepClone(desktopmodeMouse)
+
+                globalStatus["input"]["buttonTime"] := 0
             }
 
             else if (hotkeySource != "" && !currSuspended) {
                 if (hotkeySource = "error") {
-                    globalStatus["input"]["buttonTime"] := 0
+                    currHotkeys := ObjDeepClone(kbmmodeHotkeys)
+                    currMouse   := ObjDeepClone(kbmmodeMouse)
 
-                    currHotkeys := kbmmodeHotkeys
-                    currMouse   := kbmmodeMouse
+                    globalStatus["input"]["buttonTime"] := 0
                 }
 
                 else if (hotkeySource = "kbmmode") {
-                    globalStatus["input"]["buttonTime"] := 0
-
                     if (currProgram != "" && globalRunning.Has(currProgram)) {
-                        currHotkeys := programHotkeys
+                        currHotkeys := ObjDeepClone(programHotkeys)
                     }
 
-                    currHotkeys := addHotkeys(currHotkeys, kbmmodeHotkeys)
-                    currMouse   := kbmmodeMouse
+                    for key, value in globalInputConfigs {
+                        currHotkeys[key] := addHotkeys(currHotkeys[key], kbmmodeHotkeys[key])
+                    }
+
+                    currMouse := ObjDeepClone(kbmmodeMouse)
+
+                    globalStatus["input"]["buttonTime"] := 0
                 }
 
                 else if (hotkeySource = currProgram && globalRunning.Has(currProgram)) {
-                    currHotkeys := programHotkeys
+                    currHotkeys := ObjDeepClone(programHotkeys)
 
-                    if (globalRunning[currProgram].hotkeys.Count > 0) {
-                        currHotkeys := addHotkeys(currHotkeys, globalRunning[currProgram].hotkeys)
-                        globalStatus["input"]["buttonTime"] := globalRunning[currProgram].hotkeyButtonTime
-                    }
+                    checkHotkeys := globalRunning[currProgram].hotkeys.Count > 0
+                    checkMouse   := globalRunning[currProgram].mouse.Count > 0
+                    for key, value in globalInputConfigs {
+                        if (checkHotkeys) {
+                            currHotkeys[key] := addHotkeys(currHotkeys[key], globalRunning[currProgram].hotkeys)
+                            if (value.Has("programHotkeys") && value["programHotkeys"].Has(currProgram)) {
+                                currHotkeys[key] := addHotkeys(currHotkeys[key], value["programHotkeys"][currProgram])
+                            }
 
-                    if (globalRunning[currProgram].mouse.Count > 0) {
-                        currMouse := globalRunning[currProgram].mouse
+                            globalStatus["input"]["buttonTime"] := Min(globalStatus["input"]["buttonTime"], globalRunning[currProgram].hotkeyButtonTime)
+                        }
+    
+                        if (checkMouse) {
+                            currMouse[key] := globalRunning[currProgram].mouse
+                        }
                     }
                 }
             }
@@ -881,14 +883,14 @@ miscThread(globalConfigPtr, globalStatusPtr) {
 
         allowLoadScreen := globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]
         bypassFirewall  := globalConfig["General"].Has("BypassFirewallPrompt") && globalConfig["General"]["BypassFirewallPrompt"]
-        hideTaskbar     := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
+        disableTaskbar  := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
         createInterface("loadscreen", false,, globalStatus["loadscreen"]["text"])
 
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 1.5)
 
         loop {
-            if (!globalStatus["suspendScript"]) {
+            if (!globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
                 ; check status of load screen & update if appropriate
                 if (allowLoadScreen) {
                     loadShown := WinShown(INTERFACES["loadscreen"]["wndw"])
@@ -949,13 +951,13 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                 }
             
                 ; check that taskbar is hidden
-                if (hideTaskbar && WinShown("ahk_class Shell_TrayWnd")) {
-                    try WinHide("ahk_class Shell_TrayWnd")
+                if (disableTaskbar && taskbarExists()) {
+                    hideTaskbar()
                 }
             }
             else {
-                if (hideTaskbar && !WinShown("ahk_class Shell_TrayWnd")) {
-                    try WinShow("ahk_class Shell_TrayWnd")
+                if (disableTaskbar && !taskbarExists()) {
+                    showTaskbar()
                 }
 
                 ; destroy load screen if it should not exist (desktopmode)
