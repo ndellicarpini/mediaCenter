@@ -84,10 +84,13 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         removeTimer(index, button) {
             global hotkeyTimers
 
+            i := 1
             loop hotkeyTimers.Length {
-                if (hotkeyTimers[A_Index] = index . button) {
-                    hotkeyTimers.RemoveAt(A_Index)
-                    break
+                if (hotkeyTimers[i] = index . "-" . button) {
+                    hotkeyTimers.RemoveAt(i)
+                }
+                else {
+                    i += 1
                 }
             }
         }
@@ -127,7 +130,13 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             }
 
             if (!hotkeys.buttonTree.Has(button)) {
-                return -1
+                return {
+                    hotkey: "", 
+                    modifier: "",
+                    function: "",
+                    release: "", 
+                    time: 0,
+                }
             }
 
             ; masking array of hotkeys from other branches in buttontree 
@@ -160,11 +169,9 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 }
             }
 
-            checkArr := hotkeys.buttonTree[button]
-
             maxValidAmp := 0
             maxValidItem := ""
-            for item in checkArr {
+            for item in hotkeys.buttonTree[button] {
                 if (item = "") {
                     continue
                 }
@@ -180,7 +187,13 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             ; if the button combo is from a different buttontree branch
             ; or if no valid button combos found
             if (maxInvalidAmp > maxValidAmp || maxValidAmp = 0) {
-                return -1
+                return {
+                    hotkey: "", 
+                    modifier: "",
+                    function: "",
+                    release: "", 
+                    time: 0,
+                }
             }
 
             return createHotkeyData(maxValidItem)
@@ -285,15 +298,15 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     currButton := key
                     currButtonTime := (currHotkeys.buttonTimes.Has(currButton)) ? currHotkeys.buttonTimes[currButton] : buttonTime
 
-                    if (!inArray(currIndex . currButton, hotkeyTimers) && inputCheckStatus(currButton, status)) {                       
+                    if (!inArray(currIndex . "-" . currButton, hotkeyTimers) && inputCheckStatus(currButton, status)) {                       
                         if (currButtonTime > 0) {
-                            SetTimer(ButtonTimer.Bind(currButton, currButtonTime, currIndex, currStatus), (-1 * currButtonTime))
+                            SetTimer(ButtonTimer.Bind(currButton, currButtonTime, currIndex, currStatus), Neg(currButtonTime))
                         }
                         else {
                             ButtonTimer(currButton, currButtonTime, currIndex, currStatus)
                         }
 
-                        hotkeyTimers.Push(currIndex . currButton)
+                        hotkeyTimers.Push(currIndex . "-" . currButton)
                     }
                 }
             }
@@ -329,36 +342,32 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
             global currHotkeys
             global buttonTime
-
             global hotkeyTimers
 
             inputStatus := thisInput[index].getStatus()
 
             if (!inputCheckStatus(button, inputStatus)) {
-                removeTimer(index, button)
+                SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
                 return
             }
 
             hotkeyData := checkHotkeys(button, currHotkeys, inputStatus)
 
-            if (hotkeyData = -1) {
-                removeTimer(index, button)
+            if (hotkeyData.hotkey = "") {
+                SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
                 return
             }
 
             if (!((hotkeyData.function = "Exit" || InStr(hotkeyData.function, ".exit")) && globalStatus["pause"])) {
                 if (hotkeyData.time != "" && (time - hotkeyData.time) > 0) {
-                    SetTimer(ButtonTimer.Bind(button, hotkeyData.time, index, status), (-1 * (time - hotkeyData.time)))
+                    SetTimer(ButtonTimer.Bind(button, hotkeyData.time, index, status), Neg(time - hotkeyData.time))
                     return
                 }
 
                 sendHotkey(hotkeyData.function)
-                SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
-            }
-            else {
-                removeTimer(index, button)
             }
 
+            SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
             return
         }
 
@@ -367,7 +376,6 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             
             global globalStatus
             global thisInput
-            global hotkeyTimers
             global currStatus
 
             if (inputCheckStatus(button, thisInput[index].getStatus())) {
@@ -385,6 +393,8 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                                 }
                                 
                                 try ProcessKill(WinGetPID(winList[A_Index]))
+                                
+                                removeTimer(index, button)
                                 return
                             }
                         }
@@ -403,7 +413,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             }
             else {
                 if (status = currStatus) {
-                    if (hotkeyData.modifier = "repeat") {
+                    if (hotkeyData.modifier = "repeat" || hotkeyData.modifier = "hold") {
                         toDelete := []
                         loop globalStatus["input"]["buffer"].Length {
                             if (globalStatus["input"]["buffer"][A_Index] = hotkeyData.function) {

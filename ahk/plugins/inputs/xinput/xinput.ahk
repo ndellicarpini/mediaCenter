@@ -103,10 +103,7 @@ class XInputDevice extends Input {
         this.axis[5] := NumGet(xBuf.Ptr, 6, "UChar") / 255    ; LT
         this.axis[6] := NumGet(xBuf.Ptr, 7, "UChar") / 255    ; RT
 
-        return Map(
-            "buttons", this.buttons,
-            "axis", this.axis
-        )
+        return Map("buttons", this.buttons, "axis", this.axis)
     }
 
     checkConnectionType() {

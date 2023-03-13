@@ -102,11 +102,10 @@ inputCheckStatus(hotkeys, statusResult) {
 
     retVal := true
     for key in hotkeyArr {
-        try {
-            index := Integer(key)
-            retVal := retVal && statusResult["buttons"][index]
+        if (IsInteger(key)) {
+            retVal := retVal && statusResult["buttons"][Integer(key)]
         }
-        catch {
+        else {
             retVal := retVal && inputCompareAxis(key, statusResult)
         }
     }
