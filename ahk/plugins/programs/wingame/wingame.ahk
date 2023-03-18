@@ -112,31 +112,10 @@ class WinGameProgramWithLauncher extends WinGameProgram {
 
 ; --- OVERRIDES --- 
 class MBAAProgram extends WinGameProgram {
-    _postLaunchDelay := 1500
+    _postLaunchDelay := 500
 
-    _launch(args*) {
-        global globalStatus
-
-        super._launch(args*)
-
-        ; mbaa's launcher is a garbage piece of shit
-        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe MBAA.exe"
-
-        count := 0
-        maxCount := 150
-        while (!WinExist("ahk_exe MBAA.exe")) {
-            count += 1
-            Sleep(100)
-        }
-
-        if (WinExist("ahk_exe MBAA.exe")) {
-            Sleep(500)
-
-            WinActivate("ahk_exe MBAA.exe")
-            SendSafe("{Enter}")
-        }
-
-        globalStatus["loadscreen"]["overrideWNDW"] := ""
+    _postLaunch() {
+        SendSafe("{Enter}")
     }
 }
 

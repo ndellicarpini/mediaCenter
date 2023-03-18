@@ -295,29 +295,8 @@ class DarkSouls3Program extends SteamGameProgram {
 class ClustertruckProgram extends SteamGameProgram {
     _postLaunchDelay := 500
 
-    _launch(args*) {
-        global globalStatus
-
-        super._launch(args*)
-
-        ; clustertruck's launcher is a garbage piece of shit
-        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe Clustertruck.exe"
-
-        count := 0
-        maxCount := 150
-        while (!WinExist("ahk_exe Clustertruck.exe")) {
-            count += 1
-            Sleep(100)
-        }
-
-        if (WinExist("ahk_exe Clustertruck.exe")) {
-            Sleep(500)
-
-            WinActivate("ahk_exe Clustertruck.exe")
-            SendSafe("{Enter}")
-        }
-
-        globalStatus["loadscreen"]["overrideWNDW"] := ""
+    _postLaunch() {
+        SendSafe("{Enter}")
     }
 }
 

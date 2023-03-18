@@ -200,7 +200,7 @@ WinGetParent(window) {
 	return retVal
 }
 
-; returns if window is activatable (checks !DISABLED && !TOOLWINDOW)
+; returns if window is activatable (checks !DISABLED && !NOACTIVATE && !(POPUP && TOPMOST))
 ;  window - window to check based on WinTitle
 ;
 ; returns boolean activatable
@@ -208,7 +208,7 @@ WinActivatable(window) {
 	style := WinGetStyle(window)
 	exStyle := WinGetExStyle(window)
 
-	return !(style & 0x00000080) && !(exStyle & 0x08000000)	
+	return !(style & 0x08000000) && !(exStyle & 0x08000000)	&& !((style & 0x80000000) && (exStyle & 0x00000008))
 }
 
 ; closes all windows that match the window param

@@ -245,7 +245,10 @@
 		"Journey.exe",
 		"LEGOSTARWARSSKYWALKERSAGA_DX11.exe",
 		"Demon Turf.exe",
-		"Demon Turf TOWER.exe"
+		"Demon Turf TOWER.exe",
+		"Broforce_beta.exe",
+		"HotlineMiami2.exe",
+		"TheMessenger.exe"
     ],
 
 	"overrides": {

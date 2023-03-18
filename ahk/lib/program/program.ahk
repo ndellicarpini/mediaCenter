@@ -924,18 +924,24 @@ class Program {
     
             restoreDHW := A_DetectHiddenWindows
             DetectHiddenWindows(this.background)
-    
+
             winList := []
-            for item in WinGetList("ahk_exe " exe) {
-                if ((this.background || (!this.background && WinActivatable(item)))
-                    && WinGetProcessName(item) = exe) {
-    
-                    winList.Push(item)
+
+            ; don't use WinGetList for background apps -> too many windows
+            if (this.background) {
+                if (WinExist("ahk_exe " exe)) {
+                    winList.Push(WinGetID("ahk_exe " exe))
+                }
+            }
+            else {
+                for item in WinGetList("ahk_exe " exe) {
+                    if (WinActivatable(item) && WinGetProcessName(item) = exe) {
+                        winList.Push(item)
+                    }
                 }
             }
     
             DetectHiddenWindows(restoreDHW)
-    
             return winList
         }
         

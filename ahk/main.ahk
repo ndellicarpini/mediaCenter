@@ -5,7 +5,6 @@
 #Include plugins\ahk\boot.ahk
 #Include plugins\ahk\LOADSC~1.AHK
 #Include plugins\inputs\xinput\xinput.ahk
-#Include plugins\programs\AMAZON~1\AMAZON~1.AHK
 #Include plugins\programs\bigbox\bigbox.ahk
 #Include plugins\programs\cemu\cemu.ahk
 #Include plugins\programs\chrome\chrome.ahk
@@ -435,13 +434,13 @@ loop {
             checkAllGuis()
 
             mostRecentGui := getMostRecentGui()
-            if (mostRecentGui != currGui) {
+            if (mostRecentGui = "") {
+                globalStatus["currGui"] := ""
+            }
+            else if (mostRecentGui != currGui) {
                 setCurrentGui(mostRecentGui)
 
                 continue
-            }
-            else {
-                globalStatus["currGui"] := ""
             }
         }
     }
@@ -487,13 +486,13 @@ loop {
                 checkAllPrograms()
 
                 mostRecentProgram := getMostRecentProgram()
-                if (mostRecentProgram != currProgram) {
-                    setCurrentProgram(mostRecentProgram)                    
+                if (mostRecentProgram = "") {
+                    globalStatus["currProgram"] := ""
+                }
+                else if (mostRecentProgram != currProgram) {
+                    setCurrentProgram(mostRecentProgram)
                     
                     continue
-                }
-                else {
-                    globalStatus["currProgram"] := ""
                 }
             }
         } 
@@ -507,7 +506,10 @@ loop {
         checkAllGuis()
 
         mostRecentGui := getMostRecentGui()
-        if (mostRecentGui != currGui) {
+        if (mostRecentGui = "") {
+            globalStatus["currGui"] := ""
+        }
+        else if (mostRecentGui != currGui) {
             setCurrentGui(mostRecentGui)
 
             continue
@@ -516,9 +518,12 @@ loop {
         checkAllPrograms()
 
         mostRecentProgram := getMostRecentProgram()
-        if (mostRecentProgram != currProgram) {
+        if (mostRecentProgram = "") {
+            globalStatus["currProgram"] := ""
+        }
+        else if (mostRecentProgram != currProgram) {
             setCurrentProgram(mostRecentProgram)
-
+            
             continue
         }
     }
@@ -789,12 +794,23 @@ ResetScript() {
 
 ; clean up running programs & shutdown
 PowerOff() {
+    global globalStatus
     global globalConfig
 
     Critical("On")
 
     if (globalConfig["Plugins"].Has("DefaultProgram")) {
         globalConfig["Plugins"]["DefaultProgram"] := ""
+    }
+
+    if (globalStatus["suspendScript"]) {
+        globalStatus["suspendScript"] := false
+    }
+    if (globalStatus["desktopmode"]) {
+        disableDesktopMode()
+    }
+    if (globalStatus["kbmmode"]) {
+        disableKBMMode()
     }
     
     exitAllPrograms()
@@ -817,6 +833,16 @@ Restart() {
         globalConfig["Plugins"]["DefaultProgram"] := ""
     }
 
+    if (globalStatus["suspendScript"]) {
+        globalStatus["suspendScript"] := false
+    }
+    if (globalStatus["desktopmode"]) {
+        disableDesktopMode()
+    }
+    if (globalStatus["kbmmode"]) {
+        disableKBMMode()
+    }
+
     exitAllPrograms()
     Sleep(500)
 
@@ -835,6 +861,16 @@ Standby() {
 
     if (globalConfig["Plugins"].Has("DefaultProgram")) {
         globalConfig["Plugins"]["DefaultProgram"] := ""
+    }
+
+    if (globalStatus["suspendScript"]) {
+        globalStatus["suspendScript"] := false
+    }
+    if (globalStatus["desktopmode"]) {
+        disableDesktopMode()
+    }
+    if (globalStatus["kbmmode"]) {
+        disableKBMMode()
     }
 
     if (WinHidden(MAINLOOP)) {

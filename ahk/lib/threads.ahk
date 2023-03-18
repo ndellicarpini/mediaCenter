@@ -125,18 +125,12 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     modifier: hotkeys.modifiers[hotkey],
                     function: down,
                     release: up, 
-                    time: time,
+                    time: time
                 }
             }
 
             if (!hotkeys.buttonTree.Has(button)) {
-                return {
-                    hotkey: "", 
-                    modifier: "",
-                    function: "",
-                    release: "", 
-                    time: 0,
-                }
+                return -1
             }
 
             ; masking array of hotkeys from other branches in buttontree 
@@ -187,13 +181,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             ; if the button combo is from a different buttontree branch
             ; or if no valid button combos found
             if (maxInvalidAmp > maxValidAmp || maxValidAmp = 0) {
-                return {
-                    hotkey: "", 
-                    modifier: "",
-                    function: "",
-                    release: "", 
-                    time: 0,
-                }
+                return -1
             }
 
             return createHotkeyData(maxValidItem)
@@ -347,14 +335,15 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             inputStatus := thisInput[index].getStatus()
 
             if (!inputCheckStatus(button, inputStatus)) {
-                SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
+                SetTimer(WaitButtonTimer.Bind(button, index, -1, status, 0), -25)
+                
                 return
             }
 
             hotkeyData := checkHotkeys(button, currHotkeys, inputStatus)
 
-            if (hotkeyData.hotkey = "") {
-                SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
+            if (hotkeyData = -1) {
+                SetTimer(WaitButtonTimer.Bind(button, index, -1, status, 0), -25)
                 return
             }
 
@@ -377,6 +366,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             global globalStatus
             global thisInput
             global currStatus
+
+            if (hotkeyData = -1) {
+                removeTimer(index, button)
+                return
+            }
 
             if (inputCheckStatus(button, thisInput[index].getStatus())) {
                 if (status = currStatus) {

@@ -218,7 +218,7 @@ class PauseInterface extends Interface {
                     globalRunning[currProgram].resume()
                 }
 
-                if (funcArr[1] = "kbmmode") {
+                if (funcArr[1] = "kbmmode" && !globalStatus["desktopmode"]) {
                     if (!globalStatus["kbmmode"]) {
                         enableKBMMode()
                     }
