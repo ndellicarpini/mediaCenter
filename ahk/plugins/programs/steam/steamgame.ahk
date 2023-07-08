@@ -179,8 +179,247 @@ class SteamGameProgram extends Program {
     }
 }
 
+class SteamNewUIGameProgram extends Program {
+    _launch(args*) {
+        global globalStatus
+        global globalRunning
+
+        cleanArgs := ObjDeepClone(args)
+        URI := ""
+
+        ; parse args
+        loop cleanArgs.Length {
+            if (StrLower(SubStr(cleanArgs[A_Index], 1, 8)) = "steam://") {
+                URI := cleanArgs.RemoveAt(A_Index)
+                break
+            }
+        }
+
+        ; add // to end of URI for launch args to work (like wtf valve)
+        if (SubStr(URI, -2) != "//") {
+            URI := RTrim(URI, "/ ") . "//"
+        }
+
+        ; checks for common steam windows
+        steamShown() {
+            for wndw in WinGetList("ahk_exe steamwebhelper.exe") {
+                if (!WinShown(wndw)) {
+                    continue
+                }
+
+                title := WinGetTitle(wndw)
+                if (title = "Steam" || title = "Launching...") {
+                    return true
+                }
+            }
+
+            return false
+        }
+    
+        ; checks if the eula is open & accepts it
+        checkDialogs() {
+            for wndw in WinGetList("ahk_exe steamwebhelper.exe") {
+                if (!WinShown(wndw)) {
+                    continue
+                }
+
+                if (WinGetTitle(wndw) = "Steam") {
+                    WinActivate(wndw)
+                    Sleep(100)
+                    
+                    MouseClick("Left"
+                        , percentWidthRelativeWndw(0.59, wndw)
+                        , percentHeightRelativeWndw(0.86, wndw)
+                        ,,, "D"
+                    )
+                    Sleep(75)
+                    MouseClick("Left",,,,, "U")
+                    Sleep(75)
+                    MouseMove(percentWidth(1), percentHeight(1))
+    
+                    Sleep(250)
+    
+                    WinClose(wndw)
+
+                    return
+                }
+            }
+        }
+
+        ; skips all steam dialogs and launches the game
+        launchHandler(game, loopCount := 0) {
+            restoreAllowExit := this.allowExit
+        
+            restoreLoadText := globalStatus["loadscreen"]["text"]
+            setLoadScreen("Waiting for Steam...")
+        
+            restoreTTMM := A_TitleMatchMode
+            SetTitleMatchMode(2)
+        
+            ; launch steam if it doesn't exist
+            if (!globalRunning.Has("steam") || !globalRunning["steam"].exists()) {
+                if (!globalRunning.Has("steam")) {
+                    createProgram("steam", true, false)
+                }
+                else if (!globalRunning["steam"].exists()) {
+                    globalRunning["steam"].launch()
+                }
+            
+                ; TODO - fix getting cucked by the reset timeout
+                setLoadScreen("Waiting for Steam...")
+        
+                this.allowExit := true
+                
+                count := 0
+                maxCount := 150
+                ; buffer wait for steam so that the URI works
+                while (count < maxCount) {
+                    if (this.shouldExit) {    
+                        SetTitleMatchMode(restoreTTMM)
+                        return false
+                    }
+        
+                    count += 1
+                    Sleep(100)
+                }
+        
+                this.allowExit := false
+            }
+
+            Run(RTrim(game . A_Space . joinArray(cleanArgs), A_Space))
+        
+            count := 0
+            maxCount := 40
+            ; wait for either the game or a common steam window
+            while (count < maxCount && !steamShown() && !this.exists()) {
+                if (count > 25 && this.shouldExit) {    
+                    SetTitleMatchMode(restoreTTMM)
+                    return false
+                }
+        
+                count += 1
+                Sleep(500)
+            }
+        
+            ; if game -> success
+            if (this.exists()) {
+                this.allowExit := restoreAllowExit
+                SetTitleMatchMode(restoreTTMM)
+        
+                return
+            }
+        
+            ; if no steam windows shown -> restart steam
+            if (!steamShown()) {
+                if (loopCount > 2) {
+                    SetTitleMatchMode(restoreTTMM)
+                    return false
+                }
+        
+                globalRunning["steam"].exit()
+                
+                Sleep(2000)
+                return launchHandler(game, loopCount + 1)
+            }
+        
+            globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe steamwebhelper.exe"
+            this.allowExit := true
+        
+            firstShown := false
+            ; while launching window is shown, just wait
+            while (steamShown()) {
+                if (this.exists()) {
+                    break
+                }
+
+                if (this.shouldExit) { 
+                    count := 0
+                    maxCount := 20
+                    while (WinShown("ahk_exe steamwebhelper.exe") && count < maxCount) {
+                        WinClose("ahk_exe steamwebhelper.exe")
+                        Sleep(500)
+                    }
+
+                    globalStatus["loadscreen"]["overrideWNDW"] := ""
+                    SetTitleMatchMode(restoreTTMM)
+        
+                    return false
+                }
+
+                if (!firstShown) {
+                    for wndw in WinGetList("ahk_exe steamwebhelper.exe") {
+                        if (!WinShown(wndw)) {
+                            continue
+                        }
+        
+                        if (WinGetTitle(wndw) = "Launching...") {
+                            Sleep(150)
+                            WinActivate(wndw)
+                            Sleep(100)
+                            
+                            MouseClick("Left"
+                                , percentWidthRelativeWndw(0.5, wndw)
+                                , percentHeightRelativeWndw(0.05, wndw)
+                                ,,, "D"
+                            )
+                            Sleep(75)
+                            MouseClick("Left",,,,, "U")
+                            Sleep(75)
+                            MouseMove(percentWidth(1), percentHeight(1))
+            
+                            Sleep(250)
+                            firstShown := true
+                        }
+                    }
+                }
+
+                checkDialogs()
+                Sleep(250)
+            }
+        
+            globalStatus["loadscreen"]["overrideWNDW"] := ""
+            this.allowExit := restoreAllowExit
+            SetTitleMatchMode(restoreTTMM)
+            setLoadScreen(restoreLoadText)
+        
+            return
+        }
+
+        return launchHandler(URI)
+    }
+
+    ; custom function
+    menu() {
+        MouseMove(percentWidth(1, false), percentHeight(1, false))
+
+        SetTimer(OpenMenu.Bind(0), Neg(100))
+        return
+
+        OpenMenu(loopCount) {
+            if (loopCount > 100) {
+                return
+            }
+
+            if (WinGetID("A") = this.getHWND()) {
+                Send("{Shift down}")
+                Sleep(100)
+                SendSafe("{Tab}")
+                Sleep(100)
+                Send("{Shift up}")
+        
+                Sleep(100)
+                MouseMove(percentWidth(1), percentHeight(1))
+                return
+            }
+
+            SetTimer(OpenMenu.Bind(loopCount + 1), Neg(100))
+            return
+        }
+    }
+}
+
 ; --- STEAM APPS W/ REQUIRED LAUNCHER TO SKIP ---
-class SteamGameProgramWithLauncher extends SteamGameProgram {
+class SteamGameProgramWithLauncher extends SteamNewUIGameProgram {
     _launcherEXE      := ""   ; exe of launcher application
     _launcherMousePos := []   ; array of positions to click as a double array
     _launcherDelay    := 1000 ; delay before clicking
@@ -276,7 +515,7 @@ class SteamGameProgramWithLauncher extends SteamGameProgram {
 }
 
 ; --- OVERRIDES ---
-class BioShockHDProgram extends SteamGameProgram {
+class BioShockHDProgram extends SteamNewUIGameProgram {
     _postLaunchDelay := 2000
 
     _postLaunch() {
@@ -284,15 +523,15 @@ class BioShockHDProgram extends SteamGameProgram {
     }
 }
 
-class BlueFireProgram extends SteamGameProgram {
+class BlueFireProgram extends SteamNewUIGameProgram {
     _fullscreenDelay := 6500
 }
 
-class DarkSouls3Program extends SteamGameProgram {
+class DarkSouls3Program extends SteamNewUIGameProgram {
     _fullscreenDelay := 6500
 }
 
-class ClustertruckProgram extends SteamGameProgram {
+class ClustertruckProgram extends SteamNewUIGameProgram {
     _postLaunchDelay := 500
 
     _postLaunch() {
@@ -300,7 +539,15 @@ class ClustertruckProgram extends SteamGameProgram {
     }
 }
 
-class BraidProgram extends SteamGameProgram {
+class SpiderManProgram extends SteamNewUIGameProgram {
+    _postLaunchDelay := 500
+
+    _postLaunch() {
+        SendSafe("{Enter}")
+    }
+}
+
+class BraidProgram extends SteamNewUIGameProgram {
     _postLaunchDelay := 500
 
     _postLaunch() {
@@ -313,7 +560,7 @@ class BraidProgram extends SteamGameProgram {
     }
 }
 
-class UndertaleProgram extends SteamGameProgram {
+class UndertaleProgram extends SteamNewUIGameProgram {
     _fullscreenDelay := 1000
 
     _fullscreen() {

@@ -461,19 +461,19 @@ class Program {
 
         this.pause()
 
-        this.minimized := true
-
-        ; reset fullscreen status on minimize
-        this.fullscreened := false
-        this._waitingFullscreenTimer := false
-        this._waitingMouseMoveTimer  := false
-
         ; get new thumbnail
         if (this.id = globalStatus["currProgram"]) {
             saveScreenshot(this.id)
         }
 
         this._minimize()
+
+        this.minimized := true
+
+        ; reset fullscreen status on minimize
+        this.fullscreened := false
+        this._waitingFullscreenTimer := false
+        this._waitingMouseMoveTimer  := false
 
         Critical(restoreCritical)
     }
@@ -706,8 +706,6 @@ class Program {
 
     ; exit program 
     exit() {
-        global globalStatus
-
         ; disable hotkeys
         this.hotkeys := Map()
         this.shouldExit := true
@@ -817,7 +815,7 @@ class Program {
         
         restoreCritical := A_IsCritical
         Critical("On")
-        
+
         this.paused := false
         
         if (this._restoreMousePos.Length = 2) {

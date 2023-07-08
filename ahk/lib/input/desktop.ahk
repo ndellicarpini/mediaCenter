@@ -62,7 +62,7 @@ enableDesktopMode(showDialog := false) {
         Sleep(100)
     }
 
-    globalStatus["desktopmode"]   := true
+    globalStatus["desktopmode"] := true
     MouseMove(percentWidth(0.5, false), percentHeight(0.5, false))
 
     ; create basic gui dialog showing kb & mouse mode on

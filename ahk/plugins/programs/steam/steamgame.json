@@ -1,10 +1,18 @@
 {
     "id": "steamgame",
 	"name": "Windows Game",
-	"className": "SteamGameProgram",
+	"className": "SteamNewUIGameProgram",
 
 	"requireInternet": true,
 	"requireFullscreen": true,
+
+	"pauseOptions": {
+        "Toggle Steam Menu": "program.menu",
+    },
+
+    "pauseOrder": [
+        "Toggle Steam Menu"
+    ],
 
     "exe": [
         "20XX.exe",
@@ -248,7 +256,18 @@
 		"Demon Turf TOWER.exe",
 		"Broforce_beta.exe",
 		"HotlineMiami2.exe",
-		"TheMessenger.exe"
+		"TheMessenger.exe",
+		"Catherine.exe",
+		"Sifu-Win64-Shipping.exe",
+		"The Stanley Parable Ultra Deluxe.exe",
+		"PAC-MAN.exe",
+		"GoW.exe",
+		"Spider-Man.exe",
+		"MilesMorales.exe",
+		"u4.exe",
+		"RUNNER.exe",
+		"NieR Replicant ver.1.22474487139.exe",
+		"TowerFall.exe"
     ],
 
 	"overrides": {
@@ -282,6 +301,10 @@
         "\/1174180([^0-9]|$)": "RDR2Program",
 		; Shenmue 1 & 2
         "\/758330([^0-9]|$)": "ShenmueProgram",
+		; Spider-Man
+		"\/1817070([^0-9]|$)": "SpiderManProgram",
+		; Spider-Man Miles Morales
+		"\/1817190([^0-9]|$)": "SpiderManProgram",
 		; Dark Souls III
         "\/374320([^0-9]|$)": "DarkSouls3Program",
 		; BioShock HD
@@ -298,31 +321,64 @@
 		"\/391540([^0-9]|$)": "UndertaleProgram",
 		; Bastion
         "\/107100([^0-9]|$)": {
+			"defaultArgs": "-x 3840 -y 2160",
 			"requireFullscreen": false
+		},
+		; Grand Theft Auto III
+        "\/12100([^0-9]|$)": {
+			"defaultArgs": "-skip"
+		},
+		; Grand Theft Auto Vice City
+        "\/12110([^0-9]|$)": {
+			"defaultArgs": "-skip"
+		},
+		; Grand Theft Auto San Andreas
+        "\/12120([^0-9]|$)": {
+			"defaultArgs": "-skip"
+		},
+		; Tomb Raider 2013
+        "\/203160([^0-9]|$)": {
+			"defaultArgs": "-nolauncher"
+		},
+		; Rise of the Tomb Raider
+        "\/391220([^0-9]|$)": {
+			"defaultArgs": "-nolauncher"
+		},
+		; Control
+        "\/870780([^0-9]|$)": {
+			"defaultArgs": "-dx12"
+		},
+		; Sonic Adventure 2 Battle
+        "\/213610([^0-9]|$)": {
+			"defaultArgs": "-q"
 		},
 		; Max Payne
 		"\/12140([^0-9]|$)": {
+			"defaultArgs": "-nodialog -skipstartup",
 			"mouse": {
 				"initialPos": [0.5, 0.5]
 			}
 		},
 		; Max Payne 2
 		"\/12150([^0-9]|$)": {
+			"defaultArgs": "-nodialog -skipstartup",
 			"mouse": {
 				"initialPos": [0.5, 0.5]
 			}
 		},
 		; Portal
 		"\/400([^0-9]|$)": {
+			"defaultArgs": "-gamepadui",
 			"mouse": {
 				"initialPos": [0.5, 0.5]
 			}
 		}, 
 		; Half-Life 2
 		"\/220([^0-9]|$)": {
+			"defaultArgs": "-gamepadui",
 			"mouse": {
 				"initialPos": [0.5, 0.5]
 			}
-		}
+		},
 	}
 }

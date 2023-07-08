@@ -77,9 +77,14 @@ hideLoadScreen() {
 setLoadScreen(text := "") {
 	global globalConfig
 	global globalStatus
+    global globalGuis
 
     if (globalStatus["suspendScript"] || globalStatus["desktopmode"]) {
         return
+    }
+
+    if (globalGuis.Has("pause")) {
+        try globalGuis["pause"].Destroy()
     }
 
     MouseMove(percentWidth(1, false), percentHeight(1, false))

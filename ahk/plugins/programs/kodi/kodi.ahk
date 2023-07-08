@@ -5,9 +5,19 @@ class KodiProgram extends Program {
 
     ; kodi only properly minimizes if its active?
     _minimize() {
-        WinActivate("Kodi")
-        Sleep(200)
-        WinMinimize("Kodi")
+        hwnd := this.getHWND()
+
+        while (WinGetMinMax(hwnd) != -1) {
+            if (!WinExist(hwnd)) {
+                break
+            }
+
+            WinActivate(hwnd)
+            Sleep(100)
+            WinMinimize(hwnd)
+
+            Sleep(500)
+        }
     }
 
     ; custom function

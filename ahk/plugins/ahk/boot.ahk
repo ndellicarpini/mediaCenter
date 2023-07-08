@@ -1,5 +1,7 @@
 ; boot
 customBoot() {
+    setLoadScreen()
+
     if (!ProcessExist("explorer.exe")) {
         Run "explorer.exe"
 

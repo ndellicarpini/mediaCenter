@@ -1,19 +1,23 @@
 class RetroArchEmulator extends Emulator {
+    __New(args*) {
+        super.__New(args*)
+
+        ; remove mame menu from pause options if not mame
+        if (this.core != "mame") {
+            loop this.pauseOrder.Length {
+                item := this.pauseOrder[A_Index]
+
+                if (this.pauseOptions.Has(item) && this.pauseOptions[item] = "program.mameMenu") {
+                    this.pauseOrder.RemoveAt(A_Index)
+                    break
+                }
+            }
+        }
+    }
+
     _launch(args*) {
         retArgs := []
         if (this.HasOwnProp("core") && this.core != "") {
-            ; remove mame menu from pause options if not mame
-            if (this.core != "mame") {
-                loop this.pauseOrder.Length {
-                    item := this.pauseOrder[A_Index]
-
-                    if (this.pauseOptions.Has(item) && this.pauseOptions[item] = "program.mameMenu") {
-                        this.pauseOrder.RemoveAt(A_Index)
-                        break
-                    }
-                }
-            }
-
             retArgs.Push("-L", "cores\" . this.core . "_libretro.dll")
         }
         

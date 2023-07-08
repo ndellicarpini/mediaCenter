@@ -25,7 +25,7 @@ addHotkeys(currHotkeys, newHotkeys) {
             if (InStr(currKey2, ">")) {
                 currKey2 := StrSplit(currKey2, ">")[1] . ">"
             }
-            else if (InStr(currKey, "<")) {
+            else if (InStr(currKey2, "<")) {
                 currKey2 := StrSplit(currKey2, "<")[1] . "<"
             }
 

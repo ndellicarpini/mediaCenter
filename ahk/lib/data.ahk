@@ -34,6 +34,7 @@ statusBackup() {
 ; returns status updated with values from backup
 statusRestore() {
     global globalStatus
+    global globalPrograms
 
     if (!FileExist("data\backup.bin")) {
         return
@@ -44,21 +45,28 @@ statusRestore() {
     for key, value in backup {
         if (key = "globalRunning") {
             for name, attr in backup["globalRunning"] {
-                if (attr.Has("console")) {
-                    params := [attr["console"]]
-                    if (attr["_launchArgs"].Length > 0) {
-                        params.Push(attr["_launchArgs"]*)
-                    }
+                if (!globalPrograms.Has(name)) {
+                    continue
+                }
 
-                    createConsole(params, false, false, attr)
+                ; clean attr so changes in configs workp
+                cleanAttr := Map()
+                for key2, value2 in attr {
+                    if (!globalPrograms[name].Has(key2)) {
+                        cleanAttr[key2] := value2
+                    }
+                }
+
+                if (cleanAttr.Has("console")) {
+                    createConsole([cleanAttr["console"], cleanAttr["rom"]], false, false, cleanAttr)
                 }
                 else {
                     params := [name]
-                    if (attr["_launchArgs"].Length > 0) {
-                        params.Push(attr["_launchArgs"]*)
+                    if (cleanAttr["_launchArgs"].Length > 0) {
+                        params.Push(((IsObject(cleanAttr["_launchArgs"])) ? cleanAttr["_launchArgs"] : [cleanAttr["_launchArgs"]])*)
                     }
 
-                    createProgram(params, false, false, attr)
+                    createProgram(params, false, false, cleanAttr)
                 }
             }
         }

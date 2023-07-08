@@ -53,6 +53,22 @@
         "[REPEAT]14|1>0.4": {
             "down": "Send '{Right down}'",
             "up": "Send '{Right up}'"
+        },
+        "[REPEAT]3<-0.4": {
+            "down": "Send '{J down}'",
+            "up": "Send '{J up}'"
+        },
+        "[REPEAT]3>0.4": {
+            "down": "Send '{L down}'",
+            "up": "Send '{L up}'"
+        },
+        "[REPEAT]4<-0.4": {
+            "down": "Send '{I down}'",
+            "up": "Send '{I up}'"
+        },
+        "[REPEAT]4>0.4": {
+            "down": "Send '{K down}'",
+            "up": "Send '{K up}'"
         }
     }
 }

@@ -10,6 +10,3 @@ if (!WinExist(MAINNAME)) {
 }
 
 sendListToMain(A_Args)
-
-Sleep(100)
-ExitApp()

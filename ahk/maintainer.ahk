@@ -22,7 +22,7 @@ loop {
     mainID := WinHidden(MAINNAME)
 
     ; check for main process or pre-init crashed main
-    if (!mainID && !WinHidden("main.ahk")) {
+    if (!mainID && !(WinHidden("main.ahk") && WinGetProcessPath("main.ahk") = A_AhkPath)) {
         Run A_ScriptDir . "\" . "startMain.cmd -quiet -backup", A_ScriptDir, "Hide"
 
         Sleep(2000)

@@ -875,8 +875,9 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         global globalConfig := ObjFromPtr(A_Args[1])
         global globalStatus := ObjFromPtr(A_Args[2])
 
-        ; fake globalGuis for loadscreen
-        global globalGuis := Map()
+        ; fake globalRunning & globalGuis for loadscreen
+        global globalRunning := Map()
+        global globalGuis    := Map()
 
         ; set gui variables from config for loadscreen
         setGUIConstants()

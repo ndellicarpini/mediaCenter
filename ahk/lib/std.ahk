@@ -44,6 +44,56 @@ CloseErrorMsg(wndwID) {
 	}
 }
 
+; Runs a program as an admin
+;  program - program to run
+;  parameters - parameters to pass to the program
+;  directory - directory to run in
+;
+; returns null
+RunAsAdmin(program, parameters := "", directory := "") {
+	cleanParameters := (Type(parameters) = "Array") ? joinArray(parameters) : parameters
+
+	return Run('*RunAs "' . program . ((Trim(cleanParameters) != "") ? A_Space . parameters : "") . '"', directory)
+}
+
+; Runs a program as a regular user
+; yoinked from https://www.autohotkey.com/boards/viewtopic.php?t=78190
+;  program - program to run
+;  parameters - parameters to pass to the program
+;  directory - directory to run in
+;
+; returns null
+RunAsUser(program, parameters := "", directory := "") {
+	cleanParameters := (Type(parameters) = "Array") ? joinArray(parameters) : parameters
+
+    shellWindows := ComObject("Shell.Application").Windows
+    desktop := shellWindows.FindWindowSW(0, 0, 8, 0, 1) ; SWC_DESKTOP, SWFO_NEEDDISPATCH
+   
+    ; Retrieve top-level browser object.
+    tlb := ComObjQuery(desktop,
+        "{4C96BE40-915C-11CF-99D3-00AA004AE837}", ; SID_STopLevelBrowser
+        "{000214E2-0000-0000-C000-000000000046}"  ; IID_IShellBrowser
+	) 
+    
+    ; IShellBrowser.QueryActiveShellView -> IShellView
+	sv := ComValue(13, 0)
+    ComCall(15, tlb, "Ptr*", sv) ; VT_UNKNOWN
+    
+    ; Define IID_IDispatch.
+	IID_IDispatch := Buffer(16)
+    NumPut("Int64", 0x20400, "Int64", 0x46000000000000C0, IID_IDispatch)
+   
+    ; IShellView.GetItemObject -> IDispatch (object which implements IShellFolderViewDual)
+	sfvd := ComValue(9, 0)
+    ComCall(15, sv, "UInt", 0, "Ptr", IID_IDispatch, "Ptr*", sfvd) ; VT_DISPATCH
+   
+    ; Get Shell object.
+    shell := sfvd.Application
+   
+    ; IShellDispatch2.ShellExecute
+    return shell.ShellExecute(program, Trim(cleanParameters), directory)
+}
+
 ; closes a window's process based on window
 ;  window - window whose process to close
 ;
@@ -209,6 +259,20 @@ WinActivatable(window) {
 	exStyle := WinGetExStyle(window)
 
 	return !(style & 0x08000000) && !(exStyle & 0x08000000)	&& !((style & 0x80000000) && (exStyle & 0x00000008))
+}
+
+; returns if window is on top
+;  window - window to check based on WinTitle
+;
+; returns boolean topmost
+WinIsTop(window) {
+	winList := WinGetList(window)
+	if (winList.Length = 0) {
+		return false
+	}
+
+	winTop := DllCall("GetWindow", "Ptr", winList[1], "UInt", 0)
+	return inArray(winTop, winList)
 }
 
 ; closes all windows that match the window param

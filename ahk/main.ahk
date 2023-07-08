@@ -284,7 +284,7 @@ if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["In
 ; ----- PARSE START ARGS -----
 for item in globalConfig["StartArgs"] {
     if (item = "-backup") {
-        statusRestore()
+        try statusRestore()
 
         ; kill any programs that should have exited before main was backed up
         for key, value in globalRunning {
@@ -334,7 +334,7 @@ global send2MainBuffer := []
 OnMessage(MESSAGE_VAL, HandleMessage)
 
 ; initial backup of status
-statusBackup()
+try statusBackup()
 
 ; ----- MAIN THREAD LOOP -----
 ; the main thread monitors the other threads, checks that maintainer is running
@@ -388,7 +388,7 @@ loop {
         Sleep(loopSleep)
         continue
     }
-
+    
     ; --- CHECK LOAD SCREEN ---
     if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended && !currDesktopMode) {             
         activeSet := true
@@ -533,7 +533,7 @@ loop {
 
     ; check if status has updated & backup
     if (statusUpdated()) {
-        statusBackup()
+        try statusBackup()
     }
 
     ; every maxDelayCount loops -> check threads & maintainer
@@ -581,10 +581,8 @@ InputBufferTimer() {
     currDesktop := globalStatus["desktopmode"]
 
     ; mismatched currHotkeys & status, ignore message
-    if ((hotkeySource != currProgram && hotkeySource != currGui)
-        && (hotkeySource = "load" && !currLoad) 
-        && (hotkeySource = "kbmmode" && !currKBMM) 
-        && (hotkeySource = "desktopmode" && !currDesktop)) {
+    if ((hotkeySource = "load" && !currLoad) || (hotkeySource = "kbmmode" && !currKBMM) 
+        || (hotkeySource = "desktopmode" && !currDesktop)) {
 
         globalStatus["input"]["buffer"] := []
         return
@@ -603,7 +601,7 @@ InputBufferTimer() {
             createInterface("pause")
         }
         else {
-            globalGuis["pause"].Destroy()
+            try globalGuis["pause"].Destroy()
         }
     }
 
@@ -620,6 +618,10 @@ InputBufferTimer() {
 
     ; run current gui funcion
     else if (StrLower(SubStr(bufferedFunc, 1, 4)) = "gui.") {
+        if (currGui = "" || !globalGuis.Has(currGui)) {
+            return
+        }
+
         tempArr  := StrSplit(bufferedFunc, A_Space)
         tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
 
@@ -628,7 +630,7 @@ InputBufferTimer() {
 
     ; run current program function
     else if (StrLower(SubStr(bufferedFunc, 1, 8)) = "program.") {
-        if (globalStatus["suspendScript"]) {
+        if (globalStatus["suspendScript"] || currProgram = "" || !globalPrograms.Has(currProgram)) {
             return
         }
 
@@ -755,7 +757,7 @@ ExitScript() {
 
     Critical("On")
 
-    statusBackup()
+    try statusBackup()
 
     if (WinHidden(MAINLOOP) && globalConfig["General"].Has("ForceMaintainMain") 
         && globalConfig["General"]["ForceMaintainMain"]) {
@@ -775,7 +777,7 @@ ResetScript() {
 
     Critical("On")
 
-    statusBackup()
+    try statusBackup()
 
     if (!globalConfig["General"].Has("ForceMaintainMain") 
         || (globalConfig["General"].Has("ForceMaintainMain") && !globalConfig["General"]["ForceMaintainMain"])) {
@@ -880,6 +882,8 @@ Standby() {
     exitAllPrograms()
     setLoadScreen("Please Wait...")
     Sleep(1000)
+
+    ProcessClose("explorer.exe")
     
     DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
     Sleep(5000)
