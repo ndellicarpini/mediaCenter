@@ -8,6 +8,7 @@
     "defaultArgs": "-full-screen -dvd_path",
 
     "requireFullscreen": true,
+    "overlayActivateFix": true,
     "priority": "H",
 
     "reset": true,

@@ -6,7 +6,7 @@
     "emulators": ["retroarch"],
     "extensions": [".chd", ".m3u"],
 
-    "core": "swanstation",
+    "core": "mednafen_psx_hw",
 
     "romVersions": [
         

@@ -1,12 +1,12 @@
 class RyujinxEmulator extends Emulator {
     _fullscreen() {
-        Send("{Alt down}")
-        SendSafe("{Enter}")
-        Send("{Alt up}")
+        this.send("{Alt down}")
+        this.send("{Enter}")
+        this.send("{Alt up}")
     }
 
     _pause() {
-        SendSafe("{F5}")
+        this.send("{F5}")
     }
 
     _resume() {

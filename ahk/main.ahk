@@ -3,7 +3,7 @@
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include plugins\ahk\boot.ahk
-#Include plugins\ahk\LOADSC~1.AHK
+#Include plugins\ahk\loadscreen.ahk
 #Include plugins\inputs\xinput\xinput.ahk
 #Include plugins\programs\bigbox\bigbox.ahk
 #Include plugins\programs\cemu\cemu.ahk
@@ -15,11 +15,11 @@
 #Include plugins\programs\kodi\kodi.ahk
 #Include plugins\programs\pcsx2\pcsx2.ahk
 #Include plugins\programs\ppsspp\ppsspp.ahk
-#Include plugins\programs\RETROA~1\RETROA~1.AHK
+#Include plugins\programs\retroarch\retroarch.ahk
 #Include plugins\programs\rpcs3\rpcs3.ahk
 #Include plugins\programs\ryujinx\ryujinx.ahk
 #Include plugins\programs\steam\steam.ahk
-#Include plugins\programs\steam\STEAMG~1.AHK
+#Include plugins\programs\steam\steamgame.ahk
 #Include plugins\programs\wingame\wingame.ahk
 #Include plugins\programs\xemu\xemu.ahk
 #Include plugins\programs\xenia\xenia.ahk
@@ -50,7 +50,7 @@
 #Include lib\gui\interfaces\volume.ahk
 #Include lib\gui\interfaces\keyboard.ahk
 
-SetKeyDelay 50, 100
+; SetKeyDelay 50, 100
 CoordMode "Mouse", "Screen"
 Critical("Off")
 
@@ -164,8 +164,6 @@ if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["Ena
 }
 
 ; ----- INITIALIZE GLOBALSTATUS -----
-; whether or not pause screen is shown 
-globalStatus["pause"] := false
 ; whether or not script is suspended (no actions running, changable in pause menu)
 globalStatus["suspendScript"] := false
 ; whether or not script is in keyboard & mouse mode
@@ -173,10 +171,15 @@ globalStatus["kbmmode"] := false
 ; whether or not script is in desktop mode
 globalStatus["desktopmode"] := false
 
-; current name of programs focused & running, used to get config -> setup hotkeys & background actions
-globalStatus["currProgram"] := ""
 ; current active gui
 globalStatus["currGui"] := ""
+; current WinTitle to overlay regular programs (needs to be an always-on-top window to work properly)
+globalStatus["currOverlay"] := ""
+; current name of programs focused & running, used to get config -> setup hotkeys & background actions
+globalStatus["currProgram"] := Map()
+globalStatus["currProgram"]["id"] := ""
+globalStatus["currProgram"]["exe"] := ""
+globalStatus["currProgram"]["hwnd"] := 0
 
 ; load screen info
 globalStatus["loadscreen"] := Map()
@@ -342,8 +345,6 @@ try statusBackup()
 
 forceMaintain  := globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]
 forceActivate  := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
-checkErrors    := globalConfig["Plugins"].Has("ErrorList") && globalConfig["Plugins"]["ErrorList"] != ""
-
 loopSleep      := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 
 ; set timer to check the input buffer
@@ -351,8 +352,6 @@ SetTimer(InputBufferTimer, 35)
 
 delayCount := 0
 maxDelayCount := 15
-
-mouseHidden := false
 
 loop {
     activeSet := false
@@ -368,11 +367,14 @@ loop {
             continue
         } 
 
+        restoreCritical := A_IsCritical
+        Critical("On")
+
         if (StrLower(message[1]) = "run") {
             message.RemoveAt(1)
             createProgram(message)
         }
-        else if (StrLower(message[1]) = "console") {           
+        else if (StrLower(message[1]) = "console") { 
             message.RemoveAt(1)
             createConsole(message)
         }
@@ -385,18 +387,10 @@ loop {
             }
         }
 
+        Critical(restoreCritical)
+
         Sleep(loopSleep)
         continue
-    }
-    
-    ; --- CHECK LOAD SCREEN ---
-    if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended && !currDesktopMode) {             
-        activeSet := true
-        hotkeySource := "loadscreen"
-
-        if (globalGuis.Has("pause")) {
-            globalGuis["pause"].Destroy()
-        }
     }
 
     ; --- CHECK OPEN GUIS ---
@@ -408,7 +402,7 @@ loop {
             if (globalGuis[currGui].allowFocus) {
                 if (!activeSet) {
                     if (forceActivate && !WinActive(currWNDW)) {
-                        try WinActivate(currWNDW)
+                        try WinActivateForeground(currWNDW)
                     }
     
                     activeSet := true
@@ -444,6 +438,16 @@ loop {
             }
         }
     }
+    
+    ; --- CHECK LOAD SCREEN ---
+    if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended && !currDesktopMode) {             
+        activeSet := true
+        hotkeySource := "loadscreen"
+
+        if (globalGuis.Has("pause")) {
+            globalGuis["pause"].Destroy()
+        }
+    }
 
     ; --- CHECK SUSPENDED HOTKEYS ---
     if (hotkeySource = "" && currSuspended) {
@@ -462,9 +466,9 @@ loop {
     }
 
     ; --- CHECK OPEN PROGRAMS ---
-    currProgram := globalStatus["currProgram"]
+    currProgram := globalStatus["currProgram"]["id"]
 
-    if (currProgram != "" && !currSuspended && !currDesktopMode) {
+    if (currProgram != "" && !currSuspended && !currDesktopMode && send2MainBuffer.Length = 0) {
         if (globalRunning.Has(currProgram)) {
             if (globalRunning[currProgram].exists(false, true)) {
                 if (!activeSet) {
@@ -487,7 +491,7 @@ loop {
 
                 mostRecentProgram := getMostRecentProgram()
                 if (mostRecentProgram = "") {
-                    globalStatus["currProgram"] := ""
+                    resetCurrentProgram()
                 }
                 else if (mostRecentProgram != currProgram) {
                     setCurrentProgram(mostRecentProgram)
@@ -502,7 +506,7 @@ loop {
     }
 
     ; --- CHECK ALL OPEN PROGRAMS / GUIS ---
-    if ((delayCount > maxDelayCount || !activeSet) && !currSuspended) {
+    if ((delayCount > maxDelayCount || !activeSet) && !currSuspended && send2MainBuffer.Length = 0) {
         checkAllGuis()
 
         mostRecentGui := getMostRecentGui()
@@ -519,7 +523,7 @@ loop {
 
         mostRecentProgram := getMostRecentProgram()
         if (mostRecentProgram = "") {
-            globalStatus["currProgram"] := ""
+            resetCurrentProgram()
         }
         else if (mostRecentProgram != currProgram) {
             setCurrentProgram(mostRecentProgram)
@@ -567,93 +571,99 @@ InputBufferTimer() {
     global globalRunning       
     global globalGuis
 
-    if (globalStatus["input"]["buffer"].Length = 0) {
-        return
-    }
-    
-    bufferedFunc := globalStatus["input"]["buffer"].Pop()
-    hotkeySource := globalStatus["input"]["source"]
-    
-    currProgram := globalStatus["currProgram"]
-    currGui     := globalStatus["currGui"]
-    currLoad    := globalStatus["loadscreen"]["show"]
-    currKBMM    := globalStatus["kbmmode"]
-    currDesktop := globalStatus["desktopmode"]
-
-    ; mismatched currHotkeys & status, ignore message
-    if ((hotkeySource = "load" && !currLoad) || (hotkeySource = "kbmmode" && !currKBMM) 
-        || (hotkeySource = "desktopmode" && !currDesktop)) {
-
-        globalStatus["input"]["buffer"] := []
-        return
-    }
-
-    ; update pause status & create/destroy pause menu
-    if (StrLower(bufferedFunc) = "pausemenu") {     
-        if (currLoad || (globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
-            || (currProgram != "" && hotkeySource = currProgram && !globalRunning[currProgram].allowPause)
-            || (currGui != "" && hotkeySource = currGui && !globalGuis[currGui].allowPause)) {
-
+    try {
+        if (globalStatus["input"]["buffer"].Length = 0) {
             return
         }
 
-        if (!globalGuis.Has("pause")) {
-            createInterface("pause")
-        }
-        else {
-            try globalGuis["pause"].Destroy()
-        }
-    }
-
-    ; the nuclear option
-    else if (StrLower(bufferedFunc) = "nuclear") {
-        if (currProgram != "" && globalRunning[currProgram].exists()) {
-            try ProcessKill(globalRunning[currProgram].getPID())
-        }
-
-        ; need to think about if this is necessary?
-        ; i mean if this is working main isn"t crashed right?
-        ProcessKill(MAINNAME)
-    }
-
-    ; run current gui funcion
-    else if (StrLower(SubStr(bufferedFunc, 1, 4)) = "gui.") {
-        if (currGui = "" || !globalGuis.Has(currGui)) {
-            return
-        }
-
-        tempArr  := StrSplit(bufferedFunc, A_Space)
-        tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
-
-        try globalGuis[currGui].%tempFunc%(tempArr*)
-    }
-
-    ; run current program function
-    else if (StrLower(SubStr(bufferedFunc, 1, 8)) = "program.") {
-        if (globalStatus["suspendScript"] || currProgram = "" || !globalPrograms.Has(currProgram)) {
-            return
-        }
-
-        tempArr  := StrSplit(bufferedFunc, A_Space)
-        tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
+        bufferedFunc := globalStatus["input"]["buffer"].Pop()
+        hotkeySource := globalStatus["input"]["source"]
         
-        if (tempFunc = "exit") {
-            if (currProgram != "" && globalRunning[currProgram].allowExit) {
-                try globalRunning[currProgram].exit()
-    
-                if (globalRunning.Has(currProgram) && !globalRunning[currProgram].exists()) {
-                    globalStatus["currProgram"] := ""
-                }
+        currProgram := globalStatus["currProgram"]["id"]
+        currGui     := globalStatus["currGui"]
+        currLoad    := globalStatus["loadscreen"]["show"]
+        currKBMM    := globalStatus["kbmmode"]
+        currDesktop := globalStatus["desktopmode"]
+
+        ; mismatched currHotkeys & status, ignore message
+        if ((hotkeySource = "load" && !currLoad) || (hotkeySource = "kbmmode" && !currKBMM) 
+            || (hotkeySource = "desktopmode" && !currDesktop)) {
+
+            globalStatus["input"]["buffer"] := []
+            return
+        }
+
+        ; update pause status & create/destroy pause menu
+        if (StrLower(bufferedFunc) = "pausemenu") {     
+            if (currLoad || (globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
+                || (currProgram != "" && hotkeySource = currProgram && globalRunning.Has(currProgram) && !globalRunning[currProgram].allowPause)
+                || (currGui != "" && hotkeySource = currGui && globalGuis.Has(currGui) && !globalGuis[currGui].allowPause)) {
+
+                return
+            }
+
+            if (!globalGuis.Has("pause")) {
+                createInterface("pause")
+            }
+            else {
+                try globalGuis["pause"].Destroy()
             }
         }
-        else {
-            try globalRunning[currProgram].%tempFunc%(tempArr*)
+
+        ; the nuclear option
+        else if (StrLower(bufferedFunc) = "nuclear") {
+            if (currProgram != "" && globalRunning[currProgram].exists()) {
+                try ProcessKill(globalRunning[currProgram].getPID())
+            }
+
+            ; need to think about if this is necessary?
+            ; i mean if this is working main isn"t crashed right?
+            ProcessKill(MAINNAME)
+        }
+
+        ; run current gui funcion
+        else if (StrLower(SubStr(bufferedFunc, 1, 4)) = "gui.") {
+            if (currGui = "" || !globalGuis.Has(currGui)) {
+                return
+            }
+
+            tempArr  := StrSplit(bufferedFunc, A_Space)
+            tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
+
+            try globalGuis[currGui].%tempFunc%(tempArr*)
+        }
+
+        ; run current program function
+        else if (StrLower(SubStr(bufferedFunc, 1, 8)) = "program.") {
+            if (globalStatus["suspendScript"] || currProgram = "" || !globalPrograms.Has(currProgram)) {
+                return
+            }
+
+            tempArr  := StrSplit(bufferedFunc, A_Space)
+            tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
+            
+            if (tempFunc = "exit") {
+                if (currProgram != "" && globalRunning[currProgram].allowExit) {
+                    try globalRunning[currProgram].exit()
+        
+                    if (globalRunning.Has(currProgram) && !globalRunning[currProgram].exists()) {
+                        resetCurrentProgram()
+                    }
+                }
+            }
+            else {
+                try globalRunning[currProgram].%tempFunc%(tempArr*)
+            }
+        }
+
+        ; run function
+        else if (bufferedFunc != "") {
+            runFunction(bufferedFunc)
         }
     }
-
-    ; run function
-    else if (bufferedFunc != "") {
-        try runFunction(bufferedFunc)
+    catch {
+        globalStatus["input"]["buffer"] := []
+        return
     }
 
     return
@@ -673,7 +683,12 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         return
     }
 
-    currProgram := globalStatus["currProgram"]
+    ; ProcessClose(WinHidden(SENDNAME))
+
+    currProgram := globalStatus["currProgram"]["id"]
+
+    restoreCritical := A_IsCritical
+    Critical("On")
 
     ; the nuclear option
     if (StrLower(message[1]) = "nuclear") {
@@ -686,8 +701,9 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         ProcessKill(MAINNAME)
         return
     }
+
     ; minimize the current program before doing the requested action
-    else if (SubStr(StrLower(message[1]), 1, 7) = "minthen") {
+    if (SubStr(StrLower(message[1]), 1, 7) = "minthen") {
         if (currProgram != "") {
             globalRunning[currProgram].minimize()
             Sleep(200)
@@ -696,13 +712,17 @@ HandleMessage(wParam, lParam, msg, hwnd) {
         message[1] := SubStr(message[1], 8)
     }
 
-    ; launching a new program -> prioritize showing the load screen
+    ; prep load screen for new program
     if (StrLower(message[1]) = "run" || StrLower(message[1]) = "console") {
+        setLoadScreen()
         activateLoadScreen()
-    } 
+    }
 
     ; buffer all actions bc shit gets wacky being initialized in msg handler
     send2MainBuffer.Push(message)
+    
+    Critical(restoreCritical)
+    return
 }
 
 ; clean shutdown of script
@@ -716,6 +736,7 @@ ShutdownScript(restoreTaskbar := true) {
     OnMessage(MESSAGE_VAL, HandleMessage, 0)
 
     setLoadScreen("Please Wait...")
+    activateLoadScreen()
 
     DllFreeLib(processLib)
     
@@ -778,6 +799,12 @@ ResetScript() {
     Critical("On")
 
     try statusBackup()
+
+    restoreSuspendScript := globalStatus["suspendScript"]
+    globalStatus["suspendScript"] := false
+    
+    restoreDesktopMode := globalStatus["desktopmode"]
+    globalStatus["desktopmode"] := false
 
     if (!globalConfig["General"].Has("ForceMaintainMain") 
         || (globalConfig["General"].Has("ForceMaintainMain") && !globalConfig["General"]["ForceMaintainMain"])) {
@@ -881,6 +908,7 @@ Standby() {
     
     exitAllPrograms()
     setLoadScreen("Please Wait...")
+    activateLoadScreen()
     Sleep(1000)
 
     ProcessClose("explorer.exe")

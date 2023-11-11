@@ -5,7 +5,7 @@ class SteamProgram extends Program {
     }
 
     _exit() {
-        Run(this.dir . this.exe . " -shutdown", this.dir)
+        RunAsUser(this.dir . this.exe, "-shutdown", this.dir)
 
         try {
             count := 0
@@ -58,8 +58,24 @@ class SteamNewUIProgram extends Program {
 
         count := 0
         maxCount := 200
+
+        firstShown := false
         ; wait for "Loggin In" window to disappear
         while (WinExist("Sign in to Steam") && count < maxCount) {
+            if (!firstShown && WinShown("Sign in to Steam")) {
+                Sleep(1000)
+
+                ; need to flash alternate window in order to fix stupid steam black screen
+                ; why is everything chromium?
+                if (WinShown(INTERFACES["loadscreen"]["wndw"]) && WinShown("Sign in to Steam")) {
+                    activateLoadScreen()
+                    Sleep(75)
+                    WinActivateForeground("Sign in to Steam")
+
+                    firstShown := true
+                }
+            }
+            
             count += 1
             Sleep(100)
         }

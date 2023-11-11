@@ -1,6 +1,6 @@
 class XeniaEmulator extends Emulator {      
     _fullscreen() {
-        SendSafe("{F11}")
+        this.send("{F11}")
     }
 
     _pause() {

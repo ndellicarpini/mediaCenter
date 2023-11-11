@@ -3,6 +3,8 @@
 
 #SingleInstance Force
 
+SetCurrentWinTitle(SENDNAME)
+
 ; check that mediacenter is actually running
 DetectHiddenWindows(true)
 if (!WinExist(MAINNAME)) {

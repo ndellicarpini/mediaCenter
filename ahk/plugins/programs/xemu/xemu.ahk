@@ -1,28 +1,28 @@
 class XemuEmulator extends Emulator {
     _fullscreen() {
-        Send("{Ctrl down}")
-        Send("{Alt down}")
-        SendSafe("f")
-        Send("{Alt up}")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("{Alt down}")
+        this.send("f")
+        this.send("{Alt up}")
+        this.send("{Ctrl up}")
     }
 
     _pause() {
-        Send("{Ctrl down}")
-        SendSafe("p")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("p")
+        this.send("{Ctrl up}")
     }
 
     _resume() {
         this._pause()
 
         Sleep(85)
-        SendSafe("{Escape}")
+        this.send("{Escape}")
     }
 
     _reset() {
-        Send("{Ctrl down}")
-        SendSafe("r")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("r")
+        this.send("{Ctrl up}")
     }
 }

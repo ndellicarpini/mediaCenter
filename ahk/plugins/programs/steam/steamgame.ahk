@@ -17,7 +17,7 @@ class SteamGameProgram extends Program {
             }
     
             if (WinShown("Install - ")) {
-                WinActivate("Install - ")
+                WinActivateForeground("Install - ")
                 Sleep(100)
                 Send "{Enter}"
             }
@@ -64,7 +64,7 @@ class SteamGameProgram extends Program {
                 this.allowExit := false
             }
         
-            Run(RTrim(game . A_Space . joinArray(args), A_Space))
+            RunAsUser(game, args)
         
             count := 0
             maxCount := 40
@@ -181,9 +181,6 @@ class SteamGameProgram extends Program {
 
 class SteamNewUIGameProgram extends Program {
     _launch(args*) {
-        global globalStatus
-        global globalRunning
-
         cleanArgs := ObjDeepClone(args)
         URI := ""
 
@@ -224,7 +221,7 @@ class SteamNewUIGameProgram extends Program {
                 }
 
                 if (WinGetTitle(wndw) = "Steam") {
-                    WinActivate(wndw)
+                    WinActivateForeground(wndw)
                     Sleep(100)
                     
                     MouseClick("Left"
@@ -248,13 +245,11 @@ class SteamNewUIGameProgram extends Program {
 
         ; skips all steam dialogs and launches the game
         launchHandler(game, loopCount := 0) {
+            global globalStatus
+            global globalRunning
+
             restoreAllowExit := this.allowExit
-        
-            restoreLoadText := globalStatus["loadscreen"]["text"]
-            setLoadScreen("Waiting for Steam...")
-        
-            restoreTTMM := A_TitleMatchMode
-            SetTitleMatchMode(2)
+            restoreLoadText  := globalStatus["loadscreen"]["text"]
         
             ; launch steam if it doesn't exist
             if (!globalRunning.Has("steam") || !globalRunning["steam"].exists()) {
@@ -265,8 +260,9 @@ class SteamNewUIGameProgram extends Program {
                     globalRunning["steam"].launch()
                 }
             
-                ; TODO - fix getting cucked by the reset timeout
-                setLoadScreen("Waiting for Steam...")
+                ; has carriage return to avoid getting overwritten by previous resetLoadscreen
+                ; (resetLoadscreen does a simple check if old text = new text before delayed overwrite)
+                setLoadScreen("Waiting for Steam...`r")
         
                 this.allowExit := true
                 
@@ -275,7 +271,6 @@ class SteamNewUIGameProgram extends Program {
                 ; buffer wait for steam so that the URI works
                 while (count < maxCount) {
                     if (this.shouldExit) {    
-                        SetTitleMatchMode(restoreTTMM)
                         return false
                     }
         
@@ -285,8 +280,13 @@ class SteamNewUIGameProgram extends Program {
         
                 this.allowExit := false
             }
+            
+            setLoadScreen("Waiting for Steam...")
+        
+            restoreTTMM := A_TitleMatchMode
+            SetTitleMatchMode(2)
 
-            Run(RTrim(game . A_Space . joinArray(cleanArgs), A_Space))
+            RunAsUser(game, cleanArgs)
         
             count := 0
             maxCount := 40
@@ -318,7 +318,7 @@ class SteamNewUIGameProgram extends Program {
         
                 globalRunning["steam"].exit()
                 
-                Sleep(2000)
+                Sleep(1000)
                 return launchHandler(game, loopCount + 1)
             }
         
@@ -353,22 +353,31 @@ class SteamNewUIGameProgram extends Program {
                         }
         
                         if (WinGetTitle(wndw) = "Launching...") {
-                            Sleep(150)
-                            WinActivate(wndw)
-                            Sleep(100)
+                            count := 0
+                            maxCount := 10
+                            while (count < maxCount) {
+                                if (this.exists()) {
+                                    firstShown := true
+                                    break
+                                }
+
+                                count += 1
+                                Sleep(100)
+                            }
                             
-                            MouseClick("Left"
-                                , percentWidthRelativeWndw(0.5, wndw)
-                                , percentHeightRelativeWndw(0.05, wndw)
-                                ,,, "D"
-                            )
-                            Sleep(75)
-                            MouseClick("Left",,,,, "U")
-                            Sleep(75)
-                            MouseMove(percentWidth(1), percentHeight(1))
+                            ; need to flash alternate window in order to fix stupid steam black screen
+                            ; why is everything chromium?
+                            if (count = maxCount && WinShown(INTERFACES["loadscreen"]["wndw"]) && WinShown(wndw)) {
+                                activateLoadScreen()
+                                Sleep(75)
+                                WinActivateForeground(wndw)
             
-                            Sleep(250)
-                            firstShown := true
+                                firstShown := true
+                            }
+                        }
+
+                        if (firstShown) {
+                            break
                         }
                     }
                 }
@@ -401,11 +410,11 @@ class SteamNewUIGameProgram extends Program {
             }
 
             if (WinGetID("A") = this.getHWND()) {
-                Send("{Shift down}")
+                this.send("{Shift down}")
                 Sleep(100)
-                SendSafe("{Tab}")
+                this.send("{Tab}")
                 Sleep(100)
-                Send("{Shift up}")
+                this.send("{Shift up}")
         
                 Sleep(100)
                 MouseMove(percentWidth(1), percentHeight(1))
@@ -467,25 +476,26 @@ class SteamGameProgramWithLauncher extends SteamNewUIGameProgram {
 
         globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " this._launcherEXE
 
-        ; try to skip launcher as long as exectuable is shown
-        while (WinShown("ahk_exe " this._launcherEXE)) {
-            if (this.exists()) {
-                return
-            }
-            else if (this.shouldExit) {
-                return false
-            }
+        hiddenCount := 0
+        maxCount := 3
 
+        ; try to skip launcher as long as exectuable is shown
+        while (hiddenCount < maxCount) {
             loop (mouseArr.Length / 2) {
                 index := ((A_Index - 1) * 2) + 1
 
                 Sleep(this._launcherDelay)
 
-                if (this.exists() || !WinShown("ahk_exe " this._launcherEXE)) {
+                if (this.exists()) {
                     return
                 }
                 else if (this.shouldExit) {
                     return false
+                }
+
+                if (!WinShown("ahk_exe " this._launcherEXE)) {
+                    hiddenCount += 1
+                    continue
                 }
 
                 MouseClick("Left"
@@ -519,7 +529,7 @@ class BioShockHDProgram extends SteamNewUIGameProgram {
     _postLaunchDelay := 2000
 
     _postLaunch() {
-        SendSafe("{Enter}")
+        this.send("{Enter}")
     }
 }
 
@@ -535,7 +545,7 @@ class ClustertruckProgram extends SteamNewUIGameProgram {
     _postLaunchDelay := 500
 
     _postLaunch() {
-        SendSafe("{Enter}")
+        this.send("{Enter}")
     }
 }
 
@@ -543,7 +553,7 @@ class SpiderManProgram extends SteamNewUIGameProgram {
     _postLaunchDelay := 500
 
     _postLaunch() {
-        SendSafe("{Enter}")
+        this.send("{Enter}")
     }
 }
 
@@ -564,7 +574,25 @@ class UndertaleProgram extends SteamNewUIGameProgram {
     _fullscreenDelay := 1000
 
     _fullscreen() {
-        SendSafe("{F4}")
+        this.send("{F4}")
+    }
+}
+
+class CannonballProgram extends SteamNewUIGameProgram {
+    _restore() {
+        try {
+            restoreTTM := A_TitleMatchMode
+            SetTitleMatchMode(3)
+
+            retVal := true
+            ; for some reason the launcher cmd is the real exe?
+            if (!WinActive("Cannonball")) {
+                retVal := WinActivateForeground("Cannonball")
+            }
+
+            SetTitleMatchMode(restoreTTM)
+            return retVal
+        }
     }
 }
 
@@ -599,6 +627,11 @@ class HitmanProgram extends SteamGameProgramWithLauncher {
     _launcherMousePos := [0.128, 0.621]
 }
 
+class Hitman3Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "Launcher.exe"
+    _launcherMousePos := [0.164, 0.470]
+}
+
 class SaintsRow3Program extends SteamGameProgramWithLauncher {
     _launcherEXE := "game_launcher.exe"
     _launcherMousePos := [0.250, 0.441]
@@ -607,6 +640,11 @@ class SaintsRow3Program extends SteamGameProgramWithLauncher {
 class Witcher2Program extends SteamGameProgramWithLauncher {
     _launcherEXE := "Launcher.exe"
     _launcherMousePos := [0.585, 0.875]
+}
+
+class Witcher3Program extends SteamGameProgramWithLauncher {
+    _launcherEXE := "REDLauncher.exe"
+    _launcherMousePos := [0.114, 0.289]
 }
 
 class OblivionProgram extends SteamGameProgramWithLauncher {
@@ -633,6 +671,51 @@ class RDR2Program extends SteamGameProgramWithLauncher {
     _launcherEXE := "Launcher.exe"
 }
 
+class FF9Program extends SteamGameProgramWithLauncher {
+    _postLaunchDelay := 2000
+
+    _launcherEXE := "FF9_Launcher.exe"
+    _launcherMousePos := [0.850, 0.910]
+}
+
+class FF8Program extends SteamGameProgramWithLauncher {
+    _postLaunchDelay := 2000
+
+    _launcherEXE := "FF8_Launcher.exe"
+    _launcherMousePos := [[0.500, 0.950], [0.715, 0.540]]
+
+    _postLaunch() {
+        this.send("X")
+        SetTimer(DelayPress.Bind(0), Neg(2000))
+
+        return
+
+        DelayPress(index) {
+            if (!this.exists() || index > 2) {
+                return
+            }
+
+            this.send("X")
+            SetTimer(DelayPress.Bind(index + 1), Neg(2000))
+        }
+    }
+
+    _postExit() {
+        count := 0
+        maxCount := 100
+
+        while (!WinShown("ahk_exe " this._launcherEXE) && count < maxCount) {
+            count += 1
+            Sleep(100)
+        }
+
+        if (WinShown("ahk_exe " this._launcherEXE)) {
+            WinClose("ahk_exe " this._launcherEXE)
+            Sleep(500)
+        }
+    }
+}
+
 class ShenmueProgram extends SteamGameProgramWithLauncher {
     _postLaunchDelay := 500
     _launcherEXE := "SteamLauncher.exe"
@@ -650,7 +733,7 @@ class ShenmueProgram extends SteamGameProgramWithLauncher {
     }
 
     _postLaunch() {
-        SendSafe("{Enter}")
+        this.send("{Enter}")
     }
 
     _postExit() {

@@ -95,7 +95,7 @@ disableDesktopMode() {
 
     ; force rebuild loadscreen
     setLoadScreen()
-    Sleep(1000)
+    Sleep(500)
     resetLoadScreen()
 }
 
@@ -116,12 +116,17 @@ keyboardExists() {
     CLSID_FrameworkInputPane := "{D5120AA3-46BA-44C5-822D-CA8092C1FC72}"
     IID_IFrameworkInputPane  := "{5752238B-24F0-495A-82F1-2FD593056796}"
 
-    buf := Buffer(32, 0)
-    frameworkCOM := ComObject(CLSID_FrameworkInputPane, IID_IFrameworkInputPane)
-    ; IFrameworkInputPane -> Location
-    ComCall(6, frameworkCOM, "Ptr", buf)
+    try {
+        buf := Buffer(32, 0)
+        frameworkCOM := ComObject(CLSID_FrameworkInputPane, IID_IFrameworkInputPane)
+        ; IFrameworkInputPane -> Location
+        ComCall(6, frameworkCOM, "Ptr", buf)
 
-    return (StrGet(buf.Ptr, 32) != "")
+        return (StrGet(buf.Ptr, 32) != "")
+    }
+    catch {
+        return false
+    }
 }
 
 ; turns off gui keyboard
@@ -149,15 +154,17 @@ openKeyboard() {
     CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
     IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
 
-    invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
-    ; ITipInvocation -> Toggle
-    ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
-
-    if (restoreWNDW != 0 && WinShown(restoreWNDW)) {
-        try WinActivate(restoreWNDW)
+    try {
+        invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
+        ; ITipInvocation -> Toggle
+        ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
+    
+        if (restoreWNDW != 0 && WinShown(restoreWNDW)) {
+            WinActivateForeground(restoreWNDW)
+        }
+    
+        Hotkey("Enter", EnterOverrideHotkey)
     }
-
-    Hotkey("Enter", EnterOverrideHotkey)
 } 
 
 ; turns off gui keyboard
@@ -179,11 +186,13 @@ closeKeyboard() {
     CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
     IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
 
-    invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
-    ; ITipInvocation -> Toggle
-    ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
-
-    try Hotkey("Enter", "Off")
+    try {
+        invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
+        ; ITipInvocation -> Toggle
+        ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
+    
+        Hotkey("Enter", "Off")
+    }
 }
 
 ; turns on & off gui keyboard
@@ -196,6 +205,21 @@ toggleKeyboard() {
     else {
         openKeyboard()
     }
+}
+
+; holds the alt key down & presses tab to show Alt+Tab menu
+;
+; returns null
+desktopAltDown() {
+    Send("{Alt down}")
+    Send("{Tab}")
+}
+
+; releases the alt key from desktopAltDown
+;
+; returns null
+desktopAltUp() {
+    Send("{Alt up}")
 }
 
 ; check if keyboard is open when pressing enter to properly close it

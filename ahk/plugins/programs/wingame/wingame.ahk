@@ -1,13 +1,37 @@
 ; --- DEFAULT WINDOWS GAME ---
 class WinGameProgram extends Program {
-    _launch(game, args*) {
+    _launch(args*) {
         try {
+            cleanArgs := ObjDeepClone(args)
+
+            ; re-orders the default args to be after the program filepath
+            ; that way the filepath is always the first arg
+            if (this.defaultArgs.Length > 0) {
+                toReorder := []
+                ; parse args
+                loop args.Length {
+                    if (inArray(args[A_Index], this.defaultArgs)) {
+                        toReorder.Push(A_Index)
+                    }
+                }
+                
+                tempArgs := []
+                loop toReorder.Length {
+                    tempArgs.Push(cleanArgs.RemoveAt(toReorder[toReorder.Length - (A_Index - 1)]))
+                }
+
+                loop tempArgs.Length {
+                    cleanArgs.InsertAt(2, tempArgs[A_Index])
+                }
+            }
+
+            game := cleanArgs.RemoveAt(1)
             pathArr := StrSplit(game, "\")
         
             exe := pathArr.RemoveAt(pathArr.Length)
             path := LTrim(joinArray(pathArr, "\"), '"' . '"')
         
-            Run(RTrim(game . " " . joinArray(args), A_Space), path)
+            RunAsUser(game, cleanArgs, path)
         }
         catch {
             return false
@@ -115,7 +139,7 @@ class MBAAProgram extends WinGameProgram {
     _postLaunchDelay := 500
 
     _postLaunch() {
-        SendSafe("{Enter}")
+        this.send("{Enter}")
     }
 }
 
@@ -127,21 +151,64 @@ class MorrowindProgram extends WinGameProgram {
     _mouseMoveDelay := 5000
 }
 
-class HarkinianProgram extends WinGameProgram {
+class SM64Program extends WinGameProgram {
     _launch(game, args*) {
-        pathArr := StrSplit(game, "\")
-        
-        exe := pathArr.RemoveAt(pathArr.Length)
-        path := LTrim(joinArray(pathArr, "\"), '"' . "'")
-
-        gcnAdapterPath := path . "\GCN XInput Adapter"
+        gcnAdapterPath := "C:\GCN XInput Adapter"
 
         if (DirExist(gcnAdapterPath)) {
-            Run('"' . gcnAdapterPath .  "\DelfinovinUI.exe" . '"', gcnAdapterPath)
+            RunAsUser(gcnAdapterPath .  "\Delfinovin.exe", "", gcnAdapterPath)
 
             count := 0
             maxCount := 100
-            while (!WinShown("MainWindow") && count < maxCount) {
+            while (!WinShown("Delfinovin") && count < maxCount) {
+                Sleep(100)
+                count += 1
+            }
+    
+            if (count < maxCount) {
+                Sleep(2000)
+            }
+            else {
+                return false
+            }
+        }
+
+        super._launch(game, args*)
+    }
+
+    _getEXE() {
+        if (ProcessExist("sm64.us.exe")) {
+            return "sm64.us.exe"
+        }
+        if (ProcessExist("Super Mario 64 Plus.exe")) {
+            return "Super Mario 64 Plus.exe"
+        }
+
+        return ""
+    }
+
+    _postExit() {
+        count := 0
+        maxCount := 5
+        while (ProcessExist("Delfinovin.exe") && count < maxCount) {
+            WinClose("ahk_exe Delfinovin.exe")
+
+            Sleep(3000)
+            count += 1
+        }
+    }
+}
+
+class HarkinianProgram extends WinGameProgram {
+    _launch(game, args*) {
+        gcnAdapterPath := "C:\GCN XInput Adapter"
+
+        if (DirExist(gcnAdapterPath)) {
+            RunAsUser(gcnAdapterPath .  "\Delfinovin.exe", "", gcnAdapterPath)
+
+            count := 0
+            maxCount := 100
+            while (!WinShown("Delfinovin") && count < maxCount) {
                 Sleep(100)
                 count += 1
             }
@@ -160,21 +227,8 @@ class HarkinianProgram extends WinGameProgram {
     _postExit() {
         count := 0
         maxCount := 5
-        while (ProcessExist("DelfinovinUI.exe") && count < maxCount) {
-            if (WinShown("MainWindow")) {
-                WinActivate("MainWindow")
-                Sleep(75)
-
-                MouseClick("Left"
-                    , percentWidthRelativeWndw(0.96, "MainWindow")
-                    , percentHeightRelativeWndw(0.04, "MainWindow")
-                    ,,, "D"
-                )
-                Sleep(75)
-                MouseClick("Left",,,,, "U")
-                Sleep(75)
-                MouseMove(percentWidth(1), percentHeight(1))    
-            }
+        while (ProcessExist("Delfinovin.exe") && count < maxCount) {
+            WinClose("ahk_exe Delfinovin.exe")
 
             Sleep(3000)
             count += 1
@@ -182,21 +236,21 @@ class HarkinianProgram extends WinGameProgram {
     }
 
     _fullscreen() {
-        SendSafe("!{Enter}")
+        this.send("{F11}")
     }
 
     saveState() {
-        SendSafe("{F5}")
+        this.send("{F5}")
     }
 
     loadState() {
-        SendSafe("{F7}")
+        this.send("{F7}")
     }
 
     reset() {
-        Send("{Ctrl down}")
-        SendSafe("r")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("r")
+        this.send("{Ctrl up}")
     }
 }
 

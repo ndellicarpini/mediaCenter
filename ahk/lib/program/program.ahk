@@ -9,6 +9,7 @@ class Program {
     dir      := ""
     exe      := ""
     wndw     := ""
+    overlay  := ""
     priority := ""
 
     volume := 0
@@ -20,14 +21,15 @@ class Program {
     fullscreened       := false
     paused             := false
     
-    defaultArgs       := ""
-    allowQuickAccess  := false
-    allowHungCheck    := true
-    allowPause        := true
-    allowExit         := true
-    shouldExit        := false
-    requireInternet   := false
-    requireFullscreen := false
+    defaultArgs        := []
+    allowQuickAccess   := false
+    allowHungCheck     := true
+    allowPause         := true
+    allowExit          := true
+    shouldExit         := false
+    requireInternet    := false
+    requireFullscreen  := false
+    overlayActivateFix := false
 
     pauseOrder    := []
     pauseOptions  := Map()
@@ -59,12 +61,12 @@ class Program {
     _waitingMouseMoveTimer  := false
 
     _restoreMousePos := []
-    _restoreWNDWs := []
     _launchArgs := []
 
     ; used when exe/wndw are lists - keep current active
     _currEXE  := ""
     _currHWND := 0
+    _currHWNDList := []
 
     __New(exeConfigRef) {
         exeConfig := ObjDeepClone(exeConfigRef)
@@ -76,19 +78,43 @@ class Program {
         this.dir      := (exeConfig.Has("dir"))      ? validateDir(exeConfig["dir"]) : this.dir
         this.exe      := (exeConfig.Has("exe"))      ? exeConfig["exe"]              : this.exe
         this.wndw     := (exeConfig.Has("wndw"))     ? exeConfig["wndw"]             : this.wndw
+        this.overlay  := (exeConfig.Has("overlay"))  ? exeConfig["overlay"]          : this.overlay
         this.priority := (exeConfig.Has("priority")) ? exeConfig["priority"]         : this.priority
 
         this.time := A_TickCount
         
         this.background         := (exeConfig.Has("background"))         ? exeConfig["background"]         : this.background
-        this.defaultArgs        := (exeConfig.Has("defaultArgs"))        ? exeConfig["defaultArgs"]        : this.defaultArgs
         this.allowPause         := (exeConfig.Has("allowPause"))         ? exeConfig["allowPause"]         : this.allowPause
         this.allowExit          := (exeConfig.Has("allowExit"))          ? exeConfig["allowExit"]          : this.allowExit
         this.allowQuickAccess   := (exeConfig.Has("allowQuickAccess"))   ? exeConfig["allowQuickAccess"]   : this.allowQuickAccess
         this.allowHungCheck     := (exeConfig.Has("allowHungCheck"))     ? exeConfig["allowHungCheck"]     : this.allowHungCheck
         this.requireInternet    := (exeConfig.Has("requireInternet"))    ? exeConfig["requireInternet"]    : this.requireInternet
         this.requireFullscreen  := (exeConfig.Has("requireFullscreen"))  ? exeConfig["requireFullscreen"]  : this.requireFullscreen
+        this.overlayActivateFix := (exeConfig.Has("overlayActivateFix")) ? exeConfig["overlayActivateFix"] : this.overlayActivateFix
 
+        ; parse default args
+        if (exeConfig.Has("defaultArgs")) {
+            if (Type(exeConfig["defaultArgs"]) = "Array") {
+                for item in exeConfig["defaultArgs"] {
+                    if (InStr(item, A_Space) && (!(SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"')
+                        || !(SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'"))) {
+    
+                        this.defaultArgs.Push('"' . item . '"')
+                    }
+                    else {
+                        this.defaultArgs.Push(item)
+                    }
+                }
+            }
+            else if (exeConfig["defaultArgs"] != "") {
+                argArr := StrSplitIgnoreQuotes(exeConfig["defaultArgs"])
+                if (argArr.Length > 0) {
+                    this.defaultArgs.Push(argArr*)
+                }
+            }
+        }
+
+        ; parse hotkeys
         this.mouse := (exeConfig.Has("mouse"))   ? exeConfig["mouse"]   : this.mouse
         if (exeConfig.Has("hotkeys")){
             if (exeConfig["hotkeys"].Has("buttonTime")) {
@@ -136,7 +162,8 @@ class Program {
         Critical("Off")
 
         restoreAllowExit := this.allowExit
-        this.allowExit := true
+        this.allowExit   := true
+        this.shouldExit  := false
 
         restoreHotkeys := this.hotkeys
         this.hotkeys := Map()
@@ -159,26 +186,7 @@ class Program {
 
         setLoadScreen("Waiting for " . this.name . "...")
 
-        this._launchArgs := []
-        if (Type(this.defaultArgs) = "Array") {
-            for item in this.defaultArgs {
-                if (InStr(item, A_Space) && (!(SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"')
-                    || !(SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'"))) {
-
-                    this._launchArgs.Push('"' . item . '"')
-                }
-                else {
-                    this._launchArgs.Push(item)
-                }
-            }
-        }
-        else if (this.defaultArgs != "") {
-            argArr := StrSplitIgnoreQuotes(this.defaultArgs)
-            if (argArr.Length > 0) {
-                this._launchArgs.Push(argArr*)
-            }
-        }
-
+        this._launchArgs := ObjDeepClone(this.defaultArgs)
         if (Type(args) = "Array") {
             for item in args {
                 if (InStr(item, A_Space) && (!(SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"')
@@ -219,8 +227,6 @@ class Program {
             SetTimer(DelayCheckProperties, Neg(this._checkPropertiesDelay))
         }
 
-        this.shouldExit := false
-
         this.allowExit := restoreAllowExit
         this.hotkeys   := restoreHotkeys
 
@@ -232,7 +238,7 @@ class Program {
         DelayCheckProperties() {
             global globalStatus
 
-            if (!this.exists(true) || globalStatus["currProgram"] != this.id) {
+            if (!this.exists(true) || globalStatus["currProgram"]["id"] != this.id) {
                 return
             }
 
@@ -257,7 +263,7 @@ class Program {
         CheckPropertiesTimer() {
             global globalStatus
 
-            if (!this.exists(true) || globalStatus["currProgram"] != this.id) {
+            if (!this.exists(true) || globalStatus["currProgram"]["id"] != this.id) {
                 SetTimer(CheckPropertiesTimer, 0)
                 return
             }
@@ -282,7 +288,8 @@ class Program {
     _launch(args*) {
         ; run dir\exe
         if (!IsObject(this.exe) && this.exe != "") {
-            Run this.dir . this.exe . A_Space . joinArray(args), this.dir, ((this.background) ? "Hide" : "Max")
+            ; Run this.dir . this.exe . A_Space . joinArray(args), this.dir, ((this.background) ? "Hide" : "Max")
+            RunAsUser(this.dir . this.exe, args, this.dir)
         }
         ; fail
         else {
@@ -301,32 +308,117 @@ class Program {
 
     ; activates the program's window
     restore() {
+        global globalStatus
         if (this.hungCount > 0) {
             return
         }
 
-        if (this.minimized) {
-            if (this._restoreWNDWs.Length > 0) {
-                loop this._restoreWNDWs.Length {
-                    index := (this._restoreWNDWs.Length + 1) - A_Index
+        restoreTMM := A_TitleMatchMode
 
-                    if (WinShown(this._restoreWNDWs[index])) {
-                        WinActivate(this._restoreWNDWs[index])
+        if (this.minimized) {
+            if (this._currHWNDList.Length > 0) {
+                loop this._currHWNDList.Length {
+                    index := (this._currHWNDList.Length + 1) - A_Index
+
+                    if (WinShown(this._currHWNDList[index])) {
+                        WinActivateForeground(this._currHWNDList[index])
                     }
 
-                    if (A_Index < this._restoreWNDWs.Length) {
+                    if (A_Index < this._currHWNDList.Length) {
                         Sleep(200)
                     }
                 }
 
-                this._restoreWNDWs := []
+                this._currHWNDList := []
             }
             
             this.minimized := false
         }
-
-        this._restore()
+        
         this.resume()
+
+        overlayHWND := 0
+        if (globalStatus["currOverlay"]) {
+            SetTitleMatchMode(3)
+            overlayHWND := WinShown(globalStatus["currOverlay"])
+            SetTitleMatchMode(restoreTMM)
+
+            ; check that overlay still exists
+            if (!overlayHWND) {
+                globalStatus["currOverlay"] := ""
+            }
+        }
+
+        restoreSuccess := true
+        ; activate the overlay window if appropriate
+        if (overlayHWND) {
+            WinGetPos(&overlayX, &overlayY, &overlayW, &overlayH, overlayHWND)
+            MouseGetPos(&mouseX, &mouseY)
+
+            ; activate the program then the overlay if program needs fix
+            if (this.overlayActivateFix) {              
+                overlayIndex := 0
+                programIndex := 0
+    
+                currHWND := this.getHWND()
+                winList := WinGetList()
+    
+                loop winList.Length {
+                    if (WinShown(winList[A_Index]) && WinActivatable(winList[A_Index])) {
+                        if (winList[A_Index] = overlayHWND) {
+                            overlayIndex := A_Index
+                        }
+                        else if (winList[A_Index] = currHWND) {
+                            programIndex := A_Index
+                        }
+                    }
+    
+                    if (overlayIndex != 0 && programIndex != 0) {
+                        break
+                    }
+                }
+    
+                ; check that curr win is right under picture in picture
+                if (!WinActive(overlayHWND) || (programIndex - overlayIndex) != 1) {
+                    restoreSuccess := this._restore()
+                    Sleep(250)
+                    WinActivateForeground(overlayHWND)
+    
+                    Sleep(100)
+                    MouseMove(overlayX + (overlayW / 2), overlayY + (overlayH / 2))
+                    Sleep(70)
+                    
+                    ; restore mouse pos if its important to the program
+                    if (this.mouse.Count > 0) {
+                        MouseMove(mouseX, mouseY)
+                    }
+                    else {
+                        MouseMove(percentWidth(1), percentHeight(1))
+                    }
+                }
+            }
+            ; activate overlay if under mouse
+            else if (mouseX >= overlayX && mouseX <= (overlayX + overlayW)
+                && mouseY >= overlayY && mouseY <= (overlayY + overlayH)) {
+              
+                WinActivateForeground(overlayHWND)
+            }
+            ; activate program
+            else {
+                restoreSuccess := this._restore()
+            }
+        }
+        else {
+            restoreSuccess := this._restore()
+        }
+
+        ; on fail - try to tab to a different window, then restore
+        ; this is an attempt to fix when a window get stuck in an unactivatable syaye
+        if (restoreSuccess = false) {
+            activateLoadScreen()
+            Sleep(80)
+            this._restore()
+        }
 
         ; after first restore -> perform post launch action
         if (!this._waitingPostLaunchTimer) {
@@ -371,7 +463,7 @@ class Program {
             }
 
             hwnd := this.getHWND()
-            if (hwnd = 0 || !WinActive(hwnd) || globalStatus["currProgram"] != this.id) {
+            if (hwnd = 0 || !WinActive(hwnd) || globalStatus["currProgram"]["id"] != this.id) {
                 this._waitingPostLaunchTimer := false
                 return
             }
@@ -389,13 +481,16 @@ class Program {
             }
 
             hwnd := this.getHWND()
-            if (hwnd = 0 || !WinActive(hwnd) || globalStatus["currProgram"] != this.id) {
+            if (hwnd = 0 || !WinActive(hwnd) || globalStatus["currProgram"]["id"] != this.id) {
                 this._waitingFullscreenTimer := false
                 return
             }
 
             if (!this.checkFullscreen()) {
-                this.fullscreen()
+                ; don't fullscreen if window is a TOOLWINDOW (for launchers)
+                if (!(WinGetExStyle(hwnd) & 0x00000080)) {
+                    this.fullscreen()
+                }
 
                 ; if fullscreen failed, try again
                 if (!this.fullscreened) {
@@ -415,7 +510,7 @@ class Program {
             }
 
             hwnd := this.getHWND()
-            if (hwnd = 0 || !WinActive(hwnd) || globalStatus["currProgram"] != this.id) {
+            if (hwnd = 0 || !WinActive(hwnd) || globalStatus["currProgram"]["id"] != this.id) {
                 this._waitingMouseMoveTimer := false
                 return
             }
@@ -427,23 +522,17 @@ class Program {
     _restore() {
         global globalStatus
 
-        hwnd := (this._currHWND != 0) ? this._currHWND : this.getHWND()
-        if (!WinShown(hwnd)) {
+        exe := (this._currEXE != "") ? this._currEXE  : this.getEXE()
+
+        if (!WinShown("ahk_exe " . exe)) {
             return
         }
         
-        try {
-            ; if window should not be fullscreen, try to maximize parent
-            if (!this.fullscreened && !this.requireFullscreen) {
-                parentHWND := WinGetParent(hwnd)
-                if (WinGetMinMax(parentHWND) != 1) {
-                    WinMaximize(parentHWND)
-                }
-            }
-
-            ; try to activate window
-            if (!WinActive(hwnd)) {
-                WinActivate(hwnd)
+        try {       
+            ; try to activate window if non active
+            overlayActive := (this.overlay) ? WinActive(this.overlay) : false
+            if (!WinActive("ahk_exe " . exe) || overlayActive) {
+                return WinActivateForeground(this.getHWND())
             }
         }
     }
@@ -460,11 +549,7 @@ class Program {
         Critical("On")
 
         this.pause()
-
-        ; get new thumbnail
-        if (this.id = globalStatus["currProgram"]) {
-            saveScreenshot(this.id)
-        }
+        Sleep(200)
 
         this._minimize()
 
@@ -478,14 +563,10 @@ class Program {
         Critical(restoreCritical)
     }
     _minimize() {
-        this._restoreWNDWs := []
-        hwndList := this.getHWNDList()
+        loop this._currHWNDList.Length {
+            WinMinimizeMessage(this._currHWNDList[A_Index])
 
-        loop hwndList.Length {
-            WinMinimize(hwndList[A_Index])
-            this._restoreWNDWs.Push(hwndList[A_Index])
-
-            if (A_Index < hwndList.Length) {
+            if (A_Index < this._currHWNDList.Length) {
                 Sleep(200)
             }
         }
@@ -494,6 +575,7 @@ class Program {
     ; fullscreen window if not fullscreened
     fullscreen() {
         global globalStatus
+        global globalConfig
 
         if (this.hungCount > 0) {
             return
@@ -501,6 +583,13 @@ class Program {
         
         restoreCritical := A_IsCritical
         Critical("On")
+
+        allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+        ; activate window for _function()
+        if (!WinActive(this.getHWND()) && allowActivate) {
+            this._restore()
+            Sleep(100)
+        }
 
         this._fullscreen()
 
@@ -556,7 +645,7 @@ class Program {
         newW := validWidths[aspectIndex]  * multiplier
         newH := validHeights[aspectIndex] * multiplier
 
-        WinMove(MONITOR_X + ((MONITOR_W - newW) / 2), MONITOR_Y + ((MONITOR_H - newH) / 2), newW, newH, hwnd)
+        try WinMove(MONITOR_X + ((MONITOR_W - newW) / 2), MONITOR_Y + ((MONITOR_H - newH) / 2), newW, newH, hwnd)
     }
 
     ; return if program is "fullscreen" & update the fullscreen value of the program
@@ -618,8 +707,9 @@ class Program {
             }
         }
        
-        this._currEXE  := this.getEXE()
-        this._currHWND := this.getHWND()
+        ; update curr exe & hwnd
+        this.getEXE()
+        this.getHWND()
 
         existing := this._exists(requireShown)
         ; if not existing and existed, and if multiple exe/wndw, wait and check for new window
@@ -725,6 +815,8 @@ class Program {
     }
     _exit() {
         try {
+            lastEXE := this.getEXE()
+
             count := 0
             maxCount := 250
             ; wait for program executable to close
@@ -732,6 +824,13 @@ class Program {
                 exe := this.getEXE()
                 if (exe = "") {
                     break
+                }
+
+                if (exe != lastEXE) {
+                    lastEXE := exe
+                    count := 0
+
+                    Sleep(250)
                 }
 
                 ; attempt to winclose right away
@@ -779,6 +878,9 @@ class Program {
     
     ; runs custom pause function on pause
     pause() {
+        global globalStatus
+        global globalConfig
+
         if (this.paused) {
             return
         }
@@ -796,7 +898,21 @@ class Program {
             this._restoreMousePos := [x, y]
         }
 
-        saveScreenshot(this.id)
+        try {
+            if (this.id = globalStatus["currProgram"]["id"] && this.hungCount = 0 
+                && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+                    
+                allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+                ; activate window for _function()
+                if (!WinActive(this.getHWND()) && allowActivate) {
+                    this._restore()
+                    Sleep(100)
+                }
+    
+                ; get new thumbnail
+                saveScreenshot(this.id)
+            }
+        }
 
         this._pause()
         
@@ -809,6 +925,9 @@ class Program {
 
     ; runs custom resume function after pause close
     resume() {
+        global globalStatus
+        global globalConfig
+
         if (!this.paused) {
             return
         }
@@ -822,6 +941,22 @@ class Program {
             MouseMove(this._restoreMousePos[1], this._restoreMousePos[2])
         }
 
+        try {
+            if (this.id = globalStatus["currProgram"]["id"] && this.hungCount = 0 
+                && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+                
+                allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+                ; activate window for _function()
+                if (!WinActive(this.getHWND()) && allowActivate) {
+                    this._restore()
+                    Sleep(100)
+                }
+    
+                ; get new thumbnail
+                saveScreenshot(this.id)
+            }
+        }
+        
         this._resume()
 
         Critical(restoreCritical)
@@ -831,10 +966,36 @@ class Program {
         return
     }
     
+    ; send key to program
+    send(key, time := -1) {
+        global globalStatus
+        global globalConfig
+        global globalRunning
+
+        allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+        if (this.id = globalStatus["currProgram"]["id"] && this.hungCount = 0 && !WinActive(this.getHWND()) 
+            && allowActivate && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+            
+            this._restore()
+            Sleep(100)
+        }
+
+        this._send(key, time)
+    }
+    _send(key, time := -1) {
+        try WindowSend(key, this.getHWND(), time)
+    }
 
     ; get program exe name
     getEXE() {
-        return this._getEXE()
+        global globalStatus
+
+        this._currEXE := this._getEXE()
+        if (this.id = globalStatus["currProgram"]["id"] && this._currEXE != globalStatus["currProgram"]["exe"]) {
+            globalStatus["currProgram"]["exe"] := this._currEXE
+        }
+
+        return this._currEXE
     }
     _getEXE() {
         try {
@@ -873,10 +1034,19 @@ class Program {
 
     ; get program window hwnd
     getHWND() {
-        return this._getHWND()
+        global globalStatus
+
+        this._currHWND := this._getHWND()
+        if (this.id = globalStatus["currProgram"]["id"] && this._currHWND != globalStatus["currProgram"]["hwnd"]) {
+            globalStatus["currProgram"]["hwnd"] := this._currHWND
+        }
+
+        return this._currHWND
     }
     _getHWND() {  
         try {
+            hwndList := this.getHWNDList()
+
             if (this.wndw != "") {
                 restoreDHW := A_DetectHiddenWindows
                 DetectHiddenWindows(this.background)
@@ -900,7 +1070,6 @@ class Program {
                 }
             }
 
-            hwndList := this.getHWNDList()
             if (hwndList.Length > 0) {
                 return hwndList[1]
             }
@@ -911,7 +1080,34 @@ class Program {
 
     ; get program all windows ids
     getHWNDList() {
-        return this._getHWNDList()
+        global globalStatus
+
+        this._currHWNDList := this._getHWNDList()
+        if (this.overlay != "") {
+            restoreTMM := A_TitleMatchMode
+            SetTitleMatchMode(3)
+
+            overlayHWND := WinShown(this.overlay)
+            if (overlayHWND) {
+                loop this._currHWNDList.Length {
+                    if (overlayHWND = this._currHWNDList[A_Index]) {
+                        this._currHWNDList.RemoveAt(A_Index)
+                        break
+                    }
+                }
+
+                if (!globalStatus["currOverlay"] || !WinShown(globalStatus["currOverlay"])) {
+                    globalStatus["currOverlay"] := this.overlay
+                }
+            }
+            else if (globalStatus["currOverlay"] && !WinShown(globalStatus["currOverlay"])) {
+                globalStatus["currOverlay"] := ""
+            }
+
+            SetTitleMatchMode(restoreTMM)
+        }
+
+        return this._currHWNDList
     }
     _getHWNDList() {
         try {
@@ -932,10 +1128,20 @@ class Program {
                 }
             }
             else {
+                tempWinList := []
                 for item in WinGetList("ahk_exe " exe) {
-                    if (WinActivatable(item) && WinGetProcessName(item) = exe) {
-                        winList.Push(item)
+                    if (WinGetProcessName(item) = exe) {
+                        tempWinList.Push(item)
+
+                        if (WinActivatable(item)) {
+                            winList.Push(item)
+                        }
                     }
+                }
+
+                ; use tempWinList as a less restrictive backup if window styles are weird
+                if (winList.Length = 0) {
+                    winList := tempWinList
                 }
             }
     
@@ -1151,13 +1357,13 @@ checkWNDW(wndw, retName := false, hidden := false) {
     if (IsObject(wndw)) {
         for key, empty in wndw {
             ; if not hidden -> check for a valid interactable wndw
-            if (WinExist(key) && (hidden || (!hidden && WinActivatable(key)))) {
+            if (WinExist(key)) {
                 retVal := key
                 break
             }
         }
 	}
-    else if (WinExist(wndw) && (hidden || (!hidden && WinActivatable(wndw)))) {
+    else if (WinExist(wndw)) {
         retVal := wndw
     }
 
@@ -1201,9 +1407,9 @@ createProgram(params, launchProgram := true, setCurrent := true, customAttribute
 
         ; check if program or program w/ same name exists
         for key2, value2 in globalRunning {
-            if (key = key2 || value["name"] = value2.name) {
+            if ((key = key2 || value["name"] = value2.name) && value2.exists()) {
                 ; just set the running program as current
-                if (setCurrent || launchProgram) {
+                if (setCurrent) {
                     setCurrentProgram(key2)
                 }
 
@@ -1301,9 +1507,10 @@ setCurrentProgram(id) {
         return
     }
 
+    currProgram   := globalStatus["currProgram"]["id"]
     currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
     
-    if (globalStatus["currProgram"] != id) {
+    if (currProgram != id) {
         if (globalStatus["kbmmode"]) {
             disableKBMMode()
         }
@@ -1311,10 +1518,18 @@ setCurrentProgram(id) {
             closeKeyboard()
         }
 
-        globalStatus["currProgram"] := id
+        ; get new thumbnail
+        if (currProgram != "" && globalRunning.Has(currProgram) && WinActive(globalRunning[currProgram].getHWND())) {
+            saveScreenshot(currProgram)
+        }
+
+        globalStatus["currProgram"]["id"] := id
+        globalStatus["currProgram"]["exe"] := ""
+        globalStatus["currProgram"]["hwnd"] := 0
         globalRunning[id].time := A_TickCount
 
         if (!currSuspended) {
+            setLoadScreen()
             activateLoadScreen()
             MouseMove(percentWidth(1), percentHeight(1))
             
@@ -1328,6 +1543,17 @@ setCurrentProgram(id) {
     if (globalRunning[id].exists(true) && !currSuspended) {
         globalRunning[id].restore()
     }
+}
+
+; resets the current program
+;
+; returns null
+resetCurrentProgram() {
+    global globalStatus
+
+    globalStatus["currProgram"]["id"] := ""
+    globalStatus["currProgram"]["exe"] := ""
+    globalStatus["currProgram"]["hwnd"] := 0
 }
 
 ; get the most recently opened program if it exists, otherwise return blank

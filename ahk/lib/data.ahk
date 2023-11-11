@@ -83,42 +83,49 @@ statusRestore() {
 statusUpdated() {
     global globalStatus
 
-    static prevPause         := globalStatus["pause"]
-    static prevSuspendScript := globalStatus["suspendScript"]
-    static prevKbmmode       := globalStatus["kbmmode"]
-    static prevDesktopmode   := globalStatus["desktopmode"]
-    static prevCurrProgram   := globalStatus["currProgram"]
-    static prevCurrGui       := globalStatus["currGui"]
-    static prevLoadShow      := globalStatus["loadscreen"]["show"]
-    static prevLoadText      := globalStatus["loadscreen"]["text"]
-    static prevLoadEnable    := globalStatus["loadscreen"]["enable"]
-    static prevLoadOverride  := globalStatus["loadscreen"]["overrideWNDW"]
+    static prevSuspendScript   := globalStatus["suspendScript"]
+    static prevKbmmode         := globalStatus["kbmmode"]
+    static prevDesktopmode     := globalStatus["desktopmode"]
+    static prevCurrProgramID   := globalStatus["currProgram"]["id"]
+    static prevCurrProgramEXE  := globalStatus["currProgram"]["exe"]
+    static prevCurrProgramHWND := globalStatus["currProgram"]["hwnd"]
+    static prevCurrGui         := globalStatus["currGui"]
+    static prevCurrOverlay     := globalStatus["currOverlay"]
+    static prevLoadShow        := globalStatus["loadscreen"]["show"]
+    static prevLoadText        := globalStatus["loadscreen"]["text"]
+    static prevLoadEnable      := globalStatus["loadscreen"]["enable"]
+    static prevLoadOverride    := globalStatus["loadscreen"]["overrideWNDW"]
 
-    currPause         := globalStatus["pause"]
-    currSuspendScript := globalStatus["suspendScript"]
-    currKbmmode       := globalStatus["kbmmode"]
-    currDesktopmode   := globalStatus["desktopmode"]
-    currCurrProgram   := globalStatus["currProgram"]
-    currCurrGui       := globalStatus["currGui"]
-    currLoadShow      := globalStatus["loadscreen"]["show"]
-    currLoadText      := globalStatus["loadscreen"]["text"]
-    currLoadEnable    := globalStatus["loadscreen"]["enable"]
-    currLoadOverride  := globalStatus["loadscreen"]["overrideWNDW"]
+    currSuspendScript   := globalStatus["suspendScript"]
+    currKbmmode         := globalStatus["kbmmode"]
+    currDesktopmode     := globalStatus["desktopmode"]
+    currCurrProgramID   := globalStatus["currProgram"]["id"]
+    currCurrProgramEXE  := globalStatus["currProgram"]["exe"]
+    currCurrProgramHWND := globalStatus["currProgram"]["hwnd"]
+    currCurrGui         := globalStatus["currGui"]
+    currCurrOverlay     := globalStatus["currOverlay"]
+    currLoadShow        := globalStatus["loadscreen"]["show"]
+    currLoadText        := globalStatus["loadscreen"]["text"]
+    currLoadEnable      := globalStatus["loadscreen"]["enable"]
+    currLoadOverride    := globalStatus["loadscreen"]["overrideWNDW"]
 
-    if (prevPause != currPause || prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevDesktopmode != currDesktopmode 
-        || prevCurrProgram != currCurrProgram || prevLoadShow != currLoadShow || prevLoadText != currLoadText 
-        || prevLoadEnable != currLoadEnable || prevLoadOverride != currLoadOverride || prevCurrGui != currCurrGui) {
+    if (prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevDesktopmode != currDesktopmode 
+        || prevCurrProgramID != currCurrProgramID || prevCurrProgramEXE != currCurrProgramEXE || prevCurrProgramHWND != currCurrProgramHWND
+        || prevLoadShow != currLoadShow || prevLoadText != currLoadText || prevLoadEnable != currLoadEnable 
+        || prevLoadOverride != currLoadOverride || prevCurrGui != currCurrGui || prevCurrOverlay != currCurrOverlay) {
             
-        prevPause         := currPause
-        prevSuspendScript := currSuspendScript
-        prevKbmmode       := currKbmmode
-        prevDesktopmode   := currDesktopmode
-        prevCurrProgram   := currCurrProgram
-        prevLoadShow      := currLoadShow
-        prevLoadText      := currLoadText
-        prevLoadEnable    := currLoadEnable
-        prevLoadOverride  := currLoadOverride
-        prevCurrGui       := currCurrGui
+        prevSuspendScript   := currSuspendScript
+        prevKbmmode         := currKbmmode
+        prevDesktopmode     := currDesktopmode
+        prevCurrProgramID   := currCurrProgramID
+        prevCurrProgramEXE  := currCurrProgramEXE
+        prevCurrProgramHWND := currCurrProgramHWND
+        prevLoadShow        := currLoadShow
+        prevLoadText        := currLoadText
+        prevLoadEnable      := currLoadEnable
+        prevLoadOverride    := currLoadOverride
+        prevCurrGui         := currCurrGui
+        prevCurrOverlay     := currCurrOverlay
 
         return true
     } 

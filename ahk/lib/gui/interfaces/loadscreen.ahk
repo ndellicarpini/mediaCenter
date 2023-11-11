@@ -1,4 +1,7 @@
 class LoadScreenInterface extends Interface {
+    controlsVisible := true
+    _restoreControlsList := []
+
     __New(text) {
         super.__New(INTERFACES["loadscreen"]["wndw"], GUI_OPTIONS)
 
@@ -28,6 +31,38 @@ class LoadScreenInterface extends Interface {
         this.guiObj["LoadText"].Text := text
         this.guiObj["LoadText"].Redraw()
     }
+
+    restoreControls() {
+        this.guiObj.BackColor := COLOR1
+
+        index := 1
+        for key, value in this.guiObj {
+            if (!value.Visible && inArray(index, this._restoreControlsList)) {
+                value.Visible := true
+            }
+
+            index += 1
+        }
+
+        this.controlsVisible := true
+        this._restoreControlsList := []
+    }
+
+    hideControls() {
+        this.guiObj.BackColor := "#000000"
+
+        index := 1
+        for key, value in this.guiObj {
+            if (value.Visible) {
+                value.Visible := false
+                this._restoreControlsList.Push(index)
+            }
+
+            index += 1
+        }
+
+        this.controlsVisible := false
+    }
 }
 
 ; activates the load screen
@@ -35,7 +70,7 @@ class LoadScreenInterface extends Interface {
 ; retuns null
 activateLoadScreen() {
 	if (WinShown(INTERFACES["loadscreen"]["wndw"])) {
-		WinActivate(INTERFACES["loadscreen"]["wndw"])
+		WinActivateForeground(INTERFACES["loadscreen"]["wndw"])
 	}
 }
 

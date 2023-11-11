@@ -1,6 +1,7 @@
 ; ----- GLOBAL VARIABLES -----
 global MAINNAME := "MediaCenterMain"
 global MAINLOOP := "MediaCenterLoop"
+global SENDNAME := "Send2Main"
 
 global DYNASTART := "; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----"
 global DYNAEND   := "; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----"
@@ -52,8 +53,14 @@ CloseErrorMsg(wndwID) {
 ; returns null
 RunAsAdmin(program, parameters := "", directory := "") {
 	cleanParameters := (Type(parameters) = "Array") ? joinArray(parameters) : parameters
+	programString := program . ((Trim(cleanParameters) != "") ? A_Space . cleanParameters : "")
 
-	return Run('*RunAs "' . program . ((Trim(cleanParameters) != "") ? A_Space . parameters : "") . '"', directory)
+	if (!A_IsAdmin) {
+		ErrorMsg("Cannot Run '" . program . "' as Administrator")
+		return Run(programString, directory)
+	}
+
+	return Run('*RunAs "' . programString . '"', directory)
 }
 
 ; Runs a program as a regular user
@@ -64,7 +71,13 @@ RunAsAdmin(program, parameters := "", directory := "") {
 ;
 ; returns null
 RunAsUser(program, parameters := "", directory := "") {
-	cleanParameters := (Type(parameters) = "Array") ? joinArray(parameters) : parameters
+	cleanProgram := Trim(program, A_Space . "'" . '"')
+	cleanParameters := Trim((Type(parameters) = "Array") ? joinArray(parameters) : parameters)
+	cleanDirectory := Trim(directory, A_Space . "'" . '"')
+
+	if (!A_IsAdmin) {
+		return Run(program . ((cleanParameters != "") ? A_Space . cleanParameters : ""), directory)
+	}
 
     shellWindows := ComObject("Shell.Application").Windows
     desktop := shellWindows.FindWindowSW(0, 0, 8, 0, 1) ; SWC_DESKTOP, SWFO_NEEDDISPATCH
@@ -89,9 +102,15 @@ RunAsUser(program, parameters := "", directory := "") {
    
     ; Get Shell object.
     shell := sfvd.Application
-   
+
+	; append args to program string if program is a url
+	if (!FileExist(cleanProgram) && !FileExist(((SubStr(cleanDirectory, -1) = "\") ? cleanDirectory : cleanDirectory . "\") . cleanProgram)) {
+		cleanProgram := cleanProgram . A_Space . cleanParameters
+		cleanParameters := ""
+	}
+	
     ; IShellDispatch2.ShellExecute
-    return shell.ShellExecute(program, Trim(cleanParameters), directory)
+    return shell.ShellExecute(cleanProgram, cleanParameters, cleanDirectory)
 }
 
 ; closes a window's process based on window
@@ -261,18 +280,98 @@ WinActivatable(window) {
 	return !(style & 0x08000000) && !(exStyle & 0x08000000)	&& !((style & 0x80000000) && (exStyle & 0x00000008))
 }
 
-; returns if window is on top
-;  window - window to check based on WinTitle
+; ; returns if window is on top
+; ;  window - window to check based on WinTitle
+; ;
+; ; returns boolean topmost
+; WinIsTop(window) {
+; 	winList := WinGetList(window)
+; 	if (winList.Length = 0) {
+; 		return false
+; 	}
+
+
+; 	nextWNDW := DllCall("GetTopWindow", "Ptr", 0)
+; 	while (1) {
+; 			nextWNDW := DllCall("GetWindow", "Ptr", nextWNDW, "UInt", 2)
+
+; 		if (DllCall("IsWindowVisible", "Ptr", nextWNDW)) {
+; 			MsgBox(nextWNDW . " " . WinGetTitle(nextWNDW) . " " . WinGetProcessPath(nextWNDW) . " " . WinGetProcessName(nextWNDW))
+; 			WinGetPos(&X, &Y, &W, &H, nextWNDW)
+; 			MsgBox(X . " " . Y . " " . W . " " . H)
+; 		}
+; 	}
+
+; 	; MsgBox(WinGetTitle(nextWNDW))
+; 	; winNext := DllCall("GetWindow", "Ptr", winTop, "UInt", 2)
+; 	; winNooo := DllCall("GetWindow", "Ptr", winNext, "UInt", 2)
+
+; 	; nameArr := []
+; 	; for win in winList {
+; 	; 	nameArr.Push(WinGetTitle(win))
+; 	; }
+
+; 	; MsgBox(toString(nameArr))
+; 	; MsgBox(winTop . " " . WinGetTitle(winTop))
+; 	; MsgBox(winNext . " " . WinGetTitle(winNext))
+; 	; MsgBox(winNooo . " " . WinGetTitle(winNooo))
+; 	return inArray(nextWNDW, winList)
+; }
+
+; maximizes the window by posting a message to the window, the same message as the maximize button
+;  window - window to maximize based on WinTitle
 ;
-; returns boolean topmost
-WinIsTop(window) {
-	winList := WinGetList(window)
-	if (winList.Length = 0) {
-		return false
+; returns result of postmessage
+WinMaximizeMessage(window) {
+	return PostMessage(0x0112, 0xF030,,, window)
+}
+
+; minimizes the window by posting a message to the window, the same message as the minimize button
+;  window - window to minimize based on WinTitle
+;
+; returns result of postmessage
+WinMinimizeMessage(window) {
+	return PostMessage(0x0112, 0xF020,,, window)
+}
+
+; restores the window by posting a message to the window
+;  window - window to restore based on WinTitle
+;
+; returns result of postmessage
+WinRestoreMessage(window) {
+	return PostMessage(0x0112, 0xF120,,, window)
+}
+
+; activates a window using SetForegroundWindow
+; https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setforegroundwindow
+;  window - window to restore based on WinTitle
+;
+; returns null
+WinActivateForeground(window) {
+	hwnd := WinExist(window)
+	if (!hwnd) {
+		return
 	}
 
-	winTop := DllCall("GetWindow", "Ptr", winList[1], "UInt", 0)
-	return inArray(winTop, winList)
+	if (WinGetMinMax(hwnd) = -1) {
+		WinRestoreMessage(hwnd)
+		Sleep(100)
+	}
+
+	maxCount := 5
+	count := 0
+
+	while (count < maxCount) {
+		if (DllCall("SetForegroundWindow", "Ptr", hwnd) || !WinShown(hwnd)) {
+			return
+		}
+
+		Sleep(40)
+		count += 1
+	}
+	
+	; return fail value
+	return false
 }
 
 ; closes all windows that match the window param
@@ -339,23 +438,117 @@ SetCurrentWinTitle(name) {
 	DetectHiddenWindows(resetDHW)
 }
 
+; wrapper for control send to work in runFunction
+;  key - same as ControlSend
+;  window - same as ControlSend
+;  time - time in ms to hold key
+;
+; returns null
+WindowSend(key, window, time := -1) {
+	; send the key normally if window is active
+	if (WinActive(window)) {
+		SendSafe(key, time)
+		return
+	}
+
+	; if there's multiple spaces, just control send (why did i do this?)
+	if (StrSplit(key, A_Space).Length > 2) {
+		if (time = -1) {
+			ControlSend(key,, window)
+		}
+
+		return
+	}
+
+	; if its a hold key, just control send 
+	if (StrLower(SubStr(key, -4)) = " up}" || StrLower(SubStr(key, -6)) = " down}") {
+		ControlSend(key,, window)
+		return
+	}
+
+	if (time = -1) {
+		time := 100
+	}
+
+	lastModiferIndex := 0
+	loop parse key {
+		if (A_LoopField = "^" || A_LoopField = "+" || A_LoopField = "!" || A_LoopField = "#") {
+			lastModiferIndex := A_Index + 1
+		}
+		else {
+			break
+		}
+	}
+
+	; parse key string so that "down" and "up" can be appended
+	if (lastModiferIndex > 0) {
+		key := SubStr(key, 1, (lastModiferIndex - 1))
+		if (SubStr(key, lastModiferIndex, 1) != "{") {
+			key .= "{"
+		}
+
+		key .= SubStr(key, lastModiferIndex) 
+	}
+	else if (SubStr(key, 1, 1) != "{") {
+		key := "{" . key
+	}
+
+	if (SubStr(key, -1, 1) = "}") {
+        key := SubStr(key, 1, StrLen(key) - 1)
+    }
+
+	ControlSend(key . " down}",, window)
+	Sleep(time)
+	ControlSend(key . " up}",, window)
+}
+
 ; holds a keybinding for x ms
 ;  key - key to press/hold (must be single key, can't be combo)
 ;  time - time in ms to hold key
 ;
 ; returns null
-SendSafe(key, time := 100) {
+SendSafe(key, time := -1) {
+	; if there's multiple spaces, just send (why did i do this?)
 	if (StrSplit(key, A_Space).Length > 2) {
-		ErrorMsg("Can't SendSafe a multi key bind")
+		if (time = -1) {
+			Send(key)
+		}
+
 		return
 	}
 
-	firstChar := SubStr(key, 1, 1)
-    if (firstChar != "{" && firstChar != "^"
-		&& firstChar != "+" && firstChar != "!" && firstChar != "#") {
-        
+	; if its a hold key, just send 
+	if (StrLower(SubStr(key, -4)) = " up}" || StrLower(SubStr(key, -6)) = " down}") {
+		Send(key)
+		return
+	}
+
+	if (time = -1) {
+		time := 100
+	}
+
+	lastModiferIndex := 0
+	loop parse key {
+		if (A_LoopField = "^" || A_LoopField = "+" || A_LoopField = "!" || A_LoopField = "#") {
+			lastModiferIndex := A_Index + 1
+		}
+		else {
+			break
+		}
+	}
+
+	; parse key string so that "down" and "up" can be appended
+	if (lastModiferIndex > 0) {
+		key := SubStr(key, 1, (lastModiferIndex - 1))
+		if (SubStr(key, lastModiferIndex, 1) != "{") {
+			key .= "{"
+		}
+
+		key .= SubStr(key, lastModiferIndex) 
+	}
+	else if (SubStr(key, 1, 1) != "{") {
 		key := "{" . key
-    }
+	}
 
 	if (SubStr(key, -1, 1) = "}") {
         key := SubStr(key, 1, StrLen(key) - 1)
@@ -1197,4 +1390,36 @@ showTaskbar() {
 ; returns true if the taskbar exists
 taskbarExists() {
     return WinShown("ahk_class Shell_TrayWnd")
+}
+
+; gets the current state of the taskbar autohide
+; 
+; returns true if autohide is enabled
+getAutoHideTaskbar() {
+	data := Buffer(48, 0)
+
+	return DllCall("Shell32\SHAppBarMessage", "UInt", 4, "Ptr", data, "Int") ? true : false
+}
+
+; enables/disables autohiding the taskbar
+; NOT WORKING - https://learn.microsoft.com/en-us/answers/questions/1230347/hidden-taskbar-function-is-out-of-work-by-using-sh
+;  enable - boolean whether or not to enable autohide
+;
+; return null
+toggleAutoHideTaskbar(enabled) {
+	restoreDHW := A_DetectHiddenWindows
+	DetectHiddenWindows(true)
+	taskbarID := WinExist("ahk_class Shell_TrayWnd")
+	DetectHiddenWindows(restoreDHW)
+
+	if (!taskbarID) {
+		return
+	}
+
+	data := Buffer(48, 0)
+	NumPut("UInt", 48, data, 0)
+	NumPut("Ptr", taskbarID, data, 8)
+	NumPut("UInt", (enabled) ? 1 : 2, data, 40)
+
+	DllCall("Shell32\SHAppBarMessage", "UInt", 10, "Ptr", data)
 }

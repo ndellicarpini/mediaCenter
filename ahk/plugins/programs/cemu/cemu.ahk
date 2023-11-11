@@ -1,8 +1,8 @@
 class CemuEmulator extends Emulator {
     _fullscreen() {
-        Send("{Alt down}")
-        SendSafe("{Enter}")
-        Send("{Alt up}")
+        this.send("{Alt down}")
+        this.send("{Enter}")
+        this.send("{Alt up}")
     }
 
     _pause() {

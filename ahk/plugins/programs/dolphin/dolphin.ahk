@@ -26,7 +26,7 @@ class DolphinEmulator extends Emulator {
     ; }
 
     _pause() {
-        SendSafe("{F10}")
+        this.send("{F10}")
     }
 
     _resume() {
@@ -34,27 +34,27 @@ class DolphinEmulator extends Emulator {
     }
     
     _saveState(slot) {
-        Send("{Shift down}")
+        this.send("{Shift down}")
         Sleep(100)
-        SendSafe("{F1}")
+        this.send("{F1}")
         Sleep(100)
-        Send("{Shift up}")
+        this.send("{Shift up}")
     }
 
     _loadState(slot) {
-        SendSafe("{F1}")
+        this.send("{F1}")
     }
 
     _reset() {
-        SendSafe("r")
+        this.send("r")
     }
 
     _fastForward() {
         if (this.fastForwarding) {
-            Send("{Tab up}")
+            this.send("{Tab up}")
         }
         else {
-            Send("{Tab down}")
+            this.send("{Tab down}")
         }
     }
 }

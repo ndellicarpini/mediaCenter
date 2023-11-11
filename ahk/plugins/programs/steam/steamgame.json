@@ -134,11 +134,9 @@
 		"Spyro-Win64-Shipping.exe",
 		"HorizonChase.exe",
 		"YLILWin64.exe",
-		"Sonic3AIR.exe",
 		"SpeedRunners.exe",
 		"SonicGenerations.exe",
 		"I Wanna Be The Boshy.exe",
-		"cannonball.exe",
 		"TombRaider.exe",
 		"umvc3.exe",
 		"Worms W.M.D.exe",
@@ -164,14 +162,11 @@
 		"srb2win.exe",
 		"Spel2.exe",
 		"LEGOLCUR_DX11.exe",
-		"sm64.us.f3dex2e.exe",
-		"Rayman Redemption.exe",
 		"LittleNightmares.exe",
 		"GGXXACPR_Win.exe",
 		"BloodstainedRotN-Win64-Shipping.exe",
 		"sonic.exe",
 		"sonic2app.exe",
-		"sh2pc.exe",
 		"sunset.exe",
 		"My Friend Pedro - Blood Bullets Bananas.exe",
 		"Stardew Valley.exe",
@@ -184,7 +179,6 @@
 		"maxpayne2.exe",
 		"witcher2.exe",
 		"Fable Anniversary.exe",
-		"FF7.exe",
 		"Shenmue.exe",
 		"Shenmue2.exe",
 		"Tsonic_win.exe",
@@ -193,7 +187,6 @@
 		"Control_DX11.exe",
 		"Control_DX12.exe",
 		"Ghostrunner-Win64-Shipping.exe",
-		"Super Mario 64 Plus.exe",
 		"Sonic.exe",
 		"Sonic 2.exe",
 		"GGST-Win64-Shipping.exe",
@@ -267,7 +260,23 @@
 		"u4.exe",
 		"RUNNER.exe",
 		"NieR Replicant ver.1.22474487139.exe",
-		"TowerFall.exe"
+		"TowerFall.exe",
+		"VampireSurvivors.exe",
+		"cannonball.exe",
+		"FF8_EN.exe",
+		"FF9.exe",
+		"FFX&X-2_LAUNCHER.exe",
+		"FFX&X-2_Will.exe",
+		"FFX.exe",
+		"FFX-2.exe",
+		"SonicR.exe",
+		"Launcher Nickelodeon All-Star Brawl.exe",
+		"Subnautica.exe",
+		"SubnauticaZero.exe",
+		"THPS12.exe",
+		"Windjammers2.exe",
+		"HITMAN3.exe",
+		"sh3.exe"
     ],
 
 	"overrides": {
@@ -285,10 +294,14 @@
         "\/377160([^0-9]|$)": "Fallout4Program",
 		; HITMAN
         "\/236870([^0-9]|$)": "HitmanProgram",
+		; HITMAN 3
+        "\/1659040([^0-9]|$)": "Hitman3Program",
 		; Saints Row 3 
         "\/55230([^0-9]|$)": "SaintsRow3Program",
 		; Witcher 2
         "\/20920([^0-9]|$)": "Witcher2Program",
+		; Witcher 3
+		"\/292030([^0-9]|$)": "Witcher3Program",
 		; Oblivion
         "\/22330([^0-9]|$)": "OblivionProgram",
 		; Hotline Miami
@@ -319,6 +332,12 @@
 		"\/26800([^0-9]|$)": "BraidProgram",
 		; Undertale
 		"\/391540([^0-9]|$)": "UndertaleProgram",
+		; OutRun
+		"\/17526394833466294272([^0-9]|$)": "CannonballProgram",
+		; Final Fantasy 8
+		"\/39150([^0-9]|$)": "FF8Program",
+		; Final Fantasy 9
+		"\/377840([^0-9]|$)": "FF9Program",
 		; Bastion
         "\/107100([^0-9]|$)": {
 			"defaultArgs": "-x 3840 -y 2160",

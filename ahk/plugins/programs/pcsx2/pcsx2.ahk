@@ -14,13 +14,13 @@ class PCSX2Emulator extends Emulator {
     ; }
 
     _fullscreen() {
-        Send("{Alt down}")
-        SendSafe("{Enter}")
-        Send("{Alt up}")
+        this.send("{Alt down}")
+        this.send("{Enter}")
+        this.send("{Alt up}")
     }
 
     _pause() {
-        SendSafe("{Space}")
+        this.send("{Space}")
     }
 
     _resume() {
@@ -28,18 +28,18 @@ class PCSX2Emulator extends Emulator {
     }
     
     _saveState(slot) {
-        SendSafe("{F1}")
+        this.send("{F1}")
     }
 
     _loadState(slot) {
-        SendSafe("{F3}")
+        this.send("{F3}")
     }
 
     _reset() {
-        SendSafe("r")
+        this.send("r")
     }
 
     _fastForward() {
-        SendSafe("{Tab}", 120)
+        this.send("{Tab}", 120)
     }
 }

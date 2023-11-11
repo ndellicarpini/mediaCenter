@@ -24,7 +24,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         #Include lib\input\hotkeys.ahk
         #Include lib\input\input.ahk
 
-        SetKeyDelay 50, 50
+        ; SetKeyDelay 50, 50
         CoordMode "Mouse", "Screen"
         Critical("Off")
 
@@ -57,6 +57,20 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         global currStatus  := ""
 
         ; ----- FUNCTIONS -----
+
+        ; sends a key to the current program
+        ;   key - key to send
+        ;
+        ; returns null
+        ProgramSend(key, time := -1) {
+            global globalStatus
+
+            if (globalStatus["currProgram"]["hwnd"] = 0) {
+                return
+            }
+
+            WindowSend(key, globalStatus["currProgram"]["hwnd"], time)
+        }
 
         ; updates the global input status
         ;  index - index of the input
@@ -198,6 +212,12 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             if (hotkeyFunction = "") {
                 return
             }
+
+            if (SubStr(hotkeyFunction, 1, 5) = "Send " && globalStatus["currProgram"]["id"] = globalStatus["input"]["source"]
+                && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+                
+                hotkeyFunction := StrReplace(hotkeyFunction, "Send ", "ProgramSend ",,, 1)
+            }
             
             try {
                 runFunction(hotkeyFunction)
@@ -240,7 +260,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         SetTimer(DeviceStatusTimer, Round(globalConfig["General"]["AvgLoopSleep"] * 2.5))
 
         loop {
-            currStatus := globalStatus["currProgram"] . globalStatus["currGui"] . globalStatus["loadscreen"]["show"]
+            currStatus := globalStatus["currProgram"]["id"] . globalStatus["currGui"] . globalStatus["loadscreen"]["show"]
 
             thisHotkeys := (globalStatus["input"]["hotkeys"].Has(inputID))
                 ? globalStatus["input"]["hotkeys"][inputID]
@@ -347,14 +367,12 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 return
             }
 
-            if (!((hotkeyData.function = "Exit" || InStr(hotkeyData.function, ".exit")) && globalStatus["pause"])) {
-                if (hotkeyData.time != "" && (time - hotkeyData.time) > 0) {
-                    SetTimer(ButtonTimer.Bind(button, hotkeyData.time, index, status), Neg(time - hotkeyData.time))
-                    return
-                }
-
-                sendHotkey(hotkeyData.function)
+            if (hotkeyData.time != "" && (time - hotkeyData.time) > 0) {
+                SetTimer(ButtonTimer.Bind(button, hotkeyData.time, index, status), Neg(time - hotkeyData.time))
+                return
             }
+
+            sendHotkey(hotkeyData.function)
 
             SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
             return
@@ -382,12 +400,13 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                                 currPath := WinGetProcessPath(winList[A_Index])
                                 currProcess := WinGetProcessName(winList[A_Index])
 
-                                if (currProcess = "explorer.exe" || currPath = A_AhkPath) {
+                                if (!WinActive(winList[A_Index]) || currProcess = "explorer.exe" || currPath = A_AhkPath) {
                                     continue
                                 }
                                 
                                 try ProcessKill(WinGetPID(winList[A_Index]))
-                                
+                                try ProcessKill(WinGetPID(MAINNAME))
+
                                 removeTimer(index, button)
                                 return
                             }
@@ -735,7 +754,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
             hotkeySource  := globalStatus["input"]["source"]
 
-            currProgram := globalStatus["currProgram"]
+            currProgram := globalStatus["currProgram"]["id"]
             currGui     := globalStatus["currGui"]
 
             currHotkeys := Map()
@@ -778,7 +797,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                     }
 
                     for key, value in globalInputConfigs {
-                        currHotkeys[key] := addHotkeys(currHotkeys[key], kbmmodeHotkeys[key])
+                        currHotkeys[key] := addHotkeys((currHotkeys.Has(key)) ? currHotkeys[key] : Map(), kbmmodeHotkeys[key])
                     }
 
                     currMouse := ObjDeepClone(kbmmodeMouse)
@@ -864,6 +883,8 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         #Include lib\gui\constants.ahk
         #Include lib\gui\interface.ahk
         #Include lib\gui\interfaces\loadscreen.ahk
+
+        ; #WinActivateForce
         
         Critical("Off")
 
@@ -887,6 +908,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         currLoadEnable := globalStatus["loadscreen"]["enable"]
 
         allowLoadScreen := globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]
+        forceLoadScreen := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
         bypassFirewall  := globalConfig["General"].Has("BypassFirewallPrompt") && globalConfig["General"]["BypassFirewallPrompt"]
         disableTaskbar  := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
@@ -903,28 +925,43 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                     if (globalStatus["loadscreen"]["enable"]) {
                         ; if loadscreen is supposed to be active window
                         if (globalStatus["loadscreen"]["show"]) {
+                            if (!globalGuis["loadscreen"].controlsVisible) {
+                                globalGuis["loadscreen"].restoreControls()
+                                MouseMove(percentWidth(1), percentHeight(1))
+                            }
+
                             ; create loadscreen if doesn't exist
                             if (!loadShown) {
                                 globalGuis["loadscreen"].updateText(globalStatus["loadscreen"]["text"])      
                                 globalGuis["loadscreen"].Show()
                             }
 
-                            ; activate overrideWNDW if it exists
-                            if (globalStatus["loadscreen"]["overrideWNDW"] != "" 
-                                && WinShown(globalStatus["loadscreen"]["overrideWNDW"])) {
-                                
-                                WinActivate(globalStatus["loadscreen"]["overrideWNDW"])
+                            if (forceLoadScreen) {
+                                ; activate overrideWNDW if it exists
+                                if (globalStatus["loadscreen"]["overrideWNDW"] != "" && WinShown(globalStatus["loadscreen"]["overrideWNDW"])) {
+                                    WinActivateForeground(globalStatus["loadscreen"]["overrideWNDW"])
+                                }
+                                ; activate message if it exists
+                                else if (WinShown(INTERFACES["message"]["wndw"])) {
+                                    WinActivateForeground(INTERFACES["message"]["wndw"])
+                                }
+                                ; activate loadscreen
+                                else {
+                                    activateLoadScreen()
+                                }
                             }
-                            ; activate message if it exists
-                            else if (WinShown(INTERFACES["message"]["wndw"])) {
-                                WinActivate(INTERFACES["message"]["wndw"])
+                        }
+                        else {
+                            ; if loadscreen active but not "showing" (aka forced on)
+                            if (WinActive(INTERFACES["loadscreen"]["wndw"])) {
+                                if (!globalGuis["loadscreen"].controlsVisible) {
+                                    globalGuis["loadscreen"].restoreControls()
+                                    MouseMove(percentWidth(1), percentHeight(1))
+                                }
                             }
-                            ; activate loadscreen
-                            else {
-                                activateLoadScreen()
+                            else if (globalGuis["loadscreen"].controlsVisible) {
+                                globalGuis["loadscreen"].hideControls()
                             }
-    
-                            currLoadShow := globalStatus["loadscreen"]["show"]
                         }
     
                         ; update loadscreen text if it has been changed
@@ -936,6 +973,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                         }
     
                         currLoadEnable := true
+                        currLoadShow := globalStatus["loadscreen"]["show"]
                     }
                     else if (loadShown) {
                         hideLoadScreen()
@@ -950,7 +988,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
             
                 ; automatically accept firewall
                 if (bypassFirewall && WinShown("Windows Security Alert")) {
-                    WinActivate("Windows Security Alert")
+                    WinActivateForeground("Windows Security Alert")
                     Sleep(50)
                     Send "{Enter}"
                 }

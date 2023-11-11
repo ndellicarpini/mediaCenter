@@ -39,7 +39,17 @@
 		"MBAA.exe",
 		"TestDriveUnlimited.exe",
 		"ItTakesTwo.exe",
-		"soh.exe"
+		"soh.exe",
+		"Rayman Redemption.exe",
+		"SonicForever.exe",
+		"Sonic2Absolute.exe",
+		"Sonic3AIR.exe",
+		"Game.exe",
+		"Super Mario 64 Plus.exe",
+		"sm64.us.exe",
+		"sh2pc.exe",
+		"ff7.exe",
+		"Sonic Triple Trouble 16-Bit.exe"
 	],
 
 	"overrides": {
@@ -47,14 +57,23 @@
 		"PlayGTAV\\.exe": "GTA5Program",
 		; Melty Blood Actress Again
 		"MBAA\\.exe": "MBAAProgram",
-		; Test Drive Unlimited
-		"TestDriveUnlimited\\.exe": "TestDriveUnlimitedProgram",
+		; Super Mario 64 Plus
+		"Super Mario 64 Plus\\.exe": "SM64Program",
 		; Morrowind
 		"openmw\\.exe": {
 			"className": "MorrowindProgram",
 			"mouse": {
 				"initialPos": [0.5, 0.5]
 			}
+		},
+		; Test Drive Unlimited
+		"TestDriveUnlimited\\.exe": {
+			"defaultArgs": ["-races", "-vsync", "-hd", "-fuel"],
+			"className":"TestDriveUnlimitedProgram"
+		},
+		; Final Fantasy 7
+		"7th Heaven\\.exe": {
+			"defaultArgs": ["/LAUNCH", "/QUIT"]
 		},
 		; Forza Horizon 3
 		"Microsoft\\.OpusPG_8wekyb3d8bbwe!OpusReleaseFinal": {
@@ -93,6 +112,7 @@
 		},
 		; Simpsons Hit & Run
 		"Lucas Simpsons Hit & Run Mod Launcher\\.exe": {
+			"defaultArgs": "-launch",
 			"hotkeys": {
 				"buttonTime": 0,
 				"8": {

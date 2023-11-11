@@ -5,7 +5,7 @@ class EAGameProgram extends Program {
         exe := pathArr.RemoveAt(pathArr.Length)
         path := LTrim(joinArray(pathArr, "\"), '"' . "'")
     
-        Run(RTrim(game . A_Space . joinArray(args), A_Space), path)
+        RunAsUser(game, args, path)
 
         restoreLoadText := globalStatus["loadscreen"]["text"]
         setLoadScreen("Waiting for EA Games...")
@@ -22,15 +22,12 @@ class EAGameProgram extends Program {
         while (!this.exists() && count < maxCount) {
             if (ProcessExist("EALauncher.exe")) {
                 globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EALauncher.exe"
-                count := 0
             }
             else if (ProcessExist("EALaunchHelper.exe")) {
                 globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EALaunchHelper.exe"
-                count := 0
             }
             else if (ProcessExist("EADesktop.exe")) {
                 globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EADesktop.exe"
-                count := 0
             }
     
             if (this.shouldExit) {
@@ -41,7 +38,15 @@ class EAGameProgram extends Program {
                 return false
             }
     
-            count += 1
+            if (!ProcessExist("EALauncher.exe") && !ProcessExist("EALaunchHelper.exe") 
+                && !ProcessExist("EADesktop.exe") && !ProcessExist("EABackgroundService.exe")) {
+                
+                count += 1
+            }
+            else {
+                count := 0
+            }
+
             Sleep(500)
         }
     
@@ -65,7 +70,7 @@ class EAGameProgram extends Program {
         maxCount := 20
         ; try to close ea while open
         while (WinShown("ahk_exe EADesktop.exe") && count < maxCount) {
-            WinActivate("ahk_exe EADesktop.exe")
+            WinActivateForeground("ahk_exe EADesktop.exe")
             Sleep(100)
     
             SendSafe("{Alt}")
@@ -92,6 +97,6 @@ class Madden19Program extends EAGameProgram {
     _mouseMoveDelay  := 20000
 
     _postLaunch() {
-        SendSafe("{Enter}")
+        this.send("{Enter}")
     }
 }

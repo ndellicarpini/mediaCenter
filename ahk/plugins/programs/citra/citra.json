@@ -7,6 +7,7 @@
     "dir": "C:\\Emulators\\Citra",
 
     "requireFullscreen": true,
+    "overlayActivateFix": true,
 
     "numStates": 1,
     "fastForward": true,
@@ -33,20 +34,20 @@
             "down": "program.loadState",
             "time": 70
         },
-        "15&6>0.3": {
-            "down": "program.fastForward",
-            "time": 70
-        },
+        // "15&6>0.3": {
+        //     "down": "program.fastForward",
+        //     "time": 70
+        // },
 
-        ; used to duplicate functionality for triggers & bumpers
-        ; uses basic Send commands so that it isn't buffered
+        // used to duplicate functionality for triggers & bumpers
+        // uses basic Send commands so that it isn't buffered
         "5|5>0.05": {
             "down": "Send '{q down}'",
-            "up": "Send '{q up}'"
+            "up": "Send '{q up}'",
         },
         "6|6>0.05": {
             "down": "Send '{w down}'",
-            "up": "Send '{w up}'"
+            "up": "Send '{w up}'",
         }
     },
 

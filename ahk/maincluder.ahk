@@ -51,7 +51,7 @@ eol := getEOL(mainString)
 includeString := DYNASTART . eol
 for dir in pluginIncludeDirs {
     loop files (validateDir(dir) . "*.ahk"), "R" {
-        includeString .= "#Include " . A_LoopFileShortPath . eol
+        includeString .= "#Include " . A_LoopFilePath . eol
     }
 }
 includeString .= DYNAEND . eol

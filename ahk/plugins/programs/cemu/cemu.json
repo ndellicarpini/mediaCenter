@@ -8,6 +8,7 @@
     "defaultArgs": "-f -g",
 
     "requireFullscreen": true,
+    "overlayActivateFix": true,
     "priority": "H",
 
     "controls": ["Xbox Controller"],

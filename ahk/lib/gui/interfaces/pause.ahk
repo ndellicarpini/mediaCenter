@@ -13,7 +13,7 @@ class PauseInterface extends Interface {
         global globalRunning
         global globalPrograms
 
-        currProgram := globalStatus["currProgram"]
+        currProgram := globalStatus["currProgram"]["id"]
 
         super.__New(INTERFACES["pause"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop")
     
@@ -90,7 +90,7 @@ class PauseInterface extends Interface {
         y_index := 1
 
         ; program options
-        if (!globalStatus["desktopmode"] && programOptions.items.Count > 0) {
+        if (!globalStatus["desktopmode"] && !globalStatus["suspendScript"] && programOptions.items.Count > 0) {
             this.SetFont("bold s24")
             this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . percentHeight(0.02) . " h" . percentHeight(0.05) . " w" . optionWidth, globalRunning[currProgram].name)
         
@@ -128,7 +128,7 @@ class PauseInterface extends Interface {
             this._restoreMousePos := [x, y]
         }
 
-        currProgram := globalStatus["currProgram"]
+        currProgram := globalStatus["currProgram"]["id"]
         ; set activate currProgram pause
         if (currProgram != "") {
             globalRunning[currProgram].pause()
@@ -212,9 +212,9 @@ class PauseInterface extends Interface {
                 }
             }
             else {
-                currProgram := globalStatus["currProgram"]
-                if (currProgram != "") {
-                    Sleep(100)
+                currProgram := globalStatus["currProgram"]["id"]
+                if (currProgram != "" && funcArr[1] != "createDefaultProgram") {
+                    Sleep(50)
                     globalRunning[currProgram].resume()
                 }
 
@@ -250,10 +250,13 @@ class PauseInterface extends Interface {
         currDesktopMode := globalStatus["desktopmode"]
         currSuspend     := globalStatus["suspendScript"]
 
-        defaultOptions["KBMMode"] := {
-            title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
-            function: "kbmmode"
+        if (!currDesktopMode) {
+            defaultOptions["KBMMode"] := {
+                title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
+                function: "kbmmode"
+            }
         }
+        
         defaultOptions["DesktopMode"] := {
             title: (!currDesktopMode) ? "Enable Desktop Mode" : "Disable Desktop Mode", 
             function: "desktopmode"

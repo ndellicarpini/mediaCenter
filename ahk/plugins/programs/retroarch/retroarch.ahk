@@ -29,13 +29,13 @@ class RetroArchEmulator extends Emulator {
     }
 
     _fullscreen() {
-        Send("{Alt down}")
-        SendSafe("{Enter}")
-        Send("{Alt up}")
+        this.send("{Alt down}")
+        this.send("{Enter}")
+        this.send("{Alt up}")
     }
 
     _pause() {
-        SendSafe("p")
+        this.send("p", 120)
     }
 
     _resume() {
@@ -43,39 +43,39 @@ class RetroArchEmulator extends Emulator {
     }
     
     _saveState(slot) {
-        SendSafe("{F2}")
+        this.send("{F2}")
     }
 
     _loadState(slot) {
-        SendSafe("{F4}")
+        this.send("{F4}")
     }
 
     _reset() {
-        SendSafe("h")
+        this.send("h")
     }
 
     _fastForward() {
-        SendSafe("{Space}")
+        this.send("{Space}")
     }
 
     _rewind() {
         if (this.rewinding) {
-            Send("{r up}")
+            this.send("{r up}")
         }
         else {
-            Send("{r down}")
+            this.send("{r down}")
         }
     }
 
     ; custom function
     menu() {
         Sleep(50)
-        SendSafe("{F1}")
+        this.send("{F1}")
     }
 
     ; custom function
     mameMenu() { 
         Sleep(50)       
-        SendSafe("{Tab}")
+        this.send("{Tab}")
     }
 }

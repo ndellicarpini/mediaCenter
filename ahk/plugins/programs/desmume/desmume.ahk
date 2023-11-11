@@ -1,12 +1,12 @@
 class DeSmuMEEmulator extends Emulator {
     _fullscreen() {
-        Send("{Alt down}")
-        SendSafe("{Enter}")
-        Send("{Alt up}")
+        this.send("{Alt down}")
+        this.send("{Enter}")
+        this.send("{Alt up}")
     }
 
     _pause() {
-        SendSafe("{Pause}")
+        this.send("{Pause}")
     }
 
     _resume() {
@@ -14,37 +14,37 @@ class DeSmuMEEmulator extends Emulator {
     }
     
     _saveState(slot) {
-        Send("{Shift down}")
-        SendSafe("{F1}")
-        Send("{Shift up}")
+        this.send("{Shift down}")
+        this.send("{F1}")
+        this.send("{Shift up}")
     }
 
     _loadState(slot) {
-        SendSafe("{F1}")
+        this.send("{F1}")
     }
 
     _reset() {
-        Send("{Ctrl down}")
-        SendSafe("r")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("r")
+        this.send("{Ctrl up}")
     }
 
     _fastForward() {
         if (this.fastForwarding) {
-            Send("{Tab up}")
+            this.send("{Tab up}")
         }
         else {
-            Send("{Tab down}")
+            this.send("{Tab down}")
         }
     }
 
     ; custom function
     swapScreens() {
-        SendSafe("{PgDn}")
+        this.send("{PgDn}")
     }
 
     ; custom function
     layoutScreens() {
-        SendSafe("{End}")
+        this.send("{End}")
     }
 }

@@ -23,7 +23,7 @@ class VolumeInterface extends Interface {
         this.guiObj.MarginY := percentHeight(0.01)
 
         this.guiWidth  := percentWidth(0.2)
-        this.guiHeight := percentHeight(0.165)
+        this.guiHeight := percentHeight(0.17)
         maxHeight := percentHeight(0.5)
 
         this.SetFont("bold s24")
@@ -81,7 +81,7 @@ class VolumeInterface extends Interface {
         loop programList.Length {     
             ; adjust gui height up to max for additional programs
             if (this.guiHeight < maxHeight) {
-                newHeight := this.guiHeight + percentHeight(0.085)
+                newHeight := this.guiHeight + percentHeight(0.088)
                 this.guiHeight := (newHeight > maxHeight) ? maxHeight : newHeight
             }
 

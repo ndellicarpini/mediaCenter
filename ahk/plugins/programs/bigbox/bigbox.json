@@ -30,6 +30,10 @@
             "down": "Send '{S down}'",
             "up": "Send '{S up}'"
         },
+        "10": {
+            "down": "Send '{3 down}'",
+            "up": "Send '{3 up}'"
+        },
         "[REPEAT]5": {
             "down": "Send '{PgUp down}'",
             "up": "Send '{PgUp up}'"
@@ -54,21 +58,29 @@
             "down": "Send '{Right down}'",
             "up": "Send '{Right up}'"
         },
-        "[REPEAT]3<-0.4": {
+        "[HOLD]3<-0.4": {
             "down": "Send '{J down}'",
             "up": "Send '{J up}'"
         },
-        "[REPEAT]3>0.4": {
+        "[HOLD]3>0.4": {
             "down": "Send '{L down}'",
             "up": "Send '{L up}'"
         },
-        "[REPEAT]4<-0.4": {
+        "[HOLD]4<-0.4": {
+            "down": "Send '{K down}'",
+            "up": "Send '{K up}'"
+        },
+        "[HOLD]4>0.4": {
             "down": "Send '{I down}'",
             "up": "Send '{I up}'"
         },
-        "[REPEAT]4>0.4": {
-            "down": "Send '{K down}'",
-            "up": "Send '{K up}'"
+        "[REPEAT]5>0.2": {
+            "down": "Send '{N down}'",
+            "up": "Send '{N up}'"
+        },
+        "[REPEAT]6>0.2": {
+            "down": "Send '{M down}'",
+            "up": "Send '{M up}'"
         }
     }
 }

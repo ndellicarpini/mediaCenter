@@ -1,10 +1,10 @@
 class CitraEmulator extends Emulator {
     _fullscreen() {
-        SendSafe("{F11}")
+        this.send("{F11}")
     }
 
     _pause() {
-        SendSafe("{F4}")
+        this.send("{F4}")
     }
 
     _resume() {
@@ -12,34 +12,34 @@ class CitraEmulator extends Emulator {
     }
     
     _saveState(slot) {
-        Send("{Ctrl down}")
-        SendSafe("c")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("c")
+        this.send("{Ctrl up}")
     }
 
     _loadState(slot) {
-        Send("{Ctrl down}")
-        SendSafe("v")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("v")
+        this.send("{Ctrl up}")
     }
 
     _reset() {
-        SendSafe("{F6}")
+        this.send("{F6}")
     }
 
     _fastForward() {
-        Send("{Ctrl down}")
-        SendSafe("z")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("z")
+        this.send("{Ctrl up}")
     }
 
     ; custom function
     swapScreens() {
-        SendSafe("{F9}")
+        this.send("{F9}")
     }
 
     ; custom function
     layoutScreens() {
-        SendSafe("{F10}")
+        this.send("{F10}")
     }
 }

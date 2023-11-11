@@ -7,6 +7,7 @@
     "dir": "C:\\Emulators\\PPSSPP",
 
     "requireFullscreen": true,
+    // "overlayActivateFix": true,
 
     "numStates": 1,
     "fastForward": true,

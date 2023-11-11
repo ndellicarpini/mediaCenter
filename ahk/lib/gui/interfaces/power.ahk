@@ -50,7 +50,9 @@ class PowerInterface extends Interface {
             this._restoreMousePos := [x, y]
         }
 
-        super._Show("Center w" . this.guiWidth . " h" . this.guiHeight)
+        guiX := MONITOR_X + ((MONITOR_W / 2) - (this.guiWidth / 2))
+        guiY := MONITOR_Y + ((MONITOR_H / 2) - (this.guiHeight / 2))
+        super._Show("x" . guiX . " y" . guiY . " w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
         MouseMove(percentWidth(1), percentHeight(1))

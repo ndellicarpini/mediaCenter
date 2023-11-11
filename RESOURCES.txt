@@ -21,6 +21,7 @@ SCREENSHOT
 WINDOWS
 - replace shell REGEDIT: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
 - tabtip https://superuser.com/questions/1720607/open-touch-keyboard-via-command
+- taskbar unhide not working https://learn.microsoft.com/en-us/answers/questions/1230347/hidden-taskbar-function-is-out-of-work-by-using-sh
 
 STEAM
 - launch configs: Steam\userdata\${userid}\config\localconfig.vdf

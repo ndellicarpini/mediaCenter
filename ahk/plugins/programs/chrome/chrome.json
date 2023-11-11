@@ -4,9 +4,11 @@
     "className": "ChromeProgram",
 
     "allowQuickAccess": true,
+    "requireFullscreen": true,
 
     "dir": "C:\\Program Files\\Google\\Chrome\\Application\\",
     "exe": "chrome.exe",
+    "overlay": "Picture in picture",
 
     "mouse": {
         "initialPos": [0.5, 0.5],

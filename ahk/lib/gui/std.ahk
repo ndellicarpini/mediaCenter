@@ -87,7 +87,13 @@ setInterfaceOverrides() {
 ;
 ; returns proper size in pixels
 percentWidth(width, useSize := true, useDPI := false) {
-    return MONITOR_X + (width * MONITOR_W * ((useSize && width < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    retVal := MONITOR_X + (width * MONITOR_W * ((useSize && width < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    ; check that new width isn't greater than the screen
+    if (retVal > MONITOR_W) {
+        return MONITOR_W
+    }
+
+    return retVal
 }
 
 ; gets the proper height in pixels based on pixel size of screen
@@ -97,7 +103,13 @@ percentWidth(width, useSize := true, useDPI := false) {
 ;
 ; returns proper size in pixels
 percentHeight(height, useSize := true, useDPI := false) {
-    return MONITOR_Y + (height * MONITOR_H * ((useSize && height < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    retVal := MONITOR_Y + (height * MONITOR_H * ((useSize && height < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    ; check that new height isn't greater than the screen
+    if (retVal > MONITOR_H) {
+        return MONITOR_H
+    }
+
+    return retVal
 }
 
 ; gets the proper width in pixels based on pixel size of screen

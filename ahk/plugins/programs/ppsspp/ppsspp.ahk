@@ -1,12 +1,12 @@
 class PPSSPPEmulator extends Emulator {
     _fullscreen() {
-        Send("{Alt down}")
-        SendSafe("{Enter}")
-        Send("{Alt up}")
+        this.send("{Alt down}")
+        this.send("{Enter}")
+        this.send("{Alt up}")
     }
 
     _pause() {
-        SendSafe("{Escape}", 120)
+        this.send("{Escape}", 120)
     }
 
     _resume() {
@@ -14,25 +14,25 @@ class PPSSPPEmulator extends Emulator {
     }
     
     _saveState(slot) {
-        SendSafe("{F1}")
+        this.send("{F1}")
     }
 
     _loadState(slot) {
-        SendSafe("{F3}")
+        this.send("{F3}")
     }
 
     _reset() {
-        Send("{Ctrl down}")
-        SendSafe("b")
-        Send("{Ctrl up}")
+        this.send("{Ctrl down}")
+        this.send("b")
+        this.send("{Ctrl up}")
     }
 
     _fastForward() {
         if (this.fastForwarding) {
-            Send("{Tab up}")
+            this.send("{Tab up}")
         }
         else {
-            Send("{Tab down}")
+            this.send("{Tab down}")
         }
     }
 }

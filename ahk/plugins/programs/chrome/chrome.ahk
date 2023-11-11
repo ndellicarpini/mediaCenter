@@ -1,20 +1,29 @@
 class ChromeProgram extends Program {
-    _mouseMoveDelay := 0
+    _mouseMoveDelay := 100
+    _fullscreenDelay := 100
 
-    _getHWNDList() {
-        hwndList := super._getHWNDList()
-        loop hwndList.Length {
-            if (WinGetTitle(hwndList[A_Index]) = "Picture in picture") {
-                hwndList.RemoveAt(A_Index)
-                break
-            }
+    _restore() {
+        retVal := super._restore()
+
+        if (WinGetMinMax(this.getHWND()) = 1) {
+            this._fullscreen()
         }
 
-        return hwndList
+        return retVal
     }
 
     _fullscreen() {
-        SendSafe("{F11}")
+        super._fullscreen()
+        Sleep(80)
+
+        hwnd := this.getHWND()
+        if (WinGetMinMax(hwnd) = 1) {
+            WinRestoreMessage(hwnd)
+            Sleep(80)
+        }
+        
+        ; for some reason chrome's display area is smaller than the window (cool!)
+        WinMove(MONITOR_X - (MONITOR_W * 0.005), MONITOR_Y, MONITOR_W + (MONITOR_W * 0.01), MONITOR_H + (MONITOR_H * 0.01), hwnd)
     }
 
     _exit() {
@@ -24,7 +33,7 @@ class ChromeProgram extends Program {
             Sleep(100)
 
             if (WinExist("Leave site?")) {
-                ControlSend("{Enter}",, "Leave site?")
+                WindowSend("{Enter}", "Leave site?")
             }
 
             currHWND := this.getHWND()
@@ -33,8 +42,6 @@ class ChromeProgram extends Program {
 
     ; custom function
     pip() {
-        Send("{Alt down}")
-        SendSafe("p")
-        Send("{Alt up}")
+        this.send("!p")
     }
 }
