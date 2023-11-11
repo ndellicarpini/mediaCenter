@@ -480,26 +480,27 @@ WindowSend(key, window, time := -1) {
 		}
 	}
 
+	newKey := key
 	; parse key string so that "down" and "up" can be appended
 	if (lastModiferIndex > 0) {
-		key := SubStr(key, 1, (lastModiferIndex - 1))
+		newKey := SubStr(key, 1, (lastModiferIndex - 1))
 		if (SubStr(key, lastModiferIndex, 1) != "{") {
-			key .= "{"
+			newKey := newKey . "{"
 		}
 
-		key .= SubStr(key, lastModiferIndex) 
+		newKey := newKey . SubStr(key, lastModiferIndex) 
 	}
-	else if (SubStr(key, 1, 1) != "{") {
-		key := "{" . key
+	else if (SubStr(newKey, 1, 1) != "{") {
+		newKey := "{" . newKey
 	}
 
-	if (SubStr(key, -1, 1) = "}") {
-        key := SubStr(key, 1, StrLen(key) - 1)
+	if (SubStr(newKey, -1, 1) = "}") {
+        newKey := SubStr(newKey, 1, StrLen(newKey) - 1)
     }
 
-	ControlSend(key . " down}",, window)
+	ControlSend(newKey . " down}",, window)
 	Sleep(time)
-	ControlSend(key . " up}",, window)
+	ControlSend(newKey . " up}",, window)
 }
 
 ; holds a keybinding for x ms
@@ -537,26 +538,27 @@ SendSafe(key, time := -1) {
 		}
 	}
 
+	newKey := key
 	; parse key string so that "down" and "up" can be appended
 	if (lastModiferIndex > 0) {
-		key := SubStr(key, 1, (lastModiferIndex - 1))
+		newKey := SubStr(key, 1, (lastModiferIndex - 1))
 		if (SubStr(key, lastModiferIndex, 1) != "{") {
-			key .= "{"
+			newKey := newKey . "{"
 		}
 
-		key .= SubStr(key, lastModiferIndex) 
+		newKey := newKey . SubStr(key, lastModiferIndex) 
 	}
-	else if (SubStr(key, 1, 1) != "{") {
-		key := "{" . key
+	else if (SubStr(newKey, 1, 1) != "{") {
+		newKey := "{" . newKey
 	}
 
-	if (SubStr(key, -1, 1) = "}") {
-        key := SubStr(key, 1, StrLen(key) - 1)
+	if (SubStr(newKey, -1, 1) = "}") {
+        newKey := SubStr(newKey, 1, StrLen(newKey) - 1)
     }
 
-	Send(key . " down}")
+	Send(newKey . " down}")
 	Sleep(time)
-	Send(key . " up}")
+	Send(newKey . " up}")
 }
 
 ; deep clones an object, supporting Maps & Arrays
