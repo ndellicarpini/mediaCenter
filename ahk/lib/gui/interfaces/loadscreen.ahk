@@ -1,9 +1,12 @@
 class LoadScreenInterface extends Interface {
+    id := "loadscreen"
+    title := INTERFACES["loadscreen"]["wndw"]
+
     controlsVisible := true
     _restoreControlsList := []
 
     __New(text) {
-        super.__New(INTERFACES["loadscreen"]["wndw"], GUI_OPTIONS)
+        super.__New(GUI_OPTIONS)
 
         this.guiObj.BackColor := COLOR1
         this.guiObj.marginX := percentWidth(0.01, false)

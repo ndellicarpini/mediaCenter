@@ -1,4 +1,7 @@
 class ChoiceInterface extends Interface {
+    id := "choice"
+    title := INTERFACES["choice"]["wndw"]
+
     guiWidth := 0
     guiHeight := 0
 
@@ -13,7 +16,7 @@ class ChoiceInterface extends Interface {
             rColor := "30BF30"
         }
 
-        super.__New(INTERFACES["choice"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop +Overlay000000")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop +Overlay000000")
 
         this.unselectColor := COLOR1
         this.selectColor   := COLOR3

@@ -1,4 +1,7 @@
 class PauseInterface extends Interface {
+    id := "pause"
+    title := INTERFACES["pause"]["wndw"]
+
     allowPause := true
 
     monitorTimer := 0
@@ -15,7 +18,7 @@ class PauseInterface extends Interface {
 
         currProgram := globalStatus["currProgram"]["id"]
 
-        super.__New(INTERFACES["pause"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop")
     
         this.unselectColor := COLOR1
         this.selectColor := COLOR3
@@ -151,7 +154,7 @@ class PauseInterface extends Interface {
         PauseSecondTimer() {
             global globalConfig
             
-            if (!WinShown(INTERFACES["pause"]["wndw"])) {
+            if (!WinShown(this.title)) {
                 return
             }
 

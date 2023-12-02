@@ -1,7 +1,7 @@
 {
     "id": "steam",
     "name": "Steam",
-    "className": "SteamNewUIProgram",
+    "className": "SteamProgram",
 
     "exe": "steam.exe",
     "dir": "C:\\Steam",

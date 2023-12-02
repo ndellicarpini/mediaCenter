@@ -1,10 +1,13 @@
 class MessageInterface extends Interface {
+    id := "message"
+    title := INTERFACES["message"]["wndw"]
+
     allowFocus := true
 
     timeout := 0
 
     __New(message, timeout := 0) {
-        super.__New(INTERFACES["message"]["wndw"], "+AlwaysOnTop " . GUI_OPTIONS)
+        super.__New("+AlwaysOnTop " . GUI_OPTIONS)
 
         this.timeout := timeout
         
@@ -24,7 +27,7 @@ class MessageInterface extends Interface {
         return
 
         MsgCloseTimer() {
-            if (WinShown(INTERFACES["message"]["wndw"])) {
+            if (WinShown(this.title)) {
                 this.Destroy()
             }
 

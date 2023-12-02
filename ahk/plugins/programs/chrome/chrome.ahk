@@ -13,9 +13,6 @@ class ChromeProgram extends Program {
     }
 
     _fullscreen() {
-        super._fullscreen()
-        Sleep(80)
-
         hwnd := this.getHWND()
         if (WinGetMinMax(hwnd) = 1) {
             WinRestoreMessage(hwnd)
@@ -24,6 +21,17 @@ class ChromeProgram extends Program {
         
         ; for some reason chrome's display area is smaller than the window (cool!)
         WinMove(MONITOR_X - (MONITOR_W * 0.005), MONITOR_Y, MONITOR_W + (MONITOR_W * 0.01), MONITOR_H + (MONITOR_H * 0.01), hwnd)
+    }
+
+    _checkFullscreen() {
+        hwnd := this.getHWND()
+
+        try {
+            WinGetClientPos(,, &W, &H, hwnd)
+            return (W >= MONITOR_W && H >= MONITOR_H) ? true : false
+        }
+
+        return false
     }
 
     _exit() {

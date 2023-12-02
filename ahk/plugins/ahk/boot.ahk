@@ -16,7 +16,7 @@ customBoot() {
     }
 
     if (!ProcessExist("steam.exe")) {
-        createProgram("steam", true, false)
+        createProgram(["steam", "wait=false"], true, false)
     }
     
     resetLoadScreen()

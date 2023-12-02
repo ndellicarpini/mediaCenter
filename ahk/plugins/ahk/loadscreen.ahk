@@ -3,7 +3,7 @@ class SpinLoadScreen extends LoadScreenInterface {
         global globalConfig
 
         ; disgusting way to get to the granddaddy class
-        (SpinLoadScreen.Base.Base.Prototype.__New)(this, INTERFACES["loadscreen"]["wndw"], GUI_OPTIONS)
+        (SpinLoadScreen.Base.Base.Prototype.__New)(this, GUI_OPTIONS)
 
         this.guiObj.BackColor := COLOR1
         this.SetFont("s26")

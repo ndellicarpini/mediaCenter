@@ -1,4 +1,7 @@
 class InputInterface extends Interface {
+    id := "input"
+    title := INTERFACES["input"]["wndw"]
+
     vibrating := []
 
     guiWidth := 0
@@ -9,7 +12,7 @@ class InputInterface extends Interface {
         global globalInputStatus
         global globalInputConfigs
 
-        super.__New(INTERFACES["input"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop")
 
         this.unselectColor := COLOR1
         this.selectColor := COLOR3
@@ -112,7 +115,7 @@ class InputInterface extends Interface {
             global globalConfig
             global globalInputStatus
 
-            if (!WinShown(INTERFACES["input"]["wndw"])) {
+            if (!WinShown(this.title)) {
                 return
             }
 

@@ -5,7 +5,8 @@ class KodiProgram extends Program {
 
     ; custom function
     reload() {
-        this.exit()
+        this.exit(false)
         Sleep(500)
+        this.launch()
     }
 }

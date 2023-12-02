@@ -286,14 +286,19 @@ class Program {
         }
     }
     _launch(args*) {
-        ; run dir\exe
-        if (!IsObject(this.exe) && this.exe != "") {
-            ; Run this.dir . this.exe . A_Space . joinArray(args), this.dir, ((this.background) ? "Hide" : "Max")
-            RunAsUser(this.dir . this.exe, args, this.dir)
+        try {
+            ; run dir\exe
+            if (!IsObject(this.exe) && this.exe != "") {
+                ; Run this.dir . this.exe . A_Space . joinArray(args), this.dir, ((this.background) ? "Hide" : "Max")
+                RunAsUser(this.dir . this.exe, args, this.dir)
+            }
+            ; fail
+            else {
+                ErrorMsg(this.name . "does not have an exe defined, it cannot be launched with default settings")
+                return false
+            }
         }
-        ; fail
-        else {
-            ErrorMsg(this.name . "does not have an exe defined, it cannot be launched with default settings")
+        catch {
             return false
         }
     }
@@ -795,7 +800,10 @@ class Program {
     }
 
     ; exit program 
-    exit() {
+    exit(updateGlobalRunning := true) {
+        global globalStatus
+        global globalRunning
+
         ; disable hotkeys
         this.hotkeys := Map()
         this.shouldExit := true
@@ -806,9 +814,13 @@ class Program {
         Critical("On")
 
         this._exit()
-
+        
         Sleep(500)
         resetLoadScreen()
+
+        if (updateGlobalRunning) {
+            updatePrograms()
+        }
 
         Critical(restoreCritical)
         return
@@ -1494,6 +1506,29 @@ createDefaultProgram() {
     }
 }
 
+; get the most recently opened program if it exists, otherwise return blank
+;  checkBackground - boolean if to check background apps as well
+;
+; returns either name of recently opened program or empty string
+getMostRecentProgram(checkBackground := false) {
+    global globalRunning
+
+    prevTime := -1
+    prevProgram := ""
+    for key, value in globalRunning {
+        if (!checkBackground && value.background) {
+            continue
+        }
+
+        if (value.time > prevTime) {
+            prevTime := value.time
+            prevProgram := key
+        }
+    }
+
+    return prevProgram
+}
+
 ; sets the requested id as the current program if it exists
 ;  id - id of program to set as current
 ;
@@ -1554,29 +1589,6 @@ resetCurrentProgram() {
     globalStatus["currProgram"]["id"] := ""
     globalStatus["currProgram"]["exe"] := ""
     globalStatus["currProgram"]["hwnd"] := 0
-}
-
-; get the most recently opened program if it exists, otherwise return blank
-;  checkBackground - boolean if to check background apps as well
-;
-; returns either name of recently opened program or empty string
-getMostRecentProgram(checkBackground := false) {
-    global globalRunning
-
-    prevTime := -1
-    prevProgram := ""
-    for key, value in globalRunning {
-        if (!checkBackground && value.background) {
-            continue
-        }
-
-        if (value.time > prevTime) {
-            prevTime := value.time
-            prevProgram := key
-        }
-    }
-
-    return prevProgram
 }
 
 ; checks & updates the running list of programs
@@ -1643,6 +1655,25 @@ checkAllPrograms() {
     }
 }
 
+; updates the global running list & the current program
+;
+; returns null
+updatePrograms() {
+    global globalStatus
+
+    currProgram := globalStatus["currProgram"]["id"]
+
+    checkAllPrograms()
+
+    mostRecentProgram := getMostRecentProgram()
+    if (mostRecentProgram = "") {
+        resetCurrentProgram()
+    }
+    else if (mostRecentProgram != currProgram) {
+        setCurrentProgram(mostRecentProgram)
+    }
+}
+
 ; updates program list & exits all existing programs
 ;
 ; returns null
@@ -1654,7 +1685,7 @@ exitAllPrograms() {
     while (globalRunning.Count > 0) {
         name := getMostRecentProgram(true)
 
-        globalRunning[name].exit()
+        globalRunning[name].exit(false)
         Sleep(250)
 
         if (globalRunning[name].exists()) {

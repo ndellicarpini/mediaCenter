@@ -12,3 +12,4 @@ if (!WinExist(MAINNAME)) {
 }
 
 sendListToMain(A_Args)
+ExitApp()

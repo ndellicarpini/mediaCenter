@@ -12,6 +12,7 @@
 #Include plugins\programs\desmume\desmume.ahk
 #Include plugins\programs\dolphin\dolphin.ahk
 #Include plugins\programs\eagame\eagame.ahk
+#Include plugins\programs\eagame\overrides\madden.ahk
 #Include plugins\programs\kodi\kodi.ahk
 #Include plugins\programs\pcsx2\pcsx2.ahk
 #Include plugins\programs\ppsspp\ppsspp.ahk
@@ -20,7 +21,31 @@
 #Include plugins\programs\ryujinx\ryujinx.ahk
 #Include plugins\programs\steam\steam.ahk
 #Include plugins\programs\steam\steamgame.ahk
+#Include plugins\programs\steam\overrides\batmanarkham.ahk
+#Include plugins\programs\steam\overrides\bioshockHD.ahk
+#Include plugins\programs\steam\overrides\bluefire.ahk
+#Include plugins\programs\steam\overrides\braid.ahk
+#Include plugins\programs\steam\overrides\clustertruck.ahk
+#Include plugins\programs\steam\overrides\darksouls3.ahk
+#Include plugins\programs\steam\overrides\elderscrolls.ahk
+#Include plugins\programs\steam\overrides\fallout.ahk
+#Include plugins\programs\steam\overrides\finalfantasy.ahk
+#Include plugins\programs\steam\overrides\hitman.ahk
+#Include plugins\programs\steam\overrides\hotlinemiami.ahk
+#Include plugins\programs\steam\overrides\outrun.ahk
+#Include plugins\programs\steam\overrides\reddead.ahk
+#Include plugins\programs\steam\overrides\saintsrow.ahk
+#Include plugins\programs\steam\overrides\shenmue.ahk
+#Include plugins\programs\steam\overrides\spiderman.ahk
+#Include plugins\programs\steam\overrides\superhot.ahk
+#Include plugins\programs\steam\overrides\undertale.ahk
+#Include plugins\programs\steam\overrides\witcher.ahk
 #Include plugins\programs\wingame\wingame.ahk
+#Include plugins\programs\wingame\overrides\elderscrolls.ahk
+#Include plugins\programs\wingame\overrides\gta.ahk
+#Include plugins\programs\wingame\overrides\meltyblood.ahk
+#Include plugins\programs\wingame\overrides\n64decomp.ahk
+#Include plugins\programs\wingame\overrides\testdriveunlimited.ahk
 #Include plugins\programs\xemu\xemu.ahk
 #Include plugins\programs\xenia\xenia.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
@@ -414,28 +439,7 @@ loop {
             }
         } 
         else {
-            if (globalGuis.Has(currGui)) {
-                globalGuis[currGui].Destroy()
-                globalGuis.Delete(currGui)
-                
-                Sleep(50)
-
-                if (WinShown(currWNDW)) {
-                    WinClose(currWNDW)
-                }
-            }
-
-            checkAllGuis()
-
-            mostRecentGui := getMostRecentGui()
-            if (mostRecentGui = "") {
-                globalStatus["currGui"] := ""
-            }
-            else if (mostRecentGui != currGui) {
-                setCurrentGui(mostRecentGui)
-
-                continue
-            }
+            updateGuis()
         }
     }
     
@@ -469,67 +473,31 @@ loop {
     currProgram := globalStatus["currProgram"]["id"]
 
     if (currProgram != "" && !currSuspended && !currDesktopMode && send2MainBuffer.Length = 0) {
-        if (globalRunning.Has(currProgram)) {
-            if (globalRunning[currProgram].exists(false, true)) {
-                if (!activeSet) {
-                    if (forceActivate) {
-                        try globalRunning[currProgram].restore()
-                    }
-                    else {
-                        try globalRunning[currProgram].resume()
-                    }
-
-                    activeSet := true
+        if (globalRunning.Has(currProgram) && globalRunning[currProgram].exists(false, true)) {
+            if (!activeSet) {
+                if (forceActivate) {
+                    try globalRunning[currProgram].restore()
+                }
+                else {
+                    try globalRunning[currProgram].resume()
                 }
 
-                if (hotkeySource = "") {                                                                    
-                    hotkeySource := currProgram
-                }
+                activeSet := true
             }
-            else {
-                checkAllPrograms()
 
-                mostRecentProgram := getMostRecentProgram()
-                if (mostRecentProgram = "") {
-                    resetCurrentProgram()
-                }
-                else if (mostRecentProgram != currProgram) {
-                    setCurrentProgram(mostRecentProgram)
-                    
-                    continue
-                }
+            if (hotkeySource = "") {                                                                    
+                hotkeySource := currProgram
             }
-        } 
+        }
         else {
-            createProgram(currProgram, false, false)
+            updatePrograms()
         }   
     }
 
     ; --- CHECK ALL OPEN PROGRAMS / GUIS ---
     if ((delayCount > maxDelayCount || !activeSet) && !currSuspended && send2MainBuffer.Length = 0) {
-        checkAllGuis()
-
-        mostRecentGui := getMostRecentGui()
-        if (mostRecentGui = "") {
-            globalStatus["currGui"] := ""
-        }
-        else if (mostRecentGui != currGui) {
-            setCurrentGui(mostRecentGui)
-
-            continue
-        }
-
-        checkAllPrograms()
-
-        mostRecentProgram := getMostRecentProgram()
-        if (mostRecentProgram = "") {
-            resetCurrentProgram()
-        }
-        else if (mostRecentProgram != currProgram) {
-            setCurrentProgram(mostRecentProgram)
-            
-            continue
-        }
+        updateGuis()
+        updatePrograms()
     }
 
     ; update hotkey source
@@ -556,6 +524,22 @@ loop {
         if (forceMaintain && !WinHidden(MAINLOOP)) {
             Run A_AhkPath . A_Space . "maintainer.ahk", A_ScriptDir, "Hide"
         }
+
+        ; check that no other instances of main are running
+        restoreDHW := A_DetectHiddenWindows
+        DetectHiddenWindows(true)
+
+        mainList := WinGetList(MAINNAME)
+        currHWND := WinExist("ahk_pid " DllCall("GetCurrentProcessId"))
+        if (mainList.Length > 1) {
+            for hwnd in mainList {
+                if (hwnd != currHWND) {
+                    ProcessClose(WinGetPID(hwnd))
+                }
+            }
+        }
+
+        DetectHiddenWindows(restoreDHW)
 
         delayCount := 0
     }
@@ -602,11 +586,13 @@ InputBufferTimer() {
                 return
             }
 
-            if (!globalGuis.Has("pause")) {
-                createInterface("pause")
-            }
-            else {
-                try globalGuis["pause"].Destroy()
+            try {
+                if (!globalGuis.Has("pause")) {
+                    createInterface("pause")
+                }
+                else {
+                    globalGuis["pause"].Destroy()
+                }
             }
         }
 
@@ -645,10 +631,6 @@ InputBufferTimer() {
             if (tempFunc = "exit") {
                 if (currProgram != "" && globalRunning[currProgram].allowExit) {
                     try globalRunning[currProgram].exit()
-        
-                    if (globalRunning.Has(currProgram) && !globalRunning[currProgram].exists()) {
-                        resetCurrentProgram()
-                    }
                 }
             }
             else {

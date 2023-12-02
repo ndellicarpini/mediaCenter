@@ -3,7 +3,9 @@
 ; this obj is used like a gui, but 'Add' supports addition params for interaction settings
 class Interface {
     ; attributes
-    guiObj := ""
+    id         := ""
+    title      := ""
+    guiObj     := ""
     overlayObj := ""
 
     allowPause := false
@@ -26,7 +28,9 @@ class Interface {
     _scrollVOffset := 0
     _scrollHOffset := 0
 
-    __New(title, options := "", eventObj := "") {
+    ; base constructor for interface
+    ; designed to be called from descendent __New() function
+    __New(options := "", eventObj := "") {
         customOptions := []
 
         optionsArr := StrSplit(options, A_Space)
@@ -45,10 +49,10 @@ class Interface {
         
         ; create the gui object
         if (eventObj != "") {
-            this.guiObj := Gui(options, title, eventObj)
+            this.guiObj := Gui(options, this.title, eventObj)
         }
         else {
-            this.guiObj := Gui(options, title)
+            this.guiObj := Gui(options, this.title)
         }
 
         this.time := A_TickCount
@@ -150,29 +154,35 @@ class Interface {
     ; exactly like gui.destroy
     ; 
     ; returns null
-    Destroy() {
+    Destroy(updateGlobalGuis := true) {
+        global globalStatus
+        global globalGuis
+
         restoreCritical := A_IsCritical
         Critical("On")
+
+        this._Destroy()
 
         if (this.overlayObj != "") {
             try this.overlayObj.Destroy()
             this.overlayObj := ""
-            SetTimer(OverlayKill, -100)
+        }
+                
+        Sleep(80)
+
+        ; sometimes destroy doesn't work, so double check
+        if (WinShown(this.title)) {
+            WinClose(this.title)
+        }
+        if (WinExist("AHKOVERLAY")) {
+            WinCloseAll("AHKOVERLAY")
         }
 
-        this._Destroy()
+        if (updateGlobalGuis) {
+            updateGuis()
+        }
 
         Critical(restoreCritical)
-        return
-
-        ; omega kill this stupid overlay bc sometimes destroy doesn't work i guess??
-        OverlayKill() {
-            if (WinExist("AHKOVERLAY")) {
-                WinCloseAll("AHKOVERLAY")
-            }
-
-            return
-        }
     }
     _Destroy() {
         if (this.guiObj != "") {
@@ -894,5 +904,24 @@ checkAllGuis() {
 
     for item in toDelete {
         globalGuis.Delete(item)
+    }
+}
+
+; updates the global guis list & the current gui
+;
+; returns null
+updateGuis() {
+    global globalStatus
+
+    currGui := globalStatus["currGui"]
+
+    checkAllGuis()
+
+    mostRecentGui := getMostRecentGui()
+    if (mostRecentGui = "") {
+        globalStatus["currGui"] := ""
+    }
+    else if (mostRecentGui != currGui) {
+        setCurrentGui(mostRecentGui)
     }
 }

@@ -69,7 +69,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 return
             }
 
-            WindowSend(key, globalStatus["currProgram"]["hwnd"], time)
+            WindowSend(key, globalStatus["currProgram"]["hwnd"], time, true)
         }
 
         ; updates the global input status

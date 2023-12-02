@@ -1,4 +1,7 @@
 class PowerInterface extends Interface {
+    id := "power"
+    title := INTERFACES["power"]["wndw"]
+
     guiWidth := 0
     guiHeight := 0
 
@@ -7,7 +10,7 @@ class PowerInterface extends Interface {
     __New() {
         global globalConfig
 
-        super.__New(INTERFACES["power"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop +Overlay000000")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop +Overlay000000")
 
         this.unselectColor := COLOR2
         this.selectColor   := COLOR3

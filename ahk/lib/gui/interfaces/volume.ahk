@@ -1,4 +1,7 @@
 class VolumeInterface extends Interface {
+    id := "volume"
+    title := INTERFACES["volume"]["wndw"]
+
     guiWidth := 0
     guiHeight := 0
 
@@ -13,7 +16,7 @@ class VolumeInterface extends Interface {
         global globalConfig
         global globalRunning
 
-        super.__New(INTERFACES["volume"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop")
 
         this.unselectColor := COLOR2
         this.selectColor := COLOR3

@@ -1,4 +1,7 @@
 class ProgramInterface extends Interface {
+    id := "program"
+    title := INTERFACES["program"]["wndw"]
+
     guiWidth := 0
     guiHeight := 0
 
@@ -8,7 +11,7 @@ class ProgramInterface extends Interface {
         global globalConfig
         global globalRunning
 
-        super.__New(INTERFACES["program"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop +Overlay000000")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop +Overlay000000")
 
         this.unselectColor := COLOR1
         this.selectColor   := COLOR3

@@ -5,7 +5,12 @@ class EAGameProgram extends Program {
         exe := pathArr.RemoveAt(pathArr.Length)
         path := LTrim(joinArray(pathArr, "\"), '"' . "'")
     
-        RunAsUser(game, args, path)
+        try {
+            RunAsUser(game, args, path)
+        }
+        catch {
+            return false
+        }
 
         restoreLoadText := globalStatus["loadscreen"]["text"]
         setLoadScreen("Waiting for EA Games...")
@@ -89,14 +94,5 @@ class EAGameProgram extends Program {
         }
 
         ProcessClose("EABackgroundService.exe")
-    }
-}
-
-class Madden19Program extends EAGameProgram {
-    _postLaunchDelay := 1500
-    _mouseMoveDelay  := 20000
-
-    _postLaunch() {
-        this.send("{Enter}")
     }
 }

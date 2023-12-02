@@ -23,6 +23,9 @@ qwerty := Map(
 )
 
 class KeyboardInterface extends Interface {
+    id := "keyboard"
+    title := INTERFACES["keyboard"]["wndw"]
+
     allowPause := true
 
     caps  := false
@@ -42,7 +45,7 @@ class KeyboardInterface extends Interface {
     guiHeight := 0
 
     __New() {
-        super.__New(INTERFACES["keyboard"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop +ToolWindow +E0x08000088")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop +ToolWindow +E0x08000088")
 
         this.layout := qwerty
 

@@ -1,4 +1,7 @@
 class NotificationInterface extends Interface {
+    id := "notification"
+    title := INTERFACES["notification"]["wndw"]
+
     allowFocus := false
     marginX := percentWidth(0.015, false)
     marginY := percentHeight(0.015, false)
@@ -13,7 +16,7 @@ class NotificationInterface extends Interface {
     position := "bottom-right"
 
     __New(message, timeout := 0, position := "bottom-right") {
-        super.__New(INTERFACES["notification"]["wndw"], GUI_OPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop +Disabled +ToolWindow +E0x20")
         
         this.timeout := timeout
         this.position := position
@@ -46,7 +49,7 @@ class NotificationInterface extends Interface {
         }
     
         super._Show("NoActivate AutoSize " . offset)
-        WinSetTransparent(230, INTERFACES["notification"]["wndw"])
+        WinSetTransparent(230, this.title)
 
         if (this.timeout != 0) {
             SetTimer(MsgCloseTimer, Neg(this.timeout))
@@ -55,7 +58,7 @@ class NotificationInterface extends Interface {
         return
 
         MsgCloseTimer() {
-            if (WinShown(INTERFACES["message"]["wndw"])) {
+            if (WinShown(this.title)) {
                 this.Destroy()
             }
 

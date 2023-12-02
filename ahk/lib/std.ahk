@@ -441,12 +441,13 @@ SetCurrentWinTitle(name) {
 ; wrapper for control send to work in runFunction
 ;  key - same as ControlSend
 ;  window - same as ControlSend
-;  time - time in ms to hold key
+;  time - time in ms to hold 
+;  async - use timer instead of sleep for "up" press
 ;
 ; returns null
-WindowSend(key, window, time := -1) {
-	; send the key normally if window is active
-	if (WinActive(window)) {
+WindowSend(key, window, time := -1, async := false) {
+	; send the key normally if window is active or doesnt exist
+	if (WinActive(window) || !WinExist(window)) {
 		SendSafe(key, time)
 		return
 	}
@@ -499,16 +500,35 @@ WindowSend(key, window, time := -1) {
     }
 
 	ControlSend(newKey . " down}",, window)
-	Sleep(time)
-	ControlSend(newKey . " up}",, window)
+	if (!async) {
+		Sleep(time)
+		ControlSend(newKey . " up}",, window)
+	}
+	else {
+		SetTimer(AsyncRelease.Bind(newKey . " up}", window), Neg(time))
+	}
+
+	return
+
+	AsyncRelease(releaseKey, window) {
+		if (WinExist(window) && !WinActive(window)) {
+			ControlSend(releaseKey,, window)
+		}
+		else {
+			Send(releaseKey)
+		}
+		
+		return
+	}
 }
 
 ; holds a keybinding for x ms
 ;  key - key to press/hold (must be single key, can't be combo)
 ;  time - time in ms to hold key
+;  async - use timer instead of sleep for "up" press
 ;
 ; returns null
-SendSafe(key, time := -1) {
+SendSafe(key, time := -1, async := false) {
 	; if there's multiple spaces, just send (why did i do this?)
 	if (StrSplit(key, A_Space).Length > 2) {
 		if (time = -1) {
@@ -557,8 +577,20 @@ SendSafe(key, time := -1) {
     }
 
 	Send(newKey . " down}")
-	Sleep(time)
-	Send(newKey . " up}")
+	if (!async) {
+		Sleep(time)
+		Send(newKey . " up}")
+	}
+	else {
+		SetTimer(AsyncRelease.Bind(newKey . " up}"), Neg(time))
+	}
+
+	return
+
+	AsyncRelease(releaseKey) {
+		Send(releaseKey)
+		return
+	}
 }
 
 ; deep clones an object, supporting Maps & Arrays

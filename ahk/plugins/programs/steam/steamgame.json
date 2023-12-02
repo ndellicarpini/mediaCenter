@@ -1,7 +1,7 @@
 {
     "id": "steamgame",
 	"name": "Windows Game",
-	"className": "SteamNewUIGameProgram",
+	"className": "SteamGameProgram",
 
 	"requireInternet": true,
 	"requireFullscreen": true,
@@ -276,7 +276,9 @@
 		"THPS12.exe",
 		"Windjammers2.exe",
 		"HITMAN3.exe",
-		"sh3.exe"
+		"sh3.exe",
+		"BH6.exe",
+		"SonicFrontiers.exe"
     ],
 
 	"overrides": {

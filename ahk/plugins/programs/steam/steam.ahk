@@ -1,52 +1,38 @@
 class SteamProgram extends Program {
     _launch(args*) {
-        super._launch(args*)
-        Sleep(5000)
-    }
-
-    _exit() {
-        RunAsUser(this.dir . this.exe, "-shutdown", this.dir)
-
-        try {
-            count := 0
-            maxCount := 250
-            ; wait for program executable to close
-            while (this.exists() && count < maxCount) {
-                exe := this.getEXE()
-                if (exe = "") {
-                    break
-                }
-
-                ; attempt to processclose @ 20s
-                if (count = 200) {
-                    ProcessClose(exe)
-                }
-                
-                count += 1
-                Sleep(100)
-            }
-
-            Sleep(1000)
-
-            ; if exists -> go nuclear @ 25s
-            if (this.exists()) {
-                ProcessKill(this.getPID())
-            }
-        }
-    }
-}
-
-class SteamNewUIProgram extends Program {
-    _launch(args*) {
         global globalStatus
 
+        enableWait := true
+        ; check if custom "wait" arg exists
+        loop args.Length {
+            if (SubStr(StrLower(args[A_Index]), 1, 4) != "wait") {
+                continue
+            }
+
+            tempArg := StrSplit(StrLower(args[A_Index]), "=",, 2)
+            if (tempArg.Length > 1) {
+                waitVal := Trim(tempArg[2])
+                if (waitVal = "false" || waitVal = "0") {
+                    enableWait := false
+                }
+            }
+
+            args.RemoveAt(A_Index)
+            break
+        }
+
+        try {
+            ; need to run steam as a regular user unless family sharing doesn't work????
+            RunAsUser(this.dir . this.exe, args, this.dir)
+        }
+        catch {
+            return false
+        }
+        
         resetTTM := A_TitleMatchMode
         SetTitleMatchMode(3)
 
         globalStatus["loadscreen"]["overrideWNDW"] := "Sign in to Steam"
-
-        ; need to run steam as a regular user unless family sharing doesn't work????
-        RunAsUser(this.dir . this.exe, args, this.dir)
         
         count := 0
         maxCount := 200
@@ -54,6 +40,15 @@ class SteamNewUIProgram extends Program {
         while (!(ProcessExist("steamwebhelper.exe") && WinExist("Sign in to Steam")) && count < maxCount) {
             count += 1
             Sleep(100)
+        }
+
+        ; don't wait for the "Logging In" window to disappear
+        if (!enableWait) {
+            Sleep(2000)
+
+            globalStatus["loadscreen"]["overrideWNDW"] := ""
+            SetTitleMatchMode(resetTTM)
+            return
         }
 
         count := 0
@@ -85,9 +80,9 @@ class SteamNewUIProgram extends Program {
     }
 
     _exit() {
-        RunAsUser(this.dir . this.exe, "-shutdown", this.dir)
-
         try {
+            RunAsUser(this.dir . this.exe, "-shutdown", this.dir)
+
             count := 0
             maxCount := 400
             ; wait for program executable to close
