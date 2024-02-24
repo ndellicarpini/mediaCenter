@@ -7,6 +7,6 @@ class KodiProgram extends Program {
     reload() {
         this.exit(false)
         Sleep(500)
-        this.launch()
+        this.launch(ObjDeepClone(this._launchArgs))
     }
 }

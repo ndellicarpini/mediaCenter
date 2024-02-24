@@ -6,7 +6,7 @@ class DeSmuMEEmulator extends Emulator {
     }
 
     _pause() {
-        this.send("{Pause}")
+        this.send("{Pause}", 150)
     }
 
     _resume() {

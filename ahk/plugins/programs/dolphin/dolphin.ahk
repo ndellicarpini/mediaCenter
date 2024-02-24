@@ -26,7 +26,7 @@ class DolphinEmulator extends Emulator {
     ; }
 
     _pause() {
-        this.send("{F10}")
+        this.send("{F10}", 150)
     }
 
     _resume() {

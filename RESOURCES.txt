@@ -1,4 +1,5 @@
 https://www.autohotkey.com/board/topic/3180-how-can-i-get-the-system-time/
+https://www.autohotkey.com/board/topic/65672-suppressing-run-time-error-messages/
 
 
 XINPUT
@@ -25,3 +26,10 @@ WINDOWS
 
 STEAM
 - launch configs: Steam\userdata\${userid}\config\localconfig.vdf
+
+KODI 
+- fix twitch thumbnails -> in converter.py
+- disable gamepad (shoudld i delete this?)
+  - https://forums.libretro.com/t/game-controller-inputs-running-in-the-backgroud-of-kodi-after-launching-retrorch/3640/2
+  - https://kodi.wiki/view/JSON-RPC_API#Transports
+  - https://www.autohotkey.com/boards/viewtopic.php?t=61259

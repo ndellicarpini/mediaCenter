@@ -6,7 +6,7 @@ class RyujinxEmulator extends Emulator {
     }
 
     _pause() {
-        this.send("{F5}")
+        this.send("{F5}", 150)
     }
 
     _resume() {

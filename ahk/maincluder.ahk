@@ -77,4 +77,4 @@ mainFile.Write(newMainString)
 mainFile.Close()
 
 Sleep(100)
-ExitApp()
+ProcessClose(DllCall("GetCurrentProcessId"))

@@ -35,7 +35,7 @@ class RetroArchEmulator extends Emulator {
     }
 
     _pause() {
-        this.send("p", 120)
+        this.send("p", 150)
     }
 
     _resume() {

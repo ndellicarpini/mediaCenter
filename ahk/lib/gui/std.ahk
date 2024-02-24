@@ -29,7 +29,7 @@ setGUIConstants() {
         ? StrReplace(globalConfig["GUI"]["PrimaryColor"], "#") : "000000"
 
     COLOR2 := (globalConfig["GUI"].Has("SecondaryColor") && RegExMatch(globalConfig["GUI"]["SecondaryColor"], "U)#[a-fA-F0-9]{6}"))
-        ? StrReplace(globalConfig["GUI"]["SecondaryColor"], "#") : "1a1a1a"
+        ? StrReplace(globalConfig["GUI"]["SecondaryColor"], "#") : "1d1d1d"
 
     COLOR3 := (globalConfig["GUI"].Has("SelectionColor") && RegExMatch(globalConfig["GUI"]["SelectionColor"], "U)#[a-fA-F0-9]{6}"))
         ? StrReplace(globalConfig["GUI"]["SelectionColor"], "#") : "3399ff"
@@ -115,23 +115,25 @@ percentHeight(height, useSize := true, useDPI := false) {
 ; gets the proper width in pixels based on pixel size of screen
 ;  width - percentage of the window width
 ;  wndw - wndw title to get screen pixels from
+;  useDPI - whether or not to apply the screen's dpi
 ;
 ; returns proper size in pixels
-percentWidthRelativeWndw(width, wndw) {
+percentWidthRelativeWndw(width, wndw, useDPI := false) {
     WinGetPos(&X, &Y, &W, &H, wndw)
 
-    return X + (width * W) 
+    return X + ((width * ((useDPI) ? (A_ScreenDPI / 96) : 1)) * W) 
 }
 
 ; gets the proper height in pixels based on pixel size of screen
 ;  height - percentage of the window height
 ;  wndw - wndw title to get screen pixels from
+;  useDPI - whether or not to apply the screen's dpi
 ;
 ; returns proper size in pixels
-percentHeightRelativeWndw(height, wndw) {
+percentHeightRelativeWndw(height, wndw, useDPI := false) {
     WinGetPos(&X, &Y, &W, &H, wndw)
     
-    return Y + (height * H)
+    return Y + ((height * ((useDPI) ? (A_ScreenDPI / 96) : 1)) * H)
 }
 
 ; sets the font of the guiObj using the default options & param options

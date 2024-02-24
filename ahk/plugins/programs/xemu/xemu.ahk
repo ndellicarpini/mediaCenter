@@ -9,14 +9,14 @@ class XemuEmulator extends Emulator {
 
     _pause() {
         this.send("{Ctrl down}")
-        this.send("p")
+        this.send("p", 150)
         this.send("{Ctrl up}")
     }
 
     _resume() {
         this._pause()
 
-        Sleep(85)
+        Sleep(100)
         this.send("{Escape}")
     }
 

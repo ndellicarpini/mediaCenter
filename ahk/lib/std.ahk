@@ -269,6 +269,36 @@ WinGetParent(window) {
 	return retVal
 }
 
+; returns the min size of the specified window
+;  window - window to check based on WinTitle
+;
+; returns an x, y array
+WinGetMinSize(window) {
+	waitTime := 1000
+
+	hwnd := WinHidden(window)
+
+	minMaxBuffer := Buffer(40, 0)
+	SendMessage(0x24,, minMaxBuffer,, hwnd,,,, waitTime)
+
+	return [NumGet(minMaxBuffer, 24, "Int"), NumGet(minMaxBuffer, 28, "Int")]
+}
+
+; returns the max size of the specified window
+;  window - window to check based on WinTitle
+;
+; returns an x, y array
+WinGetMaxSize(window) {
+	waitTime := 1000
+
+	hwnd := WinHidden(window)
+
+	minMaxBuffer := Buffer(40, 0)
+	SendMessage(0x24,, minMaxBuffer,, hwnd,,,, waitTime)
+
+	return [NumGet(minMaxBuffer, 32, "Int"), NumGet(minMaxBuffer, 36, "Int")]
+}
+
 ; returns if window is activatable (checks !DISABLED && !NOACTIVATE && !(POPUP && TOPMOST))
 ;  window - window to check based on WinTitle
 ;
@@ -323,7 +353,12 @@ WinActivatable(window) {
 ;
 ; returns result of postmessage
 WinMaximizeMessage(window) {
-	return PostMessage(0x0112, 0xF030,,, window)
+	try {
+		return PostMessage(0x0112, 0xF030,,, window)
+	}
+	catch {
+		return false
+	}
 }
 
 ; minimizes the window by posting a message to the window, the same message as the minimize button
@@ -331,7 +366,12 @@ WinMaximizeMessage(window) {
 ;
 ; returns result of postmessage
 WinMinimizeMessage(window) {
-	return PostMessage(0x0112, 0xF020,,, window)
+	try {
+		return PostMessage(0x0112, 0xF020,,, window)
+	}
+	catch {
+		return false
+	}
 }
 
 ; restores the window by posting a message to the window
@@ -339,7 +379,12 @@ WinMinimizeMessage(window) {
 ;
 ; returns result of postmessage
 WinRestoreMessage(window) {
-	return PostMessage(0x0112, 0xF120,,, window)
+	try {
+		return PostMessage(0x0112, 0xF120,,, window)
+	}
+	catch {
+		return false
+	}
 }
 
 ; activates a window using SetForegroundWindow
@@ -733,7 +778,7 @@ StrSplitIgnoreQuotes(value, deliminator := " ", startChar := "", endChar := "", 
 
 	stringArr := StrSplit(value, deliminator)
 	index := 1
-	for item in stringArr{
+	for item in stringArr {
 		if (maxParts != 0 && retArr.Length >= (maxParts - 1)) {
 			maxString .= deliminator . item
 			continue

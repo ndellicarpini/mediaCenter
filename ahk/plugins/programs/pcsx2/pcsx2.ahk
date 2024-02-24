@@ -20,7 +20,7 @@ class PCSX2Emulator extends Emulator {
     }
 
     _pause() {
-        this.send("{Space}")
+        this.send("{Space}", 150)
     }
 
     _resume() {

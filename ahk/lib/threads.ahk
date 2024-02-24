@@ -934,6 +934,9 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                             if (!loadShown) {
                                 globalGuis["loadscreen"].updateText(globalStatus["loadscreen"]["text"])      
                                 globalGuis["loadscreen"].Show()
+
+                                activateLoadScreen()
+                                Sleep(100)
                             }
 
                             if (forceLoadScreen) {

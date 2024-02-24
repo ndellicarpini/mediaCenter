@@ -30,6 +30,7 @@
 #Include plugins\programs\steam\overrides\elderscrolls.ahk
 #Include plugins\programs\steam\overrides\fallout.ahk
 #Include plugins\programs\steam\overrides\finalfantasy.ahk
+#Include plugins\programs\steam\overrides\flightsim.ahk
 #Include plugins\programs\steam\overrides\hitman.ahk
 #Include plugins\programs\steam\overrides\hotlinemiami.ahk
 #Include plugins\programs\steam\overrides\outrun.ahk
@@ -82,7 +83,15 @@ Critical("Off")
 ; set dpi scaling per window
 prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
 
+; set current WinTitle
 SetCurrentWinTitle(MAINNAME)
+
+; get current hwnd
+restoreDHW := A_DetectHiddenWindows
+
+DetectHiddenWindows(true)
+mainHWND := WinExist("ahk_pid " DllCall("GetCurrentProcessId"))
+DetectHiddenWindows(restoreDHW)
 
 global globalConfig       := Map()
 global globalStatus       := Map()
@@ -210,7 +219,7 @@ globalStatus["currProgram"]["hwnd"] := 0
 globalStatus["loadscreen"] := Map()
 globalStatus["loadscreen"]["show"] := false
 globalStatus["loadscreen"]["enable"] := false
-globalStatus["loadscreen"]["overrideWNDW"] := false
+globalStatus["loadscreen"]["overrideWNDW"] := ""
 globalStatus["loadscreen"]["text"] := (globalConfig["GUI"].Has("DefaultLoadText")) 
     ? globalConfig["GUI"]["DefaultLoadText"] : "Now Loading..."
 
@@ -348,7 +357,7 @@ globalThreads["misc"] := miscThread(
     ObjPtrAddRef(globalStatus)
 )
 
-Sleep(100)
+Sleep(250)
 
 ; ----- BOOT -----
 if (!inArray("-backup", globalConfig["StartArgs"]) && globalConfig.Has("Overrides") 
@@ -357,20 +366,27 @@ if (!inArray("-backup", globalConfig["StartArgs"]) && globalConfig.Has("Override
     try %globalConfig["Overrides"]["boot"]%()
 }
 
+; initial backup of status
+try statusBackup()
+
 ; enables the OnMessage listener for send2Main
 global send2MainBuffer := []
 OnMessage(MESSAGE_VAL, HandleMessage)
 
-; initial backup of status
-try statusBackup()
+; enables the shell listener
+DllCall("RegisterShellHookWindow", "UInt", mainHWND)
+
+global activateFixHWND := 0
+global SHELL_MESSAGE_VAL := DllCall("RegisterWindowMessage", "Str", "SHELLHOOK")
+OnMessage(SHELL_MESSAGE_VAL, HandleShellMessage)
 
 ; ----- MAIN THREAD LOOP -----
 ; the main thread monitors the other threads, checks that maintainer is running
 ; the main thread launches programs with appropriate settings and does any non-hotkey looping actions in the background
 
-forceMaintain  := globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]
-forceActivate  := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
-loopSleep      := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
+forceMaintain := globalConfig["General"].Has("ForceMaintainMain") && globalConfig["General"]["ForceMaintainMain"]
+forceActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 
 ; set timer to check the input buffer
 SetTimer(InputBufferTimer, 35)
@@ -473,7 +489,10 @@ loop {
     currProgram := globalStatus["currProgram"]["id"]
 
     if (currProgram != "" && !currSuspended && !currDesktopMode && send2MainBuffer.Length = 0) {
-        if (globalRunning.Has(currProgram) && globalRunning[currProgram].exists(false, true)) {
+        if (globalRunning.Has(currProgram) && globalRunning[currProgram].exists(false, true)
+            && (globalStatus["currGui"] = "" || !globalGuis[globalStatus["currGui"]].allowFocus)) {
+            ; need to manually double check that guis aren't open because i want to die
+
             if (!activeSet) {
                 if (forceActivate) {
                     try globalRunning[currProgram].restore()
@@ -492,6 +511,21 @@ loop {
         else {
             updatePrograms()
         }   
+    }
+
+    ; --- CHECK FIX ACTIVATION ---
+    if (activateFixHWND != 0) {
+        tempHWND := activateFixHWND
+        activateFixHWND := 0
+
+        if (WinShown(tempHWND) && (globalStatus["currGui"] = "" || !globalGuis[globalStatus["currGui"]].allowFocus)) {
+            WinMinimizeMessage(tempHWND)
+            Sleep(250)
+            WinRestoreMessage(tempHWND)
+
+            Sleep(loopSleep)
+            continue
+        }    
     }
 
     ; --- CHECK ALL OPEN PROGRAMS / GUIS ---
@@ -530,10 +564,9 @@ loop {
         DetectHiddenWindows(true)
 
         mainList := WinGetList(MAINNAME)
-        currHWND := WinExist("ahk_pid " DllCall("GetCurrentProcessId"))
         if (mainList.Length > 1) {
             for hwnd in mainList {
-                if (hwnd != currHWND) {
+                if (hwnd != mainHWND) {
                     ProcessClose(WinGetPID(hwnd))
                 }
             }
@@ -560,7 +593,7 @@ InputBufferTimer() {
             return
         }
 
-        bufferedFunc := globalStatus["input"]["buffer"].Pop()
+        bufferedFunc := globalStatus["input"]["buffer"][1]
         hotkeySource := globalStatus["input"]["source"]
         
         currProgram := globalStatus["currProgram"]["id"]
@@ -578,20 +611,23 @@ InputBufferTimer() {
         }
 
         ; update pause status & create/destroy pause menu
-        if (StrLower(bufferedFunc) = "pausemenu") {     
-            if (currLoad || (globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
-                || (currProgram != "" && hotkeySource = currProgram && globalRunning.Has(currProgram) && !globalRunning[currProgram].allowPause)
-                || (currGui != "" && hotkeySource = currGui && globalGuis.Has(currGui) && !globalGuis[currGui].allowPause)) {
+        if (StrLower(bufferedFunc) = "pausemenu") {
+            ; check the following conditions to allow the pause screen to show
+            ;  - the load screen is not active
+            ;  - config EnablePauseMenu is not explicitly set to "false"
+            ;  - if a program exists -> the program allows pausing
+            ;  - if a gui exists -> the gui allows pausing
+            if (!currLoad && !(globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
+                && !(currProgram != "" && hotkeySource = currProgram && globalRunning.Has(currProgram) && !globalRunning[currProgram].allowPause)
+                && !(currGui != "" && hotkeySource = currGui && globalGuis.Has(currGui) && !globalGuis[currGui].allowPause)) {
 
-                return
-            }
-
-            try {
-                if (!globalGuis.Has("pause")) {
-                    createInterface("pause")
-                }
-                else {
-                    globalGuis["pause"].Destroy()
+                try {
+                    if (!globalGuis.Has("pause")) {
+                        createInterface("pause")
+                    }
+                    else {
+                        globalGuis["pause"].Destroy()
+                    }
                 }
             }
         }
@@ -609,32 +645,30 @@ InputBufferTimer() {
 
         ; run current gui funcion
         else if (StrLower(SubStr(bufferedFunc, 1, 4)) = "gui.") {
-            if (currGui = "" || !globalGuis.Has(currGui)) {
-                return
+            ; need to do separate check so that bufferedFunc doesn't propagate to runFunction
+            if (currGui != "" && globalGuis.Has(currGui)) {
+                tempArr  := StrSplit(bufferedFunc, A_Space)
+                tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
+    
+                try globalGuis[currGui].%tempFunc%(tempArr*)
             }
-
-            tempArr  := StrSplit(bufferedFunc, A_Space)
-            tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
-
-            try globalGuis[currGui].%tempFunc%(tempArr*)
         }
 
         ; run current program function
         else if (StrLower(SubStr(bufferedFunc, 1, 8)) = "program.") {
-            if (globalStatus["suspendScript"] || currProgram = "" || !globalPrograms.Has(currProgram)) {
-                return
-            }
-
-            tempArr  := StrSplit(bufferedFunc, A_Space)
-            tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
-            
-            if (tempFunc = "exit") {
-                if (currProgram != "" && globalRunning[currProgram].allowExit) {
-                    try globalRunning[currProgram].exit()
+            ; need to do separate check so that bufferedFunc doesn't propagate to runFunction
+            if (currProgram != "" && globalPrograms.Has(currProgram) && !globalStatus["suspendScript"]) {
+                tempArr  := StrSplit(bufferedFunc, A_Space)
+                tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
+                
+                if (tempFunc = "exit") {
+                    if (currProgram != "" && globalRunning[currProgram].allowExit) {
+                        try globalRunning[currProgram].exit()
+                    }
                 }
-            }
-            else {
-                try globalRunning[currProgram].%tempFunc%(tempArr*)
+                else {
+                    try globalRunning[currProgram].%tempFunc%(tempArr*)
+                }
             }
         }
 
@@ -642,6 +676,9 @@ InputBufferTimer() {
         else if (bufferedFunc != "") {
             runFunction(bufferedFunc)
         }
+
+        ; don't clean buffer until everything has been processed
+        globalStatus["input"]["buffer"].RemoveAt(1)
     }
     catch {
         globalStatus["input"]["buffer"] := []
@@ -653,13 +690,13 @@ InputBufferTimer() {
 
 ; handle when message comes in from send2Main
 ; style of message should probably be "Run Chrome" or "Run RetroArch Playstation C:\Rom\Crash"
-HandleMessage(wParam, lParam, msg, hwnd) {
+HandleMessage(wParam, lParam, *) {
     global send2MainBuffer
     global globalConfig
     global globalStatus
     global globalRunning
 
-    message := getMessage(wParam, lParam, msg, hwnd)
+    message := getMessage(lParam)
 
     if (message.Length = 0 || globalStatus["suspendScript"]) {
         return
@@ -707,6 +744,33 @@ HandleMessage(wParam, lParam, msg, hwnd) {
     return
 }
 
+; handle when message sent from shell
+HandleShellMessage(wParam, lParam, *) {
+    global globalStatus
+    global globalGuis
+    global globalRunning
+
+    global activateFixHWND
+
+    HSHELL_FLASH := 0x8006
+
+    if (globalStatus["suspendScript"]) {
+        return
+    }
+
+    ; maybe convert to a switch statement if I keep adding shell message checks
+    if (wParam = HSHELL_FLASH && WinShown(lParam)) {
+        for key, value in globalRunning {
+            if (!value.background && lParam = value.getHWND()) {
+                activateFixHWND := lParam
+                return
+            }
+        }
+    }
+
+    return
+}
+
 ; clean shutdown of script
 ShutdownScript(restoreTaskbar := true) {
     global globalThreads
@@ -714,8 +778,9 @@ ShutdownScript(restoreTaskbar := true) {
     ; disable input buffer
     SetTimer(InputBufferTimer, 0)
 
-    ; disable message listener
+    ; disable message listeners
     OnMessage(MESSAGE_VAL, HandleMessage, 0)
+    OnMessage(SHELL_MESSAGE_VAL, HandleShellMessage, 0)
 
     setLoadScreen("Please Wait...")
     activateLoadScreen()

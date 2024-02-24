@@ -51,7 +51,7 @@ class Program {
     _checkPropertiesDelay := 3000
     _postLaunchDelay      := 1000
     _fullscreenDelay      := 2500
-    _mouseMoveDelay       := 3000
+    _mouseMoveDelay       := 3500
 
     ; if waiting on check of program relaunching
     _waitingExistTimer      := false
@@ -59,6 +59,7 @@ class Program {
     _waitingPostLaunchTimer := false
     _waitingFullscreenTimer := false
     _waitingMouseMoveTimer  := false
+    _waitingWindowTimer     := false
 
     _restoreMousePos := []
     _launchArgs := []
@@ -192,17 +193,22 @@ class Program {
                 if (InStr(item, A_Space) && (!(SubStr(item, 1, 1) = '"' && SubStr(item, -1, 1) = '"')
                     || !(SubStr(item, 1, 1) = "'" && SubStr(item, -1, 1) = "'"))) {
 
-                    this._launchArgs.Push('"' . item . '"')
+                    itemString := '"' . item . '"'
+                    if (!inArray(itemString, this._launchArgs)) {
+                        this._launchArgs.Push(itemString)
+                    }
                 }
-                else {
+                else if (!inArray(item, this._launchArgs)) {
                     this._launchArgs.Push(item)
                 }
             }
         }
         else {
             argArr := StrSplitIgnoreQuotes(args)
-            if (argArr.Length > 0) {
-                this._launchArgs.Push(argArr*)
+            for item in argArr {
+                if (!inArray(item, this._launchArgs)) {
+                    this._launchArgs.Push(item)
+                }
             }
         }
 
@@ -314,12 +320,18 @@ class Program {
     ; activates the program's window
     restore() {
         global globalStatus
-        if (this.hungCount > 0) {
+        if (this.hungCount > 0 || this._waitingWindowTimer) {
             return
         }
 
-        restoreTMM := A_TitleMatchMode
+        currHWND := this.getHWND()
+        ; check if program is running but window is missing
+        if (!currHWND && !this.background && !this._waitingWindowTimer) {
+            SetTimer(CheckMissingWindow, Neg(1000))
+            this._waitingWindowTimer := true
+        }
 
+        ; check if program was minimized -> restore windows in reverse order from minimized
         if (this.minimized) {
             if (this._currHWNDList.Length > 0) {
                 loop this._currHWNDList.Length {
@@ -340,7 +352,11 @@ class Program {
             this.minimized := false
         }
         
-        this.resume()
+        if (globalStatus["currGui"] != "pause") {
+            this.resume()
+        }
+        
+        restoreTMM := A_TitleMatchMode
 
         overlayHWND := 0
         if (globalStatus["currOverlay"]) {
@@ -364,18 +380,20 @@ class Program {
             if (this.overlayActivateFix) {              
                 overlayIndex := 0
                 programIndex := 0
-    
-                currHWND := this.getHWND()
+
                 winList := WinGetList()
     
+                currIndex := 1
                 loop winList.Length {
                     if (WinShown(winList[A_Index]) && WinActivatable(winList[A_Index])) {
                         if (winList[A_Index] = overlayHWND) {
-                            overlayIndex := A_Index
+                            overlayIndex := currIndex
                         }
                         else if (winList[A_Index] = currHWND) {
-                            programIndex := A_Index
+                            programIndex := currIndex
                         }
+
+                        currIndex += 1
                     }
     
                     if (overlayIndex != 0 && programIndex != 0) {
@@ -418,8 +436,8 @@ class Program {
         }
 
         ; on fail - try to tab to a different window, then restore
-        ; this is an attempt to fix when a window get stuck in an unactivatable syaye
-        if (restoreSuccess = false) {
+        ; this is an attempt to fix when a window get stuck in an unactivatable state
+        if (restoreSuccess = false && WinResponsive(currHWND)) {
             activateLoadScreen()
             Sleep(80)
             this._restore()
@@ -523,6 +541,41 @@ class Program {
             MouseMove(x, y)
             return
         }
+
+        ; window missing check
+        CheckMissingWindow(loopCount := 0) {
+            ; if window exists -> stop checking
+            if (this.getHWND() || !this.exists()) {
+                this._waitingWindowTimer := false
+                if (loopCount > 3) {
+                    resetLoadScreen()
+                }
+
+                return
+            }
+
+            ; at 3s mark -> enable load screen to wait
+            if (loopCount = 3) {            
+                setLoadScreen("Waiting for " . this.name . "...")
+            }
+            ; at 20s mark -> reset program
+            else if (loopCount > 19) {
+                this._waitingWindowTimer := false
+
+                restoreCritical := A_IsCritical
+                Critical("On")
+
+                this.exit(false)
+                Sleep(500)
+                this.launch(ObjDeepClone(this._launchArgs))
+
+                Critical(restoreCritical)
+                return
+            }
+            
+            SetTimer(CheckMissingWindow.Bind(loopCount + 1), Neg(1000))
+            return
+        }
     }
     _restore() {
         global globalStatus
@@ -589,11 +642,20 @@ class Program {
         restoreCritical := A_IsCritical
         Critical("On")
 
+        hwnd := this.getHWND()
+
         allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
         ; activate window for _function()
-        if (!WinActive(this.getHWND()) && allowActivate) {
+        if (!WinActive(hwnd) && allowActivate) {
             this._restore()
             Sleep(100)
+        }
+
+        WinGetPos(&X, &Y, &W, &H, hwnd)
+        ; check that window is showing within proper monitor bounds, move to correct monitor if not
+        ; (custom fullscreen functions usually cause the window to get fullscreened on currently showing monitor)
+        if ((X + (W * 0.05)) < MONITOR_X || X > (MONITOR_X + MONITOR_W) || (Y + (H * 0.05)) < MONITOR_Y || Y > (MONITOR_Y + MONITOR_H)) {
+            WinMove(MONITOR_X, MONITOR_Y,,, hwnd)
         }
 
         this._fullscreen()
@@ -666,8 +728,10 @@ class Program {
         hwnd := this.getHWND()
 
         try {
-            WinGetClientPos(,, &W, &H, hwnd)
-            return (!(WinGetStyle(hwnd) & 0x20800000) && W >= MONITOR_W && H >= MONITOR_H) ? true : false
+            WinGetClientPos(&X, &Y, &W, &H, hwnd)
+            return (!(WinGetStyle(hwnd) & 0x20800000) && (W >= (MONITOR_W * 0.95)|| H >= (MONITOR_H * 0.95))
+                && (X + (W * 0.05)) >= MONITOR_X && X < (MONITOR_X + MONITOR_W) 
+                && (Y + (H * 0.05)) >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H)) ? true : false
         }
 
         return false
@@ -1576,6 +1640,8 @@ setCurrentProgram(id) {
     }
 
     if (globalRunning[id].exists(true) && !currSuspended) {
+        globalRunning[id].fullscreened := false
+        globalRunning[id]._waitingFullscreenTimer := false
         globalRunning[id].restore()
     }
 }
@@ -1632,12 +1698,19 @@ checkAllPrograms() {
 
     activeProgram := false
     for key in runningKeys {
-        if (!globalRunning[key].exists()) {
-            if (!currSuspended && !currDesktopMode) {
-                globalRunning[key].postExit()
-            }
+        if (!globalRunning.Has(key)) {
+            continue
+        }
 
-            globalRunning.Delete(key)
+        if (!globalRunning[key].exists()) {
+            ; yes this actually needs a try
+            try {
+                if (!currSuspended && !currDesktopMode) {
+                    globalRunning[key].postExit()
+                }
+    
+                globalRunning.Delete(key)
+            }
         }
         else if (!globalRunning[key].background) {
             activeProgram := true
@@ -1692,7 +1765,7 @@ exitAllPrograms() {
             ProcessKill(globalRunning[name].getPID())
         }
 
-        globalRunning[name].postExit()
+        try globalRunning[name].postExit()
         globalRunning.Delete(name)
     }
 }

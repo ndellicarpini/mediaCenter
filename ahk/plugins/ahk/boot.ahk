@@ -6,17 +6,17 @@ customBoot() {
         Run "explorer.exe"
 
         count := 0
-        maxCount := 50
+        maxCount := 40
         while (count < maxCount) {
             activateLoadScreen()
             
             count += 1
-            Sleep(50)
+            Sleep(100)
         }
     }
 
     if (!ProcessExist("steam.exe")) {
-        createProgram(["steam", "wait=false"], true, false)
+        createProgram("steam", true, false)
     }
     
     resetLoadScreen()

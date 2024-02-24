@@ -7,7 +7,7 @@ class RPCS3Emulator extends Emulator {
     
     _pause() {
         this.send("{Ctrl down}")
-        this.send("p")
+        this.send("p", 150)
         this.send("{Ctrl up}")
     }
 

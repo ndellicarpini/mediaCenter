@@ -2,25 +2,6 @@ class SteamProgram extends Program {
     _launch(args*) {
         global globalStatus
 
-        enableWait := true
-        ; check if custom "wait" arg exists
-        loop args.Length {
-            if (SubStr(StrLower(args[A_Index]), 1, 4) != "wait") {
-                continue
-            }
-
-            tempArg := StrSplit(StrLower(args[A_Index]), "=",, 2)
-            if (tempArg.Length > 1) {
-                waitVal := Trim(tempArg[2])
-                if (waitVal = "false" || waitVal = "0") {
-                    enableWait := false
-                }
-            }
-
-            args.RemoveAt(A_Index)
-            break
-        }
-
         try {
             ; need to run steam as a regular user unless family sharing doesn't work????
             RunAsUser(this.dir . this.exe, args, this.dir)
@@ -33,38 +14,30 @@ class SteamProgram extends Program {
         SetTitleMatchMode(3)
 
         globalStatus["loadscreen"]["overrideWNDW"] := "Sign in to Steam"
-        
+
         count := 0
         maxCount := 200
-        ; wait for "Loggin In" window to appear
-        while (!(ProcessExist("steamwebhelper.exe") && WinExist("Sign in to Steam")) && count < maxCount) {
+
+        ; wait for all steam executables to launch
+        while (!(ProcessExist("steam.exe") && ProcessExist("steamservice.exe") && ProcessExist("steamwebhelper.exe")) && count < maxCount) {
             count += 1
             Sleep(100)
         }
-
-        ; don't wait for the "Logging In" window to disappear
-        if (!enableWait) {
-            Sleep(2000)
-
-            globalStatus["loadscreen"]["overrideWNDW"] := ""
-            SetTitleMatchMode(resetTTM)
-            return
-        }
-
+        
         count := 0
-        maxCount := 200
+        maxCount := 100
 
         firstShown := false
-        ; wait for "Loggin In" window to disappear
-        while (WinExist("Sign in to Steam") && count < maxCount) {
-            if (!firstShown && WinShown("Sign in to Steam")) {
+        ; idk how long to sleep for, steam doesn't really tell me when its done cooking
+        while (count < maxCount) {
+            if (!firstShown && WinShown(INTERFACES["loadscreen"]["wndw"]) && WinShown("Sign in to Steam")) {
                 Sleep(1000)
 
                 ; need to flash alternate window in order to fix stupid steam black screen
                 ; why is everything chromium?
                 if (WinShown(INTERFACES["loadscreen"]["wndw"]) && WinShown("Sign in to Steam")) {
                     activateLoadScreen()
-                    Sleep(75)
+                    Sleep(80)
                     WinActivateForeground("Sign in to Steam")
 
                     firstShown := true

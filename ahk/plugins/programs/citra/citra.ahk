@@ -4,7 +4,7 @@ class CitraEmulator extends Emulator {
     }
 
     _pause() {
-        this.send("{F4}")
+        this.send("{F4}", 150)
     }
 
     _resume() {

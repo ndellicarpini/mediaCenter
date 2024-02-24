@@ -16,6 +16,7 @@
 
     "exe": [
         "20XX.exe",
+        "30XX.exe",
 		"AI.exe",
 		"Bastion.exe",
 		"ShippingPC-BmGame.exe",
@@ -278,7 +279,16 @@
 		"HITMAN3.exe",
 		"sh3.exe",
 		"BH6.exe",
-		"SonicFrontiers.exe"
+		"SonicFrontiers.exe",
+		"katamari.exe",
+		"WLKRR.exe",
+		"BatmanOrigins.exe",
+		"FlightSimulator.exe",
+		"BatmanAK.exe",
+		"makaimura_GG_RE.exe",
+		"Pineapple-Win64-Shipping.exe",
+		"Risk of Rain 2.exe",
+		"Palworld-Win64-Shipping.exe"
     ],
 
 	"overrides": {
@@ -340,6 +350,8 @@
 		"\/39150([^0-9]|$)": "FF8Program",
 		; Final Fantasy 9
 		"\/377840([^0-9]|$)": "FF9Program",
+		; Microsoft Flight Simulator
+		"\/1250410([^0-9]|$)": "MicrosoftFlightSimProgram",
 		; Bastion
         "\/107100([^0-9]|$)": {
 			"defaultArgs": "-x 3840 -y 2160",

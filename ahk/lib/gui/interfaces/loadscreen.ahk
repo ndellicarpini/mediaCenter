@@ -73,7 +73,7 @@ class LoadScreenInterface extends Interface {
 ; retuns null
 activateLoadScreen() {
 	if (WinShown(INTERFACES["loadscreen"]["wndw"])) {
-		WinActivateForeground(INTERFACES["loadscreen"]["wndw"])
+		try WinActivateForeground(INTERFACES["loadscreen"]["wndw"])
 	}
 }
 

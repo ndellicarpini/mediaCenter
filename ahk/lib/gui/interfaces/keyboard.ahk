@@ -89,7 +89,7 @@ class KeyboardInterface extends Interface {
         }
 
         if (WinShown("ahk_id " this.restoreWNDW)) {
-            WinActivateForeground("ahk_id " this.restoreWNDW)
+            try WinActivateForeground("ahk_id " this.restoreWNDW)
             Sleep(100)
         }
     }

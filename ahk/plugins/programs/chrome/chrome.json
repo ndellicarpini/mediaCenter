@@ -22,8 +22,8 @@
 
     "hotkeys": {
         "buttonTime": 0,
-        "[REPEAT]3>0.4": "Send ^=",
-        "[REPEAT]3<-0.4": "Send ^-",
+        "[REPEAT]3>0.75": "program.zoomIn",
+        "[REPEAT]3<-0.75": "program.zoomOut",
 
         "[REPEAT]11": "Send {Up}",
         "[REPEAT]12": "Send {Down}",

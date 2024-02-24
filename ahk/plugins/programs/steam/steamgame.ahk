@@ -41,12 +41,16 @@ class SteamGameProgram extends Program {
                 }
 
                 if (WinGetTitle(wndw) = "Steam") {
+                    minSize := WinGetMinSize(wndw)
+                    WinMove(,, minSize[1], minSize[2])
+                    Sleep(250)
+               
                     WinActivateForeground(wndw)
-                    Sleep(100)
+                    Sleep(250)
                     
                     MouseClick("Left"
-                        , percentWidthRelativeWndw(0.59, wndw)
-                        , percentHeightRelativeWndw(0.86, wndw)
+                        , percentWidthRelativeWndw(0.6, wndw)
+                        , percentHeightRelativeWndw(0.85, wndw)
                         ,,, "D"
                     )
                     Sleep(75)
@@ -105,6 +109,16 @@ class SteamGameProgram extends Program {
         
             restoreTTMM := A_TitleMatchMode
             SetTitleMatchMode(2)
+
+            ; check that steam window isn't already open
+            for wndw in WinGetList("ahk_exe steamwebhelper.exe") {
+                if (WinShown(wndw) && WinGetTitle(wndw) = "Steam") {
+                    WinClose(wndw)
+                    
+                    Sleep(500)
+                    break
+                }
+            }
 
             try {
                 RunAsUser(game, cleanArgs)
@@ -195,7 +209,7 @@ class SteamGameProgram extends Program {
                             ; why is everything chromium?
                             if (count = maxCount && WinShown(INTERFACES["loadscreen"]["wndw"]) && WinShown(wndw)) {
                                 activateLoadScreen()
-                                Sleep(75)
+                                Sleep(80)
                                 WinActivateForeground(wndw)
             
                                 firstShown := true
@@ -273,8 +287,10 @@ class SteamGameProgramWithLauncher extends SteamGameProgram {
         restoreAllowExit := this.allowExit
         this.allowExit   := true
 
+        count := 0
+        maxCount := 30
         ; wait for executable
-        while (!WinShown("ahk_exe " this._launcherEXE)) {
+        while (!WinShown("ahk_exe " this._launcherEXE) && count < maxCount) {
             if (this.exists()) {
                 return
             }
@@ -283,6 +299,11 @@ class SteamGameProgramWithLauncher extends SteamGameProgram {
             }
 
             Sleep(100)
+            count += 1
+        }
+
+        if (count >= maxCount) {
+            return false
         }
 
         ; flatten double array
@@ -304,18 +325,32 @@ class SteamGameProgramWithLauncher extends SteamGameProgram {
 
         hiddenCount := 0
         maxCount := 3
-
         ; try to skip launcher as long as exectuable is shown
         while (hiddenCount < maxCount) {
+            if (this.exists()) {
+                this.allowExit := restoreAllowExit
+                globalStatus["loadscreen"]["overrideWNDW"] := ""
+
+                return
+            }
+            else if (this.shouldExit) {
+                globalStatus["loadscreen"]["overrideWNDW"] := ""
+                return false
+            }
+
             loop (mouseArr.Length / 2) {
                 index := ((A_Index - 1) * 2) + 1
 
                 Sleep(this._launcherDelay)
 
                 if (this.exists()) {
+                    this.allowExit := restoreAllowExit
+                    globalStatus["loadscreen"]["overrideWNDW"] := ""
+
                     return
                 }
                 else if (this.shouldExit) {
+                    globalStatus["loadscreen"]["overrideWNDW"] := ""
                     return false
                 }
 

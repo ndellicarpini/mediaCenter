@@ -40,10 +40,10 @@ sendListToMain(list) {
 
 ; recieves a message bookended by MESSAGE_START and MESSAGE_END and runs whatever functions
 ; should run when a specific message is recieved
-;  parameters are default for a function called by OnMessage
+;  lParam - from OnMessage
 ;
 ; returns null
-getMessage(wParam, lParam, msg, hwnd) {
+getMessage(lParam) {
     global MESSAGE_ENABLE
     global MESSAGE_DATA
 

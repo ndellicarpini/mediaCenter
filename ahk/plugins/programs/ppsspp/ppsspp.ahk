@@ -6,7 +6,7 @@ class PPSSPPEmulator extends Emulator {
     }
 
     _pause() {
-        this.send("{Escape}", 120)
+        this.send("{Escape}", 150)
     }
 
     _resume() {

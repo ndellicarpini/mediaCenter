@@ -14,7 +14,7 @@ if (A_Args.Length > 0) {
     else if (StrLower(A_Args[1]) = "-clean") {
         Run A_ScriptDir . "\" . "startMain.cmd", A_ScriptDir, "Hide"
         
-        ExitApp()
+        ProcessClose(DllCall("GetCurrentProcessId"))
     }
 }
 

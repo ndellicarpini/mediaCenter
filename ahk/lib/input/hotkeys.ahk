@@ -45,7 +45,7 @@ addHotkeys(currHotkeys, newHotkeys) {
 ;
 ; returns modifier
 checkHotkeyModifier(hotkey) {
-    modifiers := ["[HOLD]", "[REPEAT]"]
+    modifiers := ["[HOLD]", "[REPEAT]", "[PATTERN]"]
 
     for item in modifiers {
         if (InStr(StrUpper(hotkey), item)) {

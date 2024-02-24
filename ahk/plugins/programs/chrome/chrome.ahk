@@ -18,17 +18,20 @@ class ChromeProgram extends Program {
             WinRestoreMessage(hwnd)
             Sleep(80)
         }
-        
+
         ; for some reason chrome's display area is smaller than the window (cool!)
-        WinMove(MONITOR_X - (MONITOR_W * 0.005), MONITOR_Y, MONITOR_W + (MONITOR_W * 0.01), MONITOR_H + (MONITOR_H * 0.01), hwnd)
+        WinMove(Round(MONITOR_X - (MONITOR_W * 0.003)), MONITOR_Y, Round(MONITOR_W + (MONITOR_W * 0.007)), Round(MONITOR_H + (MONITOR_H * 0.006)), hwnd)
     }
 
     _checkFullscreen() {
         hwnd := this.getHWND()
-
+      
         try {
-            WinGetClientPos(,, &W, &H, hwnd)
-            return (W >= MONITOR_W && H >= MONITOR_H) ? true : false
+            WinGetClientPos(&X, &Y, &W, &H, hwnd)
+
+            return (W >= (MONITOR_W * 0.95) && H >= (MONITOR_H * 0.95) 
+                && (X + (W * 0.05)) >= MONITOR_X && X < (MONITOR_X + MONITOR_W) 
+                && (Y + (H * 0.05)) >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H)) ? true : false
         }
 
         return false
@@ -48,8 +51,24 @@ class ChromeProgram extends Program {
         }
     }
 
-    ; custom function
+    ; custom functions
     pip() {
         this.send("!p")
+    }
+
+    zoomIn() {
+        Send("{Ctrl down}")
+        Sleep(50)
+        MouseClick("WheelUp")
+        Sleep(50)
+        Send("{Ctrl up}")
+    }
+
+    zoomOut() {
+        Send("{Ctrl down}")
+        Sleep(50)
+        MouseClick("WheelDown")
+        Sleep(50)
+        Send("{Ctrl up}")
     }
 }

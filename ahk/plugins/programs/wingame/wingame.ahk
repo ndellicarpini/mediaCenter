@@ -59,8 +59,10 @@ class WinGameProgramWithLauncher extends WinGameProgram {
         restoreAllowExit := this.allowExit
         this.allowExit   := true
 
+        count := 0
+        maxCount := 30
         ; wait for executable
-        while (!WinShown("ahk_exe " this._launcherEXE)) {
+        while (!WinShown("ahk_exe " this._launcherEXE) && count < maxCount) {
             if (this.exists()) {
                 return
             }
@@ -69,6 +71,11 @@ class WinGameProgramWithLauncher extends WinGameProgram {
             }
 
             Sleep(100)
+            count += 1
+        }
+
+        if (count >= maxCount) {
+            return false
         }
 
         ; flatten double array
@@ -87,12 +94,18 @@ class WinGameProgramWithLauncher extends WinGameProgram {
 
         globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " this._launcherEXE
 
+        hiddenCount := 0
+        maxCount := 3
         ; try to skip launcher as long as exectuable is shown
-        while (WinShown("ahk_exe " this._launcherEXE)) {
+        while (hiddenCount < maxCount) {
             if (this.exists()) {
+                this.allowExit := restoreAllowExit
+                globalStatus["loadscreen"]["overrideWNDW"] := ""
+
                 return
             }
             else if (this.shouldExit) {
+                globalStatus["loadscreen"]["overrideWNDW"] := ""
                 return false
             }
 
@@ -101,11 +114,20 @@ class WinGameProgramWithLauncher extends WinGameProgram {
 
                 Sleep(this._launcherDelay)
 
-                if (this.exists() || !WinShown("ahk_exe " this._launcherEXE)) {
+                if (this.exists()) {
+                    this.allowExit := restoreAllowExit
+                    globalStatus["loadscreen"]["overrideWNDW"] := ""
+
                     return
                 }
                 else if (this.shouldExit) {
+                    globalStatus["loadscreen"]["overrideWNDW"] := ""
                     return false
+                }
+
+                if (!WinShown("ahk_exe " this._launcherEXE)) {
+                    hiddenCount += 1
+                    continue
                 }
 
                 MouseClick("Left"

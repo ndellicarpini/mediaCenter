@@ -8,8 +8,10 @@ SetCurrentWinTitle(SENDNAME)
 ; check that mediacenter is actually running
 DetectHiddenWindows(true)
 if (!WinExist(MAINNAME)) {
-    ErrorMsg(MAINNAME . " is not running", true)
+    MsgBox(MAINNAME . " is not running")
 }
 
 sendListToMain(A_Args)
-ExitApp()
+
+Sleep(100)
+ProcessClose(DllCall("GetCurrentProcessId"))

@@ -8,8 +8,19 @@ statusBackup() {
 
     backup := Map()
 
-    for key, value in globalStatus {       
-        backup[key] := globalStatus[key]
+    for key, value in globalStatus {    
+        ; don't backup input buffer   
+        if (key = "input") {
+            backup[key] := Map()
+            for key2, value2 in globalStatus[key] {
+                if (key2 != "buffer") {
+                    backup[key][key2] := value2
+                }
+            }
+        }
+        else {
+            backup[key] := globalStatus[key]
+        }
     }
     
     backup["globalRunning"] := Map()

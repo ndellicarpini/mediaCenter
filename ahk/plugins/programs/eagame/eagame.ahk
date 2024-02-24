@@ -20,18 +20,26 @@ class EAGameProgram extends Program {
     
         restoreAllowExit := this.allowExit
         this.allowExit := true
+
+        count := 0
+        maxCount := 20
+        while (!ProcessExist("EALauncher.exe") && !ProcessExist("EALaunchHelper.exe") 
+            && !ProcessExist("EADesktop.exe") && !ProcessExist("EABackgroundService.exe") && count < maxCount) {
+            count += 1
+            Sleep(500)
+        }
     
         count := 0
         maxCount := 40
         ; wait for ea to show
         while (!this.exists() && count < maxCount) {
-            if (ProcessExist("EALauncher.exe")) {
+            if (WinShown("ahk_exe EALauncher.exe")) {
                 globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EALauncher.exe"
             }
-            else if (ProcessExist("EALaunchHelper.exe")) {
+            else if (WinShown("ahk_exe EALaunchHelper.exe")) {
                 globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EALaunchHelper.exe"
             }
-            else if (ProcessExist("EADesktop.exe")) {
+            else if (WinShown("ahk_exe EADesktop.exe")) {
                 globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EADesktop.exe"
             }
     
@@ -39,7 +47,6 @@ class EAGameProgram extends Program {
                 globalStatus["loadscreen"]["overrideWNDW"] := ""
                 SetTitleMatchMode(restoreTMM)
                 
-                this.postExit()
                 return false
             }
     
