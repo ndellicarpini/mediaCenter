@@ -93,24 +93,18 @@ class Input {
 }
 
 ; checks the button & axis status of an input device using the results from getStatus
-;  hotkeys - array of hotkeys to check if results from the status satisfy any hotkey
+;  key - single key to check
 ;  statusResults - the results from 1 input device's getStatus
 ;
-; returns true if any hotkey in hotkeys is satisfied
-inputCheckStatus(hotkeys, statusResult) {
-    hotkeyArr := toArray(hotkeys)
-
-    retVal := true
-    for key in hotkeyArr {
-        if (IsInteger(key)) {
-            retVal := retVal && statusResult["buttons"][Integer(key)]
-        }
-        else {
-            retVal := retVal && inputCompareAxis(key, statusResult)
-        }
+; returns true if key matches
+inputCheckStatus(key, statusResult) {
+    cleanKey := Trim(key, " `t`r`n")
+    if (IsInteger(cleanKey)) {
+        return statusResult["buttons"][Integer(cleanKey)]
     }
-
-    return retVal
+    else {
+        return inputCompareAxis(cleanKey, statusResult)
+    }
 }
 
 ; checks if a hotkey is an axis comparison, then checks if the input status satisfies the comparison

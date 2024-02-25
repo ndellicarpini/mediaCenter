@@ -26,7 +26,11 @@
 
     "desktopmode": {
         "hotkeys": {
-            "15": "pausemenu",
+            "15": {
+                "up": "pausemenu",
+                "time": 100
+            },
+            
             "7": "toggleKeyboard",
             "8": "Send {LWin}",
 
@@ -56,13 +60,15 @@
     "programHotkeys": {
         "default": {
             "15": {
-                "down": "pausemenu",
-                "time": 80
+                "up": "pausemenu",
+                "time": 100
             },
             "7&8": {
                 "down": "program.exit",
-                "time": 120
-            }
+                "time": 100
+            },
+            "[PATTERN]15&4>0.7,15&4>0.7,15&4<-0.7,15&4<-0.7,15&3<-0.7,15&3>0.7,15&3<-0.7,15&3>0.7,15&2,15&1,15&8": "enableDesktopMode",
+            "[PATTERN]15&4>0.7,15&4>0.7,15&4<-0.7,15&4<-0.7,15&3<-0.7,15&3>0.7,15&3<-0.7,15&3>0.7,15&2,15&1,15&7": "Restart"
         }
     },
 
@@ -72,14 +78,11 @@
             "[REPEAT]12|2<-0.4": "gui.down",
             "[REPEAT]13|1<-0.4": "gui.left",
             "[REPEAT]14|1>0.4": "gui.right",
+            "15": "pausemenu",
             "2": "gui.back",
             "1": {
                 "down": "gui.select",
                 "up": "gui.unselect"
-            },
-            "15": {
-                "down": "pausemenu",
-                "time": 80
             }
         },
         "keyboard": {

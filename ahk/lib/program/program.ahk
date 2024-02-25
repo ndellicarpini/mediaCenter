@@ -871,6 +871,11 @@ class Program {
         ; disable hotkeys
         this.hotkeys := Map()
         this.shouldExit := true
+
+        ; close the keyboard if open
+        if (keyboardExists()) {
+            closeKeyboard()
+        }
         
         setLoadScreen("Exiting " . this.name . "...")
 

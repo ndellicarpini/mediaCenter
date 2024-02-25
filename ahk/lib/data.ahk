@@ -13,7 +13,10 @@ statusBackup() {
         if (key = "input") {
             backup[key] := Map()
             for key2, value2 in globalStatus[key] {
-                if (key2 != "buffer") {
+                if (key2 = "buffer") {
+                    backup[key][key2] := []
+                }
+                else {
                     backup[key][key2] := value2
                 }
             }

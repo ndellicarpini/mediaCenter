@@ -56,172 +56,100 @@ checkHotkeyModifier(hotkey) {
     return ""
 }
 
-; converts a map of hotkeys into an object more appropriate to use while checking pressed keys
-;  currHotkeys - current hotkey map
+; checks if the input hotkey is matched in the controller status
+;  hotkey - string key for hotkey
+;  status - controller status
+;  currInput - hotkeys 
+;  currInput - hotkey input status 
 ;
-; returns {
-;   hotkeys     - currHotkeys but splitting | hotkeys into unique entries
-;   modifiers   - map of hotkey modifiers using the hotkeys as keys
-;   buttonTree  - map using every unique key as keys, and an array of hotkeys using that key as values
-;   buttonTimes - map storing the times required to trigger function for every hotkey
-; }
-optimizeHotkeys(currHotkeys) {
-    ; get the highest count button in list
-    getMaxButton(list) {        
-        maxVal := 0
-        maxKey := ""   
-        for key, value in list {
-            if (value.Length > maxVal) {
-                maxKey := key
-                maxVal := value.Length
-            }
-        }
+; returns 
+;  "full" - complete match of hotkey
+;  "partial" - partial match of "&" hotkey
+;  "patternNext" - move the patternPos forward
+;  "" - miss
+checkHotkey(hotkey, status, currHotkeys, currInput) {
+    cleanHotkey := hotkey
+    if (currHotkeys[cleanHotkey]["modifier"] = "[PATTERN]") {
+        patternArr := StrSplit(cleanHotkey, ",")
 
-        return maxKey
+        if (currInput.Has(cleanHotkey) && patternArr.Length >= (currInput[cleanHotkey]["patternPos"] + 1)) {
+            patternNext := true
+            for item in StrSplit(patternArr[currInput[cleanHotkey]["patternPos"] + 1], "&") {
+                patternNext := patternNext && inputCheckStatus(item, status)
+            }
+
+            if (patternNext) {
+                return "patternNext"
+            }
+            
+            cleanHotkey := patternArr[currInput[cleanHotkey]["patternPos"]]
+        }
+        else {
+            cleanHotkey := patternArr[1]
+        }
     }
 
-    ; --- FUNCTION ---
-    buttonRefs     := Map()
-    buttonRefTimes := Map()
-    cleanHotkeys   := Map()
-    modifiers      := Map()
+    full := true
+    partial := false
+    for item in StrSplit(cleanHotkey, "&") {
+        statusResult := inputCheckStatus(item, status)
+        full := full && statusResult
+        partial := partial || statusResult
+    }
 
-    ; clean out ors from hotkey
-    tempHotkeys := Map()
+    if (full) {
+        return "full"
+    }
+    else if (partial) {
+        return "partial"
+    }
+    else {
+        return ""
+    }
+}
+
+; converts hotkeys into an object more appropriate to use while checking keys
+;  currHotkeys - current hotkey map
+;  defaultTime - default button time
+;
+; returns new hotkey map
+optimizeHotkeys(currHotkeys, defaultTime) {
+    retHotkeys := Map()
     for key, value in currHotkeys {
-        if (!InStr(key, "|")) {
-            tempHotkeys[key] := value
-            continue
+        modifier := checkHotkeyModifier(key)
+        hotkey := Map()
+
+        baseTime := defaultTime
+        if (modifier = "[REPEAT]") {
+            baseTime := 400
+        }
+        else if (modifier = "[PATTERN]") {
+            baseTime := 5000
         }
 
-        currModifier := checkHotkeyModifier(key)
-        currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")  
-        for item in StrSplit(currKey, "|") {
-            tempHotkeys[currModifier . item] := value
+        if (IsObject(value)) {
+            hotkey["modifier"] := modifier
+            hotkey["down"] := (value.Has("down")) ? value["down"] : ""
+            hotkey["up"] := (value.Has("up")) ? value["up"] : ""
+            hotkey["time"] := Integer((value.Has("time")) ? value["time"] : baseTime)
         }
-    }
-
-    ; splits hotkeys into modifiers, times, & unique keys
-    for key, value in tempHotkeys {
-        currModifier := checkHotkeyModifier(key)
-        currKey := (currModifier = "") ? key : StrReplace(key, currModifier, "")   
-        
-        if (!IsObject(value)) {
-            down := value
-
-            value := Map()
-            value["down"] := down
-            value["up"] := ""
-            value["time"] := ""
+        else {
+            hotkey["modifier"] := modifier
+            hotkey["down"] := value
+            hotkey["up"] := ""
+            hotkey["time"] := baseTime
         }
 
-        if (InStr(currKey, "&")) {
-            addItem := ""
-            currHotkey := StrSplit(currKey, "&")
-
-            refs := []
-            for item in currHotkey {
-                currItem := Trim(item, " `t`r`n")
-
-                addItem .= currItem . "&"
-                refs.Push(currItem)
-            }
-
-            cleanItem := RTrim(addItem, "&")
-
-            cleanHotkeys[cleanItem] := value
-            modifiers[cleanItem] := Trim(StrLower(currModifier), "[] `t`r`n")
-
-            loop refs.Length {
-                if (refs[A_Index] != "") {
-                    if (!buttonRefs.Has(refs[A_Index])) {
-                        buttonRefs[refs[A_Index]] := [cleanItem]
-                    }
-                    else {
-                        buttonRefs[refs[A_Index]].Push(cleanItem)
-                    }
-
-                    if (IsObject(value) && value.Has("time") && value["time"] != "") {
-                        valueInt := Integer(value["time"])
-    
-                        if (buttonRefTimes.Has(refs[A_Index])) {
-                            if (valueInt < buttonRefTimes[refs[A_Index]]) {
-                                buttonRefTimes[refs[A_Index]] := valueInt
-                            }
-                        }
-                        else {
-                            buttonRefTimes[refs[A_Index]] := valueInt
-                        }
-                    }
-                }
+        cleanKey := StrUpper((modifier != "") ? StrReplace(key, modifier) : key)
+        if (InStr(cleanKey, "|")) {
+            for item in StrSplit(cleanKey, "|") {
+                retHotkeys[item] := hotkey
             }
         }
         else {
-            currItem := Trim(currKey, " `t`r`n")
-
-            cleanHotkeys[currItem] := value
-            modifiers[currItem] := Trim(StrLower(currModifier), "[] `t`r`n")
-
-            if (currItem != "") {
-                if (!buttonRefs.Has(currItem)) {
-                    buttonRefs[currItem] := [currItem]
-                }
-                else {
-                    buttonRefs[currItem].Push(currItem)
-                }
-
-                if (value.Has("time") && value["time"] != "") {
-                    valueInt := Integer(value["time"])
-
-                    if (buttonRefTimes.Has(currItem)) {
-                        if (valueInt < buttonRefTimes[currItem]) {
-                            buttonRefTimes[currItem] := valueInt
-                        }
-                    }
-                    else {
-                        buttonRefTimes[currItem] := valueInt
-                    }
-                }
-            }
+            retHotkeys[cleanKey] := hotkey
         }
     }
 
-    ; sort unique buttons by number of references to each button in the total
-    ; hotkeys, lets me reduce the number of button checks in a loop by only
-    ; checking the unique buttons in order of most referenced
-    buttonTree := Map()
-    loop buttonRefs.Count {
-        maxButton := getMaxButton(buttonRefs)
-        if (maxButton = "") {
-            continue
-        }
-
-        maxRefs := buttonRefs.Delete(maxButton)
-        buttonTree[maxButton] := maxRefs
-
-        ; remove shared references from any buttons outside of max
-        for key, value in buttonRefs {
-            loop maxRefs.Length {
-                currRef := maxRefs[A_Index]
-
-                toDelete := []
-                loop value.Length {
-                    if (currRef = value[A_Index]) {
-                        toDelete.Push(A_Index)
-                    }
-                }
-
-                loop toDelete.Length {
-                    value.RemoveAt(toDelete[A_Index])
-                }
-            }
-        }
-    }
-
-    return {
-        hotkeys: cleanHotkeys,
-        modifiers: modifiers,
-        buttonTree: buttonTree,
-        buttonTimes: buttonRefTimes,
-    }
+    return retHotkeys
 }

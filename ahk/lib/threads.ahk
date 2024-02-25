@@ -43,18 +43,17 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         global thisInput   := []
         global thisHotkeys := Map()
         global thisMouse   := Map()
-        
-        global hotkeyTimers := []
 
-        global buttonTime   := globalStatus["input"]["buttonTime"]
-        global maxConnected := globalInputConfigs[inputID]["maxConnected"]
-
-        global mouseStatus := Map("lclick", 0, "rclick", 0, "mclick", 0)
-        global hscrollCount  := 0
-        global vscrollCount  := 0
-
-        global currHotkeys := ""
-        global currStatus  := ""
+        global currHotkeyInput := Map()
+        global currMouseInput  := Map(
+            "lclick", 0,
+            "rclick", 0,
+            "mclick", 0,
+            "hscroll", 0,
+            "vscroll", 0)
+            
+        global buttonTime := globalStatus["input"]["buttonTime"]
+        global currSource := globalStatus["input"]["source"]
 
         ; ----- FUNCTIONS -----
 
@@ -90,117 +89,6 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             }
         }
 
-        ; removes timer id from running timers
-        ;  index - index of input
-        ;  button - unique button pressed
-        ;
-        ; returns null
-        removeTimer(index, button) {
-            global hotkeyTimers
-
-            i := 1
-            loop hotkeyTimers.Length {
-                if (hotkeyTimers[i] = index . "-" . button) {
-                    hotkeyTimers.RemoveAt(i)
-                }
-                else {
-                    i += 1
-                }
-            }
-        }
-
-        ; check & find most specific hotkey that matches input state
-        ;  button - button that was matched
-        ;  hotkeys - currHotkeys as set by program
-        ;  status - status result from input
-        ; 
-        ; returns array of button combo pressed & function from hotkeys based on input
-        checkHotkeys(button, hotkeys, status) {
-            ; creates the hotkeyData in the appropriate format
-            createHotkeyData(hotkey) {
-                down := ""
-                up   := ""
-                time := ""
-
-                for key, value in hotkeys.hotkeys[hotkey] {
-                    if (StrLower(key) = "down") {
-                        down := value
-                    }
-                    else if (StrLower(key) = "up") {
-                        up := value
-                    }
-                    else if (StrLower(key) = "time") {
-                        time := value
-                    }
-                }
-
-                return {
-                    hotkey: StrSplit(hotkey, ["&", "|"]), 
-                    modifier: hotkeys.modifiers[hotkey],
-                    function: down,
-                    release: up, 
-                    time: time
-                }
-            }
-
-            if (!hotkeys.buttonTree.Has(button)) {
-                return -1
-            }
-
-            ; masking array of hotkeys from other branches in buttontree 
-            ; used to check that current pressed key combo is actually a child
-            ; of the buttontree[button]
-            notCheckArr := []
-            for key, value in hotkeys.buttonTree {
-                if (key = button) {
-                    continue
-                }
-
-                loop value.length {
-                    currArr := StrSplit(value[A_Index], ["&", "|"])
-                    if (inArray(button, currArr)) {
-                        notCheckArr.Push(value[A_Index])
-                    }
-                }
-            }
-
-            maxInvalidAmp := 0
-            for item in notCheckArr {
-                if (item = "") {
-                    continue
-                }
-
-                hotkeyList := StrSplit(item, ["&", "|"])
-
-                if (inputCheckStatus(hotkeyList, status) && hotkeyList.Length > maxInvalidAmp) {
-                    maxInvalidAmp := hotkeyList.Length
-                }
-            }
-
-            maxValidAmp := 0
-            maxValidItem := ""
-            for item in hotkeys.buttonTree[button] {
-                if (item = "") {
-                    continue
-                }
-
-                hotkeyList := StrSplit(item, ["&", "|"])
-
-                if (inputCheckStatus(hotkeyList, status) && hotkeyList.Length > maxValidAmp) {
-                    maxValidAmp := hotkeyList.Length
-                    maxValidItem := item
-                }
-            }
-
-            ; if the button combo is from a different buttontree branch
-            ; or if no valid button combos found
-            if (maxInvalidAmp > maxValidAmp || maxValidAmp = 0) {
-                return -1
-            }
-
-            return createHotkeyData(maxValidItem)
-        }
-
         ; either adds a hotkey to the buffer or internalStatus
         ;  hotkeyFunction - function string to run
         ;  forceSend - whether or not to skip buffer
@@ -227,6 +115,44 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             }
         }
 
+        ; removes a hotkey from the currHotkeyInput and sends up command
+        ;  key - hotkey to remove
+        ;  currIndex - port of controller to remove from
+        ;
+        ; returns null
+        removeHotkey(key, currIndex) {
+            global globalStatus
+            global currHotkeyInput
+
+            if (currHotkeyInput[currIndex][key]["sent"]) {
+                ; clean up input buffer from hold/repeat spam
+                if (currHotkeyInput[currIndex][key]["modifier"] = "[HOLD]" || currHotkeyInput[currIndex][key]["modifier"] = "[REPEAT]") {
+                    toDelete := []
+                    loop globalStatus["input"]["buffer"].Length {
+                        try {
+                            if (globalStatus["input"]["buffer"][A_Index] = currHotkeyInput[currIndex][key]["down"]) {
+                                toDelete.Push(A_Index)
+                            }
+                        }
+                    }
+                    
+                    if (toDelete.Length > 1) {
+                        loop toDelete.Length {
+                            try globalStatus["input"]["buffer"].RemoveAt(toDelete[A_Index] - (A_Index - 1))
+                        }
+                    }
+                }
+                
+                ; send button release function
+                if (!currHotkeyInput[currIndex][key]["blocked"]) {
+                    sendHotkey(currHotkeyInput[currIndex][key]["up"])
+                }
+            }
+
+            ; remove from currHotkeyInput if button no longer pressed
+            currHotkeyInput[currIndex].Delete(key)
+        }
+
         ; adjusts an axis value to be 0-1.0 respecting deadzone
         ;  axisVal - value of axis
         ;  deadzone - size of deadzone
@@ -245,82 +171,71 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         }
 
         ; ----- MAIN -----
+        inputInterval := 14
+        inputTimers   := Map()
+        maxConnected  := globalInputConfigs[inputID]["maxConnected"]
 
-        mouseTimerRunning := false
-
+        inputInit   := %globalInputConfigs[inputID]["className"]%.initialize()
         ; intialize input type & devices
-        inputInit := %globalInputConfigs[inputID]["className"]%.initialize()
         loop maxConnected {
             thisInput.Push(%globalInputConfigs[inputID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[inputID]))
             
             updateGlobalStatus(A_Index)
             globalInputStatus[inputID][A_Index]["vibrating"] := false
+
+            currHotkeyInput[A_Index] := Map()
+            currMouseInput[A_Index] := Map()
+
+            inputTimers[A_Index] := ButtonStatusTimer.Bind(A_Index)
+            SetTimer(inputTimers[A_Index], inputInterval)
+
+            Sleep(inputInterval)
         }
 
         SetTimer(DeviceStatusTimer, Round(globalConfig["General"]["AvgLoopSleep"] * 2.5))
 
+        loopSleep := maxConnected * inputInterval
+
         loop {
-            currStatus := globalStatus["currProgram"]["id"] . globalStatus["currGui"] . globalStatus["loadscreen"]["show"]
-
-            thisHotkeys := (globalStatus["input"]["hotkeys"].Has(inputID))
-                ? globalStatus["input"]["hotkeys"][inputID]
-                : Map()
-
-            thisMouse := (globalStatus["input"]["mouse"].Has(inputID))
-                ? globalStatus["input"]["mouse"][inputID]
-                : Map()
-
-            ; enable/disable the mouse listener timer if the program uses the mouse
-            if (thisMouse.Count > 0) {
-                if (!mouseTimerRunning) {
-                    SetTimer(MouseTimer, 15)
-                    mouseTimerRunning := true
-                }
-            }
-            else {
-                if (mouseTimerRunning) {
-                    hscrollCount := 0
-                    vscrollCount := 0
-
-                    SetTimer(MouseTimer, 0)
-                    mouseTimerRunning := false
-                }
-            }
-            
-            currHotkeys := optimizeHotkeys(thisHotkeys)
-            buttonTime  := globalStatus["input"]["buttonTime"]
-
-            ; check each input device
-            loop maxConnected {
-                currIndex := A_Index
-
-                status := thisInput[currIndex].getStatus()     
-                updateGlobalStatus(currIndex)    
-
-                if (!thisInput[currIndex].connected) {
-                    continue
-                }
-
-                ; check if any of the unique keys from buttonTree are being pressed
-                for key, value in currHotkeys.buttonTree {
-                    currButton := key
-                    currButtonTime := (currHotkeys.buttonTimes.Has(currButton)) ? currHotkeys.buttonTimes[currButton] : buttonTime
-
-                    if (!inArray(currIndex . "-" . currButton, hotkeyTimers) && inputCheckStatus(currButton, status)) {                       
-                        if (currButtonTime > 0) {
-                            SetTimer(ButtonTimer.Bind(currButton, currButtonTime, currIndex, currStatus), Neg(currButtonTime))
+            ; check if input hotkeySource has changed
+            if (currSource != globalStatus["input"]["source"]) {
+                try {
+                    toDelete := []
+                    ; delete all non-gui actions from the input buffer
+                    ; (keep gui ones for smoother controls betwee guis)
+                    loop globalStatus["input"]["buffer"].Length {
+                        if (StrLower(SubStr(globalStatus["input"]["buffer"][A_Index], 1, 4)) != "gui.") {
+                            toDelete.Push(A_Index)
                         }
-                        else {
-                            ButtonTimer(currButton, currButtonTime, currIndex, currStatus)
+                    }
+                    
+                    if (toDelete.Length > 1) {
+                        loop toDelete.Length {
+                            globalStatus["input"]["buffer"].RemoveAt(toDelete[A_Index] - (A_Index - 1))
                         }
-
-                        hotkeyTimers.Push(currIndex . "-" . currButton)
                     }
                 }
             }
 
+            currSource := globalStatus["input"]["source"]
+            buttonTime := globalStatus["input"]["buttonTime"]
+
+            thisHotkeys := optimizeHotkeys((globalStatus["input"]["hotkeys"].Has(inputID))
+                ? globalStatus["input"]["hotkeys"][inputID]
+                : Map(), buttonTime)
+
+            thisMouse := (globalStatus["input"]["mouse"].Has(inputID))
+                ? globalStatus["input"]["mouse"][inputID]
+                : Map()
+            
+            Sleep(loopSleep)
+
             ; close if main is no running
             if (!WinHidden(MAINNAME) || exitThread) {
+                loop maxConnected {
+                    SetTimer(inputTimers[A_Index], 0)
+                }
+
                 SetTimer(DeviceStatusTimer, 0)
 
                 loop thisInput.Length {
@@ -337,167 +252,213 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 ExitApp()
             }
 
-            Sleep(16)
         }
+
+        return
 
         ; ----- TIMERS -----
 
-        ButtonTimer(button, time, index, status) {   
+        ButtonStatusTimer(currIndex) {
             Critical("Off")
 
-            global globalStatus     
-            global thisInput
-
-            global currHotkeys
-            global buttonTime
-            global hotkeyTimers
-
-            inputStatus := thisInput[index].getStatus()
-
-            if (!inputCheckStatus(button, inputStatus)) {
-                SetTimer(WaitButtonTimer.Bind(button, index, -1, status, 0), -25)
-                
-                return
-            }
-
-            hotkeyData := checkHotkeys(button, currHotkeys, inputStatus)
-
-            if (hotkeyData = -1) {
-                SetTimer(WaitButtonTimer.Bind(button, index, -1, status, 0), -25)
-                return
-            }
-
-            if (hotkeyData.time != "" && (time - hotkeyData.time) > 0) {
-                SetTimer(ButtonTimer.Bind(button, hotkeyData.time, index, status), Neg(time - hotkeyData.time))
-                return
-            }
-
-            sendHotkey(hotkeyData.function)
-
-            SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, 0), -25)
-            return
-        }
-
-        WaitButtonTimer(button, index, hotkeyData, status, loopCount) {
-            Critical("On")
-            
             global globalStatus
-            global thisInput
-            global currStatus
+            global thisHotkeys
+            global thisMouse
+            global currHotkeyInput
+            global currMouseInput 
+            global buttonTime
 
-            if (hotkeyData = -1) {
-                removeTimer(index, button)
+            status := thisInput[currIndex].getStatus()     
+            updateGlobalStatus(currIndex)    
+
+            if (!thisInput[currIndex].connected || exitThread) {
                 return
             }
 
-            if (inputCheckStatus(button, thisInput[index].getStatus())) {
-                if (status = currStatus) {
-                    if (hotkeyData.function = "program.exit") {
-                        ; the nuclear option
-                        if (loopCount > 120) {
-                            winList := WinGetList()
-                            loop winList.Length {
-                                currPath := WinGetProcessPath(winList[A_Index])
-                                currProcess := WinGetProcessName(winList[A_Index])
+            ; check all current status hotkeys
+            for key, value in thisHotkeys {
+                ; check that button is pressed
+                hotkeyResult := checkHotkey(key, status, thisHotkeys, currHotkeyInput[currIndex])
+                hotkeyPressed := currHotkeyInput[currIndex].Has(key)
 
-                                if (!WinActive(winList[A_Index]) || currProcess = "explorer.exe" || currPath = A_AhkPath) {
-                                    continue
-                                }
-                                
-                                try ProcessKill(WinGetPID(winList[A_Index]))
-                                try ProcessKill(WinGetPID(MAINNAME))
+                ; add hotkey to currently pressed list
+                if (!hotkeyPressed) {
+                    ; if hotkey isn't perfect match -> ignore
+                    if (hotkeyResult != "full") {
+                        continue
+                    }
 
-                                removeTimer(index, button)
-                                return
-                            }
-                        }
+                    ; initialize pressed button in currHotkeyInput list
+                    currHotkeyInput[currIndex][key] := Map(
+                        "modifier", value["modifier"],
+                        "down", value["down"],
+                        "up", value["up"],
+                        "time", value["time"],
+                        "startTime", A_TickCount,
+                        "blocked", false,
+                        "sent", false)
+
+                    ; set custom PATTERN params
+                    if (currHotkeyInput[currIndex][key]["modifier"] = "[PATTERN]") {
+                        currHotkeyInput[currIndex][key]["patternPos"] := 1
+                        currHotkeyInput[currIndex][key]["patternWait"] := true
+                        currHotkeyInput[currIndex][key]["patternCount"] := StrSplit(key, ",").Length
+                        currHotkeyInput[currIndex][key]["patternTime"] := currHotkeyInput[currIndex][key]["time"]
+                        currHotkeyInput[currIndex][key]["time"] := 9999999
                     }
-                    else if (hotkeyData.modifier = "repeat") {
-                        if (loopCount > 12) {
-                            sendHotkey(hotkeyData.function)
-                        }
-                    }
-                    else if (hotkeyData.modifier = "hold") {
-                        sendHotkey(hotkeyData.function, true)
+                    ; set custom REPEAT params
+                    else if (currHotkeyInput[currIndex][key]["modifier"] = "[REPEAT]") {
+                        currHotkeyInput[currIndex][key]["repeatTime"] := currHotkeyInput[currIndex][key]["time"]
+                        currHotkeyInput[currIndex][key]["time"] := buttonTime
                     }
                 }
+                else {
+                    ; perform custom pattern logic
+                    if (currHotkeyInput[currIndex][key]["modifier"] = "[PATTERN]" 
+                        && currHotkeyInput[currIndex][key]["startTime"] + currHotkeyInput[currIndex][key]["patternTime"] > A_TickCount) {
 
-                SetTimer(WaitButtonTimer.Bind(button, index, hotkeyData, status, loopCount + 1), -25)
-            }
-            else {
-                if (status = currStatus) {
-                    if (hotkeyData.modifier = "repeat" || hotkeyData.modifier = "hold") {
-                        toDelete := []
-                        loop globalStatus["input"]["buffer"].Length {
-                            if (globalStatus["input"]["buffer"][A_Index] = hotkeyData.function) {
-                                toDelete.Push(A_Index)
+                        ; if user has released previous key, set patternWait to false
+                        if (currHotkeyInput[currIndex][key]["patternWait"] && (hotkeyResult = "partial" || hotkeyResult = "")) {
+                            currHotkeyInput[currIndex][key]["patternWait"] := false
+                        }
+                        ; update patternPos and set patternWait to true
+                        else if (!currHotkeyInput[currIndex][key]["patternWait"] && hotkeyResult = "patternNext") {
+                            currHotkeyInput[currIndex][key]["patternPos"] += 1
+                            currHotkeyInput[currIndex][key]["patternWait"] := true
+
+                            ; if pattern complete -> set time to 0 to immediately trigger
+                            if (currHotkeyInput[currIndex][key]["patternPos"] >= currHotkeyInput[currIndex][key]["patternCount"]) {
+                                currHotkeyInput[currIndex][key]["time"] := 0
                             }
                         }
-                        
-                        if (toDelete.Length > 1) {
-                            loop toDelete.Length {
-                                globalStatus["input"]["buffer"].RemoveAt(toDelete[A_Index] - (A_Index - 1))
-                            }
-                        }
+
+                        continue
                     }
-    
-                    ; trigger release function if it exists
-                    sendHotkey(hotkeyData.release)
-                }
 
-                removeTimer(index, button)
-            }
-
-            return
-        }
-
-        MouseTimer() {
-            global thisInput
-            
-            global mouseStatus
-            global hscrollCount
-            global vscrollCount
-
-            currMouse := thisMouse
-            deadzone := (currMouse.Has("deadzone")) ? currMouse["deadzone"] : 0.15
-            
-            xvel    := 0
-            yvel    := 0
-            hscroll := 0
-            vscroll := 0
-
-            MouseGetPos(&xpos, &ypos)
-
-            monitorW := 0
-
-            ; get width of monitor mouse is in to keep motion smooth between monitors
-            loop MonitorGetCount() {
-                MonitorGet(A_Index, &ML, &MT, &MR, &MB)
-
-                if (xpos >= ML && xpos <= MR && ypos >= MT && ypos <= MB) {
-                    monitorW := Floor(Abs(MR - ML))
-                    break
+                    ; hotkey released after being sent
+                    if (hotkeyResult != "full") {
+                        removeHotkey(key, currIndex)
+                    }
                 }
             }
 
-            checkX := currMouse.Has("x")
-            checkY := currMouse.Has("y")
-            checkH := currMouse.Has("hscroll")
-            checkV := currMouse.Has("vscroll")
-
-            checkL := currMouse.Has("lclick")
-            checkR := currMouse.Has("rclick")
-            checkM := currMouse.Has("mclick")
-
-            loop maxConnected {
-                currStatusData := thisInput[A_Index].getStatus()
-                if (!thisInput[A_Index].connected) {
+            ; check pressed hotkeys if any have been held long enough
+            for key, value in currHotkeyInput[currIndex] {
+                ; hotkey is no longer supported by current state
+                if (!thisHotkeys.Has(key)) {
+                    removeHotkey(key, currIndex)
                     continue
                 }
 
+                ; key hasn't been held long enough
+                if (value["startTime"] + value["time"] > A_TickCount) {
+                    continue
+                }
+
+                toSend := "-1"
+                ; send repeat function
+                if (value["modifier"] = "[REPEAT]") {
+                    ; set delay for 2nd send of the function
+                    if (!value["sent"]) {
+                        value["time"] := value["repeatTime"]
+                    }
+                    ; set delay for 3+ sends of the function
+                    else {
+                        value["time"] := 25
+                    }
+
+                    toSend := value["down"]
+                    value["startTime"] := A_TickCount
+                }
+                ; send hold function
+                else if (value["modifier"] = "[HOLD]") {
+                    ; set delay for all following function sends
+                    value["time"] := 25
+
+                    toSend := value["down"]
+                    value["startTime"] := A_TickCount
+                }
+                else if (!value["sent"]) {
+                    toSend := value["down"]
+                }
+                
+                if (toSend != "-1") {
+                    ignoreInput := false
+                    numAmpersand := StrSplit(key, "&").Length 
+                    ; check if key combination using the hotkey is being pressed, and prioritize it
+                    for key2, value2 in currHotkeyInput[currIndex] {
+                        if (key != key2 && (InStr(key, key2) || InStr(key2, key)) && value2["modifier"] != "[PATTERN]") {
+                            numAmpersand2 := StrSplit(key2, "&").Length 
+                            ; don't block inferior input if already sent & has down function (usually for {key up})
+                            if (numAmpersand > numAmpersand2 && (value2["down"] = "" || !value2["sent"])) {
+                                value2["blocked"] := true
+                            }
+                            else if (value["down"] = "" || !value["sent"]) {
+                                value["blocked"] := true
+                            }
+                        }
+                    }
+
+                    ; run hotkey down function
+                    if (!value["blocked"]) {
+                        sendHotkey(toSend, value["modifier"] = "[HOLD]")
+                        value["sent"] := true
+                    }
+                }
+
+                ; go nuclear once exit key has been held for 5 seconds
+                if (A_TickCount - value["startTime"] > 4900 && StrLower(value["down"]) = "program.exit") {                            
+                    value["startTime"] := A_TickCount
+                    
+                    winList := WinGetList()
+                    loop winList.Length {
+                        currPath := WinGetProcessPath(winList[A_Index])
+                        currProcess := WinGetProcessName(winList[A_Index])
+
+                        if (!WinActive(winList[A_Index]) || currProcess = "explorer.exe" || currPath = A_AhkPath) {
+                            continue
+                        }
+                        
+                        try ProcessKill(WinGetPID(winList[A_Index]))
+                        return
+                    }
+                }
+            }
+
+            ; move mouse if program supports it
+            if (thisMouse.Count > 0) {
+                deadzone := (thisMouse.Has("deadzone")) ? thisMouse["deadzone"] : 0.15
+                xvel    := 0
+                yvel    := 0
+                hscroll := 0
+                vscroll := 0
+
+                MouseGetPos(&xpos, &ypos)
+
+                monitorW := 0
+
+                ; get width of monitor mouse is in to keep motion smooth between monitors
+                loop MonitorGetCount() {
+                    MonitorGet(A_Index, &ML, &MT, &MR, &MB)
+
+                    if (xpos >= ML && xpos <= MR && ypos >= MT && ypos <= MB) {
+                        monitorW := Floor(Abs(MR - ML))
+                        break
+                    }
+                }
+
+                checkX := thisMouse.Has("x")
+                checkY := thisMouse.Has("y")
+                checkH := thisMouse.Has("hscroll")
+                checkV := thisMouse.Has("vscroll")
+
+                checkL := thisMouse.Has("lclick")
+                checkR := thisMouse.Has("rclick")
+                checkM := thisMouse.Has("mclick")
+
                 ; check mouse move x axis
                 if (checkX) {
-                    currAxis := Integer(currMouse["x"])
+                    currAxis := Integer(thisMouse["x"])
                     inverted := false
 
                     if (currAxis < 0) {
@@ -505,14 +466,14 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         inverted := true
                     }
 
-                    axis := currStatusData["axis"][currAxis]
+                    axis := status["axis"][currAxis]
                     if (Abs(axis) > deadzone) {
                         xvel := (inverted) ? (xvel - axis) : (xvel + axis)
                     }                   
                 }
                 ; check mouse move y axis
                 if (checkY) {
-                    currAxis := Integer(currMouse["y"])
+                    currAxis := Integer(thisMouse["y"])
                     inverted := false
 
                     if (currAxis < 0) {
@@ -520,7 +481,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         inverted := true
                     }
 
-                    axis := currStatusData["axis"][currAxis]
+                    axis := status["axis"][currAxis]
                     if (Abs(axis) > deadzone) {
                         yvel := (inverted) ? (yvel - axis) : (yvel + axis)
                     }
@@ -528,7 +489,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                 ; check mouse horizontal scroll axis
                 if (checkH) {
-                    currAxis := Integer(currMouse["hscroll"])
+                    currAxis := Integer(thisMouse["hscroll"])
                     inverted := false
 
                     if (currAxis < 0) {
@@ -536,14 +497,14 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         inverted := true
                     }
 
-                    axis := currStatusData["axis"][currAxis]
+                    axis := status["axis"][currAxis]
                     if (Abs(axis) > deadzone) {
                         hscroll := (inverted) ? (hscroll - axis) : (hscroll + axis)
                     }
                 }
                 ; check mouse vertical scroll axis
                 if (checkV) {
-                    currAxis := Integer(currMouse["vscroll"])
+                    currAxis := Integer(thisMouse["vscroll"])
                     inverted := false
 
                     if (currAxis < 0) {
@@ -551,7 +512,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         inverted := true
                     }
 
-                    axis := currStatusData["axis"][currAxis]
+                    axis := status["axis"][currAxis]
                     if (Abs(axis) > deadzone) {
                         vscroll := (inverted) ? (vscroll - axis) : (vscroll + axis)
                     }
@@ -559,87 +520,87 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                 ; check left click button
                 if (checkL) {
-                    if (currStatusData["buttons"][Integer(currMouse["lclick"])]) {
-                        if (!(mouseStatus["lclick"] & (2 ** A_Index))) {
+                    if (status["buttons"][Integer(thisMouse["lclick"])]) {
+                        if (!(currMouseInput["lclick"] & (2 ** A_Index))) {
                             MouseClick("Left",,,,, "D")
-                            mouseStatus["lclick"] := mouseStatus["lclick"] | (2 ** A_Index)
+                            currMouseInput["lclick"] := currMouseInput["lclick"] | (2 ** A_Index)
                         }
                     }
                     else {
-                        if (mouseStatus["lclick"] & (2 ** A_Index)) {
+                        if (currMouseInput["lclick"] & (2 ** A_Index)) {
                             MouseClick("Left",,,,, "U")
-                            mouseStatus["lclick"] := mouseStatus["lclick"] ^ (2 ** A_Index)
+                            currMouseInput["lclick"] := currMouseInput["lclick"] ^ (2 ** A_Index)
                         }
                     }
                 }
                 ; check right click button
                 if (checkR) {
-                    if (currStatusData["buttons"][Integer(currMouse["rclick"])]) {
-                        if (!(mouseStatus["rclick"] & (2 ** A_Index))) {
+                    if (status["buttons"][Integer(thisMouse["rclick"])]) {
+                        if (!(currMouseInput["rclick"] & (2 ** A_Index))) {
                             MouseClick("Right",,,,, "D")
-                            mouseStatus["rclick"] := mouseStatus["rclick"] | (2 ** A_Index)
+                            currMouseInput["rclick"] := currMouseInput["rclick"] | (2 ** A_Index)
                         }
                     }
                     else {
-                        if (mouseStatus["rclick"] & (2 ** A_Index)) {
+                        if (currMouseInput["rclick"] & (2 ** A_Index)) {
                             MouseClick("Right",,,,, "U")
-                            mouseStatus["rclick"] := mouseStatus["rclick"] ^ (2 ** A_Index)
+                            currMouseInput["rclick"] := currMouseInput["rclick"] ^ (2 ** A_Index)
                         }
                     }
                 }
                 ; check middle click button
                 if (checkM) {
-                    if (currStatusData["buttons"][Integer(currMouse["mclick"])]) {
-                        if (!(mouseStatus["mclick"] & (2 ** A_Index))) {
+                    if (status["buttons"][Integer(thisMouse["mclick"])]) {
+                        if (!(currMouseInput["mclick"] & (2 ** A_Index))) {
                             MouseClick("Middle",,,,, "D")
-                            mouseStatus["mclick"] := mouseStatus["mclick"] | (2 ** A_Index)
+                            currMouseInput["mclick"] := currMouseInput["mclick"] | (2 ** A_Index)
                         }
                     }
                     else {
-                        if (mouseStatus["mclick"] & (2 ** A_Index)) {
+                        if (currMouseInput["mclick"] & (2 ** A_Index)) {
                             MouseClick("Middle",,,,, "U")
-                            mouseStatus["mclick"] := mouseStatus["mclick"] ^ (2 ** A_Index)
+                            currMouseInput["mclick"] := currMouseInput["mclick"] ^ (2 ** A_Index)
                         }
                     }
                 }
-            }
 
-            ; move the mou
-            xvel := Round((adjustAxis(xvel, deadzone) * (0.015 * monitorW)))
-            yvel := Round((adjustAxis(yvel, deadzone) * (0.015 * monitorW)))
+                ; move the mouse
+                xvel := Round((adjustAxis(xvel, deadzone) * (0.012 * monitorW)))
+                yvel := Round((adjustAxis(yvel, deadzone) * (0.012 * monitorW)))
 
-            if (xvel != 0 || yvel != 0) {
-                MouseMove(xvel, yvel,, "R")
-            }
-            
-            ; only send scroll actions every x timer cycles
-            ; otherwise it will scroll way too fast
-            hscroll := Round(adjustAxis(hscroll, deadzone) * 3)
-            vscroll := Round(adjustAxis(vscroll, deadzone) * 3)
-            
-            if (Abs(hscrollCount * hscroll) > 6) {
-                if (hscroll > 0) {
-                    MouseClick("WheelRight")
-                }
-                else if (hscroll < 0) {
-                    MouseClick("WheelLeft")
+                if (xvel != 0 || yvel != 0) {
+                    MouseMove(xvel, yvel,, "R")
                 }
                 
-                hscrollCount := 0
-            }
-            if (Abs(vscrollCount * vscroll) > 6) {
-                if (vscroll > 0) {
-                    MouseClick("WheelDown")
+                ; only send scroll actions every x timer cycles
+                ; otherwise it will scroll way too fast
+                hscroll := Round(adjustAxis(hscroll, deadzone) * 3)
+                vscroll := Round(adjustAxis(vscroll, deadzone) * 3)
+                
+                if (Abs(currMouseInput["hscroll"] * hscroll) > 6) {
+                    if (hscroll > 0) {
+                        MouseClick("WheelRight")
+                    }
+                    else if (hscroll < 0) {
+                        MouseClick("WheelLeft")
+                    }
+                    
+                    currMouseInput["hscroll"] := 0
                 }
-                else if (vscroll < 0) {
-                    MouseClick("WheelUp")
+                if (Abs(currMouseInput["vscroll"] * vscroll) > 6) {
+                    if (vscroll > 0) {
+                        MouseClick("WheelDown")
+                    }
+                    else if (vscroll < 0) {
+                        MouseClick("WheelUp")
+                    }
+
+                    currMouseInput["vscroll"] := 0
                 }
 
-                vscrollCount := 0
+                currMouseInput["hscroll"] += 1
+                currMouseInput["vscroll"] += 1
             }
-
-            hscrollCount += 1
-            vscrollCount += 1
 
             return
         }
@@ -693,6 +654,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
     (   
         #Include lib\std.ahk
         #Include lib\input\hotkeys.ahk
+        #Include lib\input\input.ahk
         
         Critical("Off")
 
@@ -827,6 +789,12 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                 }
             }
 
+            ; --- UPDATE HOTKEYS & MOUSE ---
+            globalStatus["input"]["hotkeys"] := currHotkeys
+            globalStatus["input"]["mouse"]   := currMouse
+
+            Sleep(loopSleep)
+
             ; close if main is no running
             if (!WinHidden(MAINNAME) || exitThread) {
                 ; clean object of any reference to this thread (allows ObjRelease in main)
@@ -836,12 +804,6 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
 
                 ExitApp()
             }
-
-            ; --- UPDATE HOTKEYS & MOUSE ---
-            globalStatus["input"]["hotkeys"] := currHotkeys
-            globalStatus["input"]["mouse"]   := currMouse
-
-            Sleep(loopSleep)
         }
     )"
     , globalConfigPtr . " " . globalStatusPtr . " " . globalInputConfigsPtr . " " . globalRunningPtr
@@ -1013,12 +975,12 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                 }
             }
 
+            Sleep(loopSleep)
+
             ; close if main is no running
             if (!WinHidden(MAINNAME) || exitThread) {
                 ExitApp()
             }
-
-            Sleep(loopSleep)
         }
     )"
     , globalConfigPtr . " " . globalStatusPtr
