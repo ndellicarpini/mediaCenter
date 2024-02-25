@@ -390,8 +390,10 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         if (key != key2 && (InStr(key, key2) || InStr(key2, key)) && value2["modifier"] != "[PATTERN]") {
                             numAmpersand2 := StrSplit(key2, "&").Length 
                             ; don't block inferior input if already sent & has down function (usually for {key up})
-                            if (numAmpersand > numAmpersand2 && (value2["down"] = "" || !value2["sent"])) {
-                                value2["blocked"] := true
+                            if (numAmpersand > numAmpersand2) {
+                                if (value2["down"] = "" || !value2["sent"]) {
+                                    value2["blocked"] := true
+                                }
                             }
                             else if (value["down"] = "" || !value["sent"]) {
                                 value["blocked"] := true
