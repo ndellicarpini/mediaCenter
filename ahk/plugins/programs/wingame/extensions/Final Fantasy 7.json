@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "7th Heaven.exe",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": ["/LAUNCH", "/QUIT"],
+    "launcher": {
+        "exe": "7th Heaven.exe"
+    }
+}

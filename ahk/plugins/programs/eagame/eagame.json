@@ -4,16 +4,5 @@
 	"className": "EAGameProgram",
 
 	"requireInternet": true,
-	"requireFullscreen": true,
-
-    "exe": [
-		"AWayOut.exe",
-		"Madden19.exe",
-		"BurnoutPR.exe",
-		"NFS11Remastered.exe"
-    ],
-
-	"overrides": {
-		"Madden19\\.exe": "Madden19Program"
-	}
+	"requireFullscreen": true
 }

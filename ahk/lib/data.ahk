@@ -6,6 +6,10 @@ statusBackup() {
     global globalRunning
     global globalStatus
 
+    if (!DirExist("data\")) {
+        DirCreate("data\")
+    }
+
     backup := Map()
 
     for key, value in globalStatus {    
@@ -30,7 +34,9 @@ statusBackup() {
     for key, value in globalRunning {
         attrMap := Map()
         for name, attr in value.OwnProps() {
-            attrMap[name] := attr
+            if (SubStr(name, 1, 8) != "_waiting" && SubStr(name, -5) != "Timer") {
+                attrMap[name] := attr
+            }
         }
 
         backup["globalRunning"][key] := attrMap
@@ -145,6 +151,30 @@ statusUpdated() {
     } 
 
     return false
+}
+
+; writes to the log
+;  text - text to write
+;  prefix - prefix for log line
+;
+; returns null
+writeLog(text, prefix := "") {
+    if (!DirExist("data\")) {
+        DirCreate("data\")
+    }
+    if (!DirExist("data\logs")) {
+        DirCreate("data\logs")
+    }
+
+    if (FileExist("data\logs\log.txt")) {
+        modifiedTime := FileGetTime("data\logs\log.txt", "M")
+        if (SubStr(modifiedTime, 1, 8) != SubStr(A_Now, 1, 8)) {
+            FileMove("data\logs\log.txt", "data\logs\log." . FormatTime(modifiedTime, "yyyy-MM-dd") . ".txt", true)
+        }
+    }
+
+    newLine := "[" . FormatTime(, "MM-dd-yyyy HH:mm:ss") . ((prefix != "") ? ("] " . prefix . " | ") : "] ") . text . "`r`n"
+    FileAppend(newLine, "data\logs\log.txt")
 }
 
 ; takes a screenshot & saves it w/ the requested params

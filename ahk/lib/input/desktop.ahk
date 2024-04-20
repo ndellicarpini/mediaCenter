@@ -42,9 +42,10 @@ disableKBMMode() {
 
 ; enables desktop & displays info splash
 ;  showDialog - whether or not to show the info splash
+;  minimizePrograms - whether or not to minimize all running programs
 ;
 ; returns null
-enableDesktopMode(showDialog := false) {
+enableDesktopMode(minimizePrograms := false, showDialog := false) {
     global globalConfig
     global globalStatus
     global globalRunning
@@ -53,13 +54,15 @@ enableDesktopMode(showDialog := false) {
         disableKBMMode()
     }
 
-    for key, value in globalRunning {
-        if (value.background || value.minimized) {
-            continue
+    if (minimizePrograms) {
+        for key, value in globalRunning {
+            if (value.background || value.minimized) {
+                continue
+            }
+    
+            value.minimize()
+            Sleep(100)
         }
-
-        value.minimize()
-        Sleep(100)
     }
 
     globalStatus["desktopmode"] := true

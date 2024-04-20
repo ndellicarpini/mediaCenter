@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/219150",
+        "matchType": "partial"
+    },
+
+    "launcher": {
+        "exe": "HotlineMiami.exe",
+        "mouseClick": [0.216, 0.948]
+    }
+}

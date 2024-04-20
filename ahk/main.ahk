@@ -12,7 +12,6 @@
 #Include plugins\programs\desmume\desmume.ahk
 #Include plugins\programs\dolphin\dolphin.ahk
 #Include plugins\programs\eagame\eagame.ahk
-#Include plugins\programs\eagame\overrides\madden.ahk
 #Include plugins\programs\kodi\kodi.ahk
 #Include plugins\programs\pcsx2\pcsx2.ahk
 #Include plugins\programs\ppsspp\ppsspp.ahk
@@ -21,37 +20,17 @@
 #Include plugins\programs\ryujinx\ryujinx.ahk
 #Include plugins\programs\steam\steam.ahk
 #Include plugins\programs\steam\steamgame.ahk
-#Include plugins\programs\steam\overrides\batmanarkham.ahk
-#Include plugins\programs\steam\overrides\bioshockHD.ahk
-#Include plugins\programs\steam\overrides\bluefire.ahk
-#Include plugins\programs\steam\overrides\braid.ahk
-#Include plugins\programs\steam\overrides\clustertruck.ahk
-#Include plugins\programs\steam\overrides\darksouls3.ahk
-#Include plugins\programs\steam\overrides\elderscrolls.ahk
-#Include plugins\programs\steam\overrides\fallout.ahk
-#Include plugins\programs\steam\overrides\finalfantasy.ahk
-#Include plugins\programs\steam\overrides\flightsim.ahk
-#Include plugins\programs\steam\overrides\hitman.ahk
-#Include plugins\programs\steam\overrides\hotlinemiami.ahk
-#Include plugins\programs\steam\overrides\outrun.ahk
-#Include plugins\programs\steam\overrides\reddead.ahk
-#Include plugins\programs\steam\overrides\saintsrow.ahk
-#Include plugins\programs\steam\overrides\shenmue.ahk
-#Include plugins\programs\steam\overrides\spiderman.ahk
-#Include plugins\programs\steam\overrides\superhot.ahk
-#Include plugins\programs\steam\overrides\undertale.ahk
-#Include plugins\programs\steam\overrides\witcher.ahk
+#Include plugins\programs\steam\extensions\Red Dead Redemption 2\rdr2.ahk
+#Include plugins\programs\steam\extensions\Shenmue\shenmue.ahk
 #Include plugins\programs\wingame\wingame.ahk
-#Include plugins\programs\wingame\overrides\elderscrolls.ahk
-#Include plugins\programs\wingame\overrides\gta.ahk
-#Include plugins\programs\wingame\overrides\meltyblood.ahk
-#Include plugins\programs\wingame\overrides\n64decomp.ahk
-#Include plugins\programs\wingame\overrides\testdriveunlimited.ahk
+#Include plugins\programs\wingame\extensions\Grand Theft Auto 5\gta5.ahk
+#Include plugins\programs\wingame\extensions\Super Mario 64\sm64.ahk
+#Include plugins\programs\wingame\extensions\Zelda - Ocarina of Time\oot.ahk
 #Include plugins\programs\xemu\xemu.ahk
 #Include plugins\programs\xenia\xenia.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
 
-#Include lib\confio.ahk
+#Include lib\config.ahk
 #Include lib\std.ahk
 #Include lib\messaging.ahk
 #Include lib\program\program.ahk
@@ -59,6 +38,7 @@
 #Include lib\data.ahk
 #Include lib\input\hotkeys.ahk
 #Include lib\input\desktop.ahk
+#Include lib\input\devices.ahk
 #Include lib\input\input.ahk
 #Include lib\threads.ahk
 
@@ -90,7 +70,8 @@ SetCurrentWinTitle(MAINNAME)
 restoreDHW := A_DetectHiddenWindows
 
 DetectHiddenWindows(true)
-mainHWND := WinExist("ahk_pid " DllCall("GetCurrentProcessId"))
+global mainPID := DllCall("GetCurrentProcessId")
+global mainHWND := WinExist("ahk_pid " mainPID)
 DetectHiddenWindows(restoreDHW)
 
 global globalConfig       := Map()
@@ -112,13 +93,15 @@ globalGuis.CaseSense     := "Off"
 ; ----- INITIALIZE GLOBALCONFIG -----
 globalConfig["StartArgs"] := A_Args
 
+writeLog("Starting...", "MAIN")
+
 ; read from global.cfg
-for key, value in readGlobalConfig().subConfigs {
+for key, value in GlobalCfg().data {
     configObj := Map()
     statusObj := Map()
     
     ; for each subconfig (not monitor), convert to appropriate config & status objects
-    for key2, value2, in value.items {
+    for key2, value2, in value {
         configObj[key2] := value2
     }
 
@@ -132,7 +115,7 @@ if (globalConfig["General"].Has("MainPriority") && globalConfig["General"]["Main
 
 ; set overrides to case insensitive
 if (globalConfig.Has("Overrides")) {
-    overrides := ObjDeepClone(globalCOnfig["Overrides"])
+    overrides := ObjDeepClone(globalConfig["Overrides"])
 
     globalConfig["Overrides"] := Map()
     globalConfig["Overrides"].CaseSense := "Off"
@@ -144,6 +127,8 @@ if (globalConfig.Has("Overrides")) {
 
 ; set gui variables
 setGUIConstants()
+
+writeLog("Reading plugins...", "MAIN")
 
 ; create required folders
 requiredFolders := [expandDir("data")]
@@ -174,6 +159,8 @@ for value in requiredFolders {
         DirCreate(value)
     }
 }
+
+global wmiCOM := ComObjGet("winmgmts:")
 
 ; load process monitoring library for checking process lists
 processLib := DllLoadLib("psapi.dll")
@@ -227,45 +214,58 @@ globalStatus["loadscreen"]["text"] := (globalConfig["GUI"].Has("DefaultLoadText"
 globalStatus["input"] := Map()
 globalStatus["input"]["hotkeys"]    := Map()
 globalStatus["input"]["mouse"]      := Map()
-globalStatus["input"]["source"]     := ""
 globalStatus["input"]["buttonTime"] := 70
 globalStatus["input"]["buffer"]     := []
 
 ; ----- INITIALIZE PROGRAM/CONSOLE/INPUT CONFIGS -----
 ; read program configs from ConfigDir
 if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["ProgramPluginDir"] != "") {
+    programExtensions := Map()
     loop files validateDir(globalConfig["Plugins"]["ProgramPluginDir"]) . "*.json", "FR" {
-        tempConfig := readConfig(A_LoopFileFullPath,, "json")
-        tempConfig.cleanAllItems(true)
+        tempConfig := Config(A_LoopFileFullPath, "json")
 
-        if (tempConfig.items.Has("id") || tempConfig.items["id"] != "") {
+        if (tempConfig.data.Has("extends") && Type(tempConfig.data["extends"]) = "Map" 
+            && tempConfig.data["extends"].Has("id") && tempConfig.data["extends"]["id"] != "") {       
+            
+            if (programExtensions.Has(tempConfig.data["extends"]["id"])) {
+                programExtensions[tempConfig.data["extends"]["id"]].Push(tempConfig.data)
+            }
+            else {
+                programExtensions[tempConfig.data["extends"]["id"]] := [tempConfig.data]
+            }
+        }
+    }
 
+    loop files validateDir(globalConfig["Plugins"]["ProgramPluginDir"]) . "*.json", "FR" {
+        tempConfig := Config(A_LoopFileFullPath, "json")
+
+        if (tempConfig.data.Has("id") && tempConfig.data["id"] != "") { 
             ; convert array of exe to map for efficient lookup
-            if (tempConfig.items.Has("exe") && Type(tempConfig.items["exe"]) = "Array") {
+            if (tempConfig.data.Has("exe") && Type(tempConfig.data["exe"]) = "Array") {
                 tempMap := Map()
 
-                for item in tempConfig.items["exe"] {
+                for item in tempConfig.data["exe"] {
                     tempMap[StrLower(item)] := ""
                 }
 
-                tempConfig.items["exe"] := tempMap
+                tempConfig.data["exe"] := tempMap
             }
 
             ; convert array of wndw to map for efficient lookup
-            if (tempConfig.items.Has("wndw") && Type(tempConfig.items["wndw"]) = "Array") {
+            if (tempConfig.data.Has("wndw") && Type(tempConfig.data["wndw"]) = "Array") {
                 tempMap := Map()
 
-                for item in tempConfig.items["wndw"] {
+                for item in tempConfig.data["wndw"] {
                     tempMap[item] := ""
                 }
 
-                tempConfig.items["wndw"] := tempMap
+                tempConfig.data["wndw"] := tempMap
             }
             
-            globalPrograms[tempConfig.items["id"]] := tempConfig.toMap()
-        }
-        else {
-            ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
+            globalPrograms[tempConfig.data["id"]] := tempConfig.data
+            if (programExtensions.Has(tempConfig.data["id"])) {
+                globalPrograms[tempConfig.data["id"]]["_extensions"] := programExtensions[tempConfig.data["id"]]
+            }
         }
     }
 }
@@ -273,11 +273,10 @@ if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["
 ; read console configs from ConfigDir
 if (globalConfig["Plugins"].Has("ConsolePluginDir") && globalConfig["Plugins"]["ConsolePluginDir"] != "") {
     loop files validateDir(globalConfig["Plugins"]["ConsolePluginDir"]) . "*.json", "FR" {
-        tempConfig := readConfig(A_LoopFileFullPath,, "json")
-        tempConfig.cleanAllItems(true)
+        tempConfig := Config(A_LoopFileFullPath, "json")
 
-        if (tempConfig.items.Has("id") || tempConfig.items["id"] != "") {
-            globalConsoles[tempConfig.items["id"]] := tempConfig.toMap()
+        if (tempConfig.data.Has("id") || tempConfig.data["id"] != "") {
+            globalConsoles[tempConfig.data["id"]] := tempConfig.data
         }
         else {
             ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
@@ -288,16 +287,15 @@ if (globalConfig["Plugins"].Has("ConsolePluginDir") && globalConfig["Plugins"]["
 ; read input configs from plugins & start a unique inputThread for each individual config
 if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["InputPluginDir"] != "") {
     loop files validateDir(globalConfig["Plugins"]["InputPluginDir"]) . "*.json", "FR" {
-        tempConfig := readConfig(A_LoopFileFullPath,, "json")
-        tempConfig.cleanAllItems(true)
+        tempConfig := Config(A_LoopFileFullPath, "json")
 
-        if ((tempConfig.items.Has("id") || tempConfig.items["id"] != "")
-            && (tempConfig.items.Has("className") || tempConfig.items["className"] != "")
-            && (tempConfig.items.Has("maxConnected") || tempConfig.items["maxConnected"] != "")) {
+        if ((tempConfig.data.Has("id") || tempConfig.data["id"] != "")
+            && (tempConfig.data.Has("className") || tempConfig.data["className"] != "")
+            && (tempConfig.data.Has("maxConnected") || tempConfig.data["maxConnected"] != "")) {
             
-            controlID := tempConfig.items["id"]
+            controlID := tempConfig.data["id"]
 
-            globalInputConfigs[controlID] := tempConfig.toMap()
+            globalInputConfigs[controlID] := tempConfig.data
             globalInputStatus[controlID] := Array()
 
             loop globalInputConfigs[controlID]["maxConnected"] {
@@ -321,6 +319,8 @@ if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["In
 ; ----- PARSE START ARGS -----
 for item in globalConfig["StartArgs"] {
     if (item = "-backup") {
+        writeLog("Restoring state from backup...", "MAIN")
+
         try statusRestore()
 
         ; kill any programs that should have exited before main was backed up
@@ -336,6 +336,11 @@ for item in globalConfig["StartArgs"] {
         if (globalStatus["desktopmode"]) {
             enableDesktopMode()
         }
+
+        writeLog("---------- State restored ----------`r`n" . toString(globalStatus), "MAIN")
+        writeLog("---------- State restored ----------", "MAIN")
+
+        resetLoadScreen(0)
     }
 }
 
@@ -344,14 +349,15 @@ if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("En
     globalStatus["loadscreen"]["enable"] := true
 }
 
+writeLog("Starting Threads...", "MAIN")
+
 ; start non-input threads
 globalThreads["hotkey"] := hotkeyThread(
     ObjPtrAddRef(globalConfig), 
     ObjPtrAddRef(globalStatus),
     ObjPtrAddRef(globalInputConfigs),
-    ObjPtrAddRef(globalRunning),
+    ObjPtrAddRef(globalRunning)
 )
-
 globalThreads["misc"] := miscThread(
     ObjPtrAddRef(globalConfig), 
     ObjPtrAddRef(globalStatus)
@@ -388,16 +394,17 @@ forceMaintain := globalConfig["General"].Has("ForceMaintainMain") && globalConfi
 forceActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
 loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 
+writeLog("Starting input timer...", "MAIN")
+
 ; set timer to check the input buffer
 SetTimer(InputBufferTimer, 35)
 
 delayCount := 0
 maxDelayCount := 15
 
-loop {
-    activeSet := false
-    hotkeySource := ""
+writeLog("Starting main loop...", "MAIN")
 
+loop {
     currSuspended   := globalStatus["suspendScript"]
     currDesktopMode := globalStatus["desktopmode"]
 
@@ -434,64 +441,58 @@ loop {
         continue
     }
 
+    activeSet := false
+
     ; --- CHECK OPEN GUIS ---
     currGui := globalStatus["currGui"]
 
     if (currGui != "") {
-        currWNDW := INTERFACES[currGui]["wndw"]
-        if (globalGuis.Has(currGui) && WinShown(currWNDW)) {
-            if (globalGuis[currGui].allowFocus) {
-                if (!activeSet) {
-                    if (forceActivate && !WinActive(currWNDW)) {
-                        try WinActivateForeground(currWNDW)
-                    }
-    
-                    activeSet := true
-                }
-    
-                if (hotkeySource = "") {
-                    hotkeySource := currGui
-                }
-            }
-        } 
-        else {
+        currWNDW := INTERFACES[currGui]["wndw"]   
+        if (!globalGuis.Has(currGui) || !WinShown(currWNDW)) {
             updateGuis()
+            currGui := globalStatus["currGui"]
+        }  
+
+        if (currGui != "" && globalGuis.Has(currGui) && globalGuis[currGui].allowFocus) {
+            if (!activeSet) {
+                if (forceActivate && !WinActive(currWNDW)) {
+                    try WinActivateForeground(currWNDW)
+                }
+
+                activeSet := true
+            }
         }
     }
     
     ; --- CHECK LOAD SCREEN ---
     if (globalStatus["loadscreen"]["show"] && !activeSet && !currSuspended && !currDesktopMode) {             
         activeSet := true
-        hotkeySource := "loadscreen"
 
-        if (globalGuis.Has("pause")) {
-            globalGuis["pause"].Destroy()
+        if (!globalStatus["kbmmode"] && keyboardExists()) {
+            closeKeyboard()
         }
-    }
-
-    ; --- CHECK SUSPENDED HOTKEYS ---
-    if (hotkeySource = "" && currSuspended) {
-        hotkeySource := "suspended"
     }
 
     ; --- CHECK DESKTOP MODE / KB & MOUSE MODE ---
-    if (hotkeySource = "") {
-        if (globalStatus["desktopmode"]) {
-            activeSet := true
-            hotkeySource := "desktopmode"
-        }
-        else if (globalStatus["kbmmode"]) {
-            hotkeySource := "kbmmode"
-        }
+    if (globalStatus["desktopmode"] && !activeSet) {
+        activeSet := true
     }
 
     ; --- CHECK OPEN PROGRAMS ---
     currProgram := globalStatus["currProgram"]["id"]
 
-    if (currProgram != "" && !currSuspended && !currDesktopMode && send2MainBuffer.Length = 0) {
-        if (globalRunning.Has(currProgram) && globalRunning[currProgram].exists(false, true)
-            && (globalStatus["currGui"] = "" || !globalGuis[globalStatus["currGui"]].allowFocus)) {
-            ; need to manually double check that guis aren't open because i want to die
+    if (!currSuspended && !currDesktopMode && send2MainBuffer.Length = 0) {
+        if (currProgram = "" || !globalRunning.Has(currProgram) || !globalRunning[currProgram].exists(false, true)) {
+            updatePrograms()
+            currProgram := globalStatus["currProgram"]["id"]
+        }
+
+        if (currProgram != "" && globalRunning.Has(currProgram)) {
+            ; double check that no currGui exists because dumb dumb
+            if (globalStatus["currGui"] != "" && globalGuis.Has(globalStatus["currGui"]) 
+                && globalGuis[globalStatus["currGui"]].allowFocus) {
+                continue
+            }
 
             if (!activeSet) {
                 if (forceActivate) {
@@ -503,14 +504,7 @@ loop {
 
                 activeSet := true
             }
-
-            if (hotkeySource = "") {                                                                    
-                hotkeySource := currProgram
-            }
         }
-        else {
-            updatePrograms()
-        }   
     }
 
     ; --- CHECK FIX ACTIVATION ---
@@ -518,7 +512,9 @@ loop {
         tempHWND := activateFixHWND
         activateFixHWND := 0
 
-        if (WinShown(tempHWND) && (globalStatus["currGui"] = "" || !globalGuis[globalStatus["currGui"]].allowFocus)) {
+        if (WinShown(tempHWND) && (globalStatus["currGui"] = "" 
+            || !globalGuis.Has(globalStatus["currGui"]) || !globalGuis[globalStatus["currGui"]].allowFocus)) {
+            
             WinMinimizeMessage(tempHWND)
             Sleep(250)
             WinRestoreMessage(tempHWND)
@@ -534,9 +530,6 @@ loop {
         updatePrograms()
     }
 
-    ; update hotkey source
-    globalStatus["input"]["source"] := hotkeySource
-
     ; check if status has updated & backup
     if (statusUpdated()) {
         try statusBackup()
@@ -550,7 +543,7 @@ loop {
                 value.FuncPtr("")
             }
             catch {
-                ExitApp()
+                ProcessClose(mainPID)
             }
         }
 
@@ -594,21 +587,12 @@ InputBufferTimer() {
         }
 
         bufferedFunc := globalStatus["input"]["buffer"][1]
-        hotkeySource := globalStatus["input"]["source"]
         
         currProgram := globalStatus["currProgram"]["id"]
         currGui     := globalStatus["currGui"]
         currLoad    := globalStatus["loadscreen"]["show"]
         currKBMM    := globalStatus["kbmmode"]
         currDesktop := globalStatus["desktopmode"]
-
-        ; mismatched currHotkeys & status, ignore message
-        if ((hotkeySource = "load" && !currLoad) || (hotkeySource = "kbmmode" && !currKBMM) 
-            || (hotkeySource = "desktopmode" && !currDesktop)) {
-
-            globalStatus["input"]["buffer"] := []
-            return
-        }
 
         ; update pause status & create/destroy pause menu
         if (StrLower(bufferedFunc) = "pausemenu") {
@@ -617,9 +601,10 @@ InputBufferTimer() {
             ;  - config EnablePauseMenu is not explicitly set to "false"
             ;  - if a program exists -> the program allows pausing
             ;  - if a gui exists -> the gui allows pausing
-            if (!currLoad && !(globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
-                && !(currProgram != "" && hotkeySource = currProgram && globalRunning.Has(currProgram) && !globalRunning[currProgram].allowPause)
-                && !(currGui != "" && hotkeySource = currGui && globalGuis.Has(currGui) && !globalGuis[currGui].allowPause)) {
+            if (!(globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
+                && (!currLoad || (currLoad && globalStatus["loadscreen"]["overrideWNDW"] != "")) 
+                && !(currProgram != "" && globalRunning.Has(currProgram) && !globalRunning[currProgram].allowPause)
+                && !(currGui != "" && globalGuis.Has(currGui) && !globalGuis[currGui].allowPause)) {
 
                 try {
                     if (!globalGuis.Has("pause")) {
@@ -785,6 +770,8 @@ ShutdownScript(restoreTaskbar := true) {
     setLoadScreen("Please Wait...")
     activateLoadScreen()
 
+    writeLog("Exiting...", "MAIN")
+
     DllFreeLib(processLib)
     
     DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
@@ -801,6 +788,8 @@ ShutdownScript(restoreTaskbar := true) {
     if (restoreTaskbar && !taskbarExists()) {
         showTaskbar()
     }
+
+    writeLog("Exiting Threads...", "MAIN")
 
     ; tell the threads to close
     for key, value in globalThreads {
@@ -822,6 +811,7 @@ ShutdownScript(restoreTaskbar := true) {
 ; exits the script entirely, including maintainer
 ExitScript() {
     global globalConfig
+    global mainPID
 
     Critical("On")
 
@@ -836,12 +826,14 @@ ExitScript() {
     ShutdownScript()
     Sleep(500)
 
+    ; ProcessClose(mainPID)
     ExitApp()
 }
 
 ; resets the script, loading from statusBackup
 ResetScript() {
     global globalConfig
+    global mainPID
 
     Critical("On")
 
@@ -865,6 +857,7 @@ ResetScript() {
     ShutdownScript()
     Sleep(500)
 
+    ; ProcessClose(mainPID)
     ExitApp()
 }
 
@@ -872,6 +865,7 @@ ResetScript() {
 PowerOff() {
     global globalStatus
     global globalConfig
+    global mainPID
 
     Critical("On")
 
@@ -896,12 +890,14 @@ PowerOff() {
     Sleep(500)
 
     Shutdown 1
+    ; ProcessClose(mainPID)
     ExitApp()
 }
 
 ; clean up running programs & restart
 Restart() {
     global globalConfig
+    global mainPID
 
     Critical("On")
 
@@ -926,12 +922,14 @@ Restart() {
     Sleep(500)
 
     Shutdown 2
+    ; ProcessClose(mainPID)
     ExitApp()
 }
 
 ; clean up running programs & sleep -> restarting script after
 Standby() {
     global globalConfig
+    global mainPID
 
     Critical("On")
 
@@ -967,5 +965,6 @@ Standby() {
     Sleep(500)
 
     Run A_AhkPath . A_Space . "maintainer.ahk -clean", A_ScriptDir, "Hide"
+    ; ProcessClose(mainPID)
     ExitApp()
 }

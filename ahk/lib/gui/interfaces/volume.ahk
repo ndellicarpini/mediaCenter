@@ -27,7 +27,7 @@ class VolumeInterface extends Interface {
 
         this.guiWidth  := percentWidth(0.2)
         this.guiHeight := percentHeight(0.17)
-        maxHeight := percentHeight(0.5)
+        maxHeight := percentHeight(1)
 
         this.SetFont("bold s24")
         this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . percentHeight(0.05) . " w" . (this.guiWidth - percentHeight(0.02)), "Volume Control")

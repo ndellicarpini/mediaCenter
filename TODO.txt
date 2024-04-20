@@ -19,11 +19,6 @@ GUI
   - checkbox (button w/ on/off state, different img/text if on/off)
   - text input box?
   - selection dropdown (close on select/back, back restores original value)
-- create PauseScreen
-  - Program Specific Settings
-    - Show Controls button
-    - Save/Load state dialogs (w/ multiple slot support & taking screenshots)
-    - Manuals for games
   - Settings Category
     - change global settings dialog (updates global.cfg)
     - change windows settings (launch Settings)
@@ -40,5 +35,3 @@ LAUNCHBOX
 - create plugin to allow emualtors to have games with invalid file paths
 - create plugin to launch GameSettings rather than using separate emulator
 - maybe write directly into launchbox data the time played? (it probably wont work default)
-- redesign theme for game details page
-- clean theme files

@@ -1,0 +1,9 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/870780",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": "-dx12"
+}

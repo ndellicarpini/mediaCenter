@@ -37,9 +37,6 @@
             "time": 70
         },
 
-        ; desmume only supports inputs from 1 source, so use keyboard
-        ; used to duplicate functionality for triggers & bumpers
-        ; uses basic Send commands so that it isn't buffered
         "1": {
             "down": "Send '{z down}'",
             "up": "Send '{z up}'"
@@ -92,7 +89,7 @@
 
     "pauseOptions": {
         "Swap Screens": "program.swapScreens",
-        "Change Screen Layout": "program.layoutScreens",
+        "Change Screen Layout": "program.layoutScreens"
     },
 
     "pauseOrder": [

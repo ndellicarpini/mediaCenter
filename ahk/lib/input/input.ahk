@@ -5,6 +5,10 @@ class Input {
     pluginPort := -1
     name := ""
 
+    vendorID  := 0
+    productID := 0
+    revisionID := 0
+
     connected := false
     vibrating := false
 
@@ -36,7 +40,7 @@ class Input {
 
         this.name :=      (inputConfig.Has("name"))    ? inputConfig["name"]    : this.name
         this.buttNames := (inputConfig.Has("buttons")) ? inputConfig["buttons"] : this.buttNames
-        this.axisNames := (inputConfig.Has("axis"))    ? inputConfig["axis"] : this.axisNames
+        this.axisNames := (inputConfig.Has("axis"))    ? inputConfig["axis"]    : this.axisNames
 
         this.initResults := initResults
         
@@ -69,6 +73,16 @@ class Input {
         this.axis    := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         
         return Map("buttons", this.buttons, "axis", this.axis)
+    }
+
+    ; returns & sets the product & vendor ids of the device
+    checkDeviceInfo() {
+        return Map(
+            "name", this.name,
+            "productID", this.productID,
+            "vendorID", this.vendorID,
+            "revisionID", this.revisionID
+        )
     }
 
     ; returns & sets the connection type of the device

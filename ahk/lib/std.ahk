@@ -138,7 +138,7 @@ ProcessKill(process, includeChildren := true) {
 		PID := process
 	}
 	else if (ProcessExist(process)) {
-		PID := WinGetPID("ahk_exe " process)
+		PID := ProcessExist(process)
 	}
 	else {
 		PID := WinGetPID(WinHidden(process))
@@ -224,6 +224,23 @@ ProcessResume(process) {
 
 	DllCall("ntdll\NtResumeProcess", "Int", handle)
 	DllCall("CloseHandle", "Int", handle)
+}
+
+; gets the name from a pid
+;  pid - process to get name of
+;
+; returns name of process, or "" if not found
+ProcessGetName(pid) {
+	resetDHW := A_DetectHiddenWindows
+	DetectHiddenWindows(true)
+
+	retVal := ""
+	if (WinExist("ahk_pid " pid)) {
+		retVal := WinGetProcessName("ahk_pid " pid)
+	}
+
+	DetectHiddenWindows(resetDHW)
+	return retVal
 }
 
 ; returns the winexist of the window only if the window is not hidden
@@ -497,8 +514,8 @@ WindowSend(key, window, time := -1, async := false) {
 		return
 	}
 
-	; if there's multiple spaces, just control send (why did i do this?)
-	if (StrSplit(key, A_Space).Length > 2) {
+	; if there's a space, just control send
+	if (InStr(key, A_Space)) {
 		if (time = -1) {
 			ControlSend(key,, window)
 		}
@@ -574,8 +591,8 @@ WindowSend(key, window, time := -1, async := false) {
 ;
 ; returns null
 SendSafe(key, time := -1, async := false) {
-	; if there's multiple spaces, just send (why did i do this?)
-	if (StrSplit(key, A_Space).Length > 2) {
+	; if there's a space, just send
+	if (InStr(key, A_Space)) {
 		if (time = -1) {
 			Send(key)
 		}
@@ -675,7 +692,7 @@ ObjDeepClone(obj) {
 ;
 ; returns the library
 DllLoadLib(library) {
-	return DllCall("LoadLibrary", "Str", library)
+	return DllCall("LoadLibrary", "Str", library, "Ptr")
 }
 
 ; frees the dll library for access in the script
@@ -896,32 +913,114 @@ toString(value, prefix := "") {
 ; returns either new value type, or string
 fromString(value, trimString := false) {
 	retVal := value
+	whitespace := " `t`r`n"
 
 	; try to convert the item into a float, if successful save as number
 	try {
-		retVal := Float(Trim(value, A_Space))
+		retVal := Float(Trim(value, whitespace . "'" . '"'))
 		return retVal
 	}
 	catch {
 		; check if value is a string representing a bool, convert to bool
-		if (StrLower(Trim(value, A_Space)) = "true") {
+		if (StrLower(Trim(value, whitespace . "'" . '"')) = "true") {
 			return true
 		}
-		else if (StrLower(Trim(value, A_Space)) = "false") {
+		else if (StrLower(Trim(value, whitespace . "'" . '"')) = "false") {
 			return false
 		}
 		
 		; check if value is an array (contains ","), and convert appropriately
 		else if (SubStr(value, 1, 1) = "[" && SubStr(value, -1, 1) = "]") {
-			tempArr := StrSplit(Trim(value, " `r`n`t[]"), ",")
+			trimmedVal := SubStr(value, 2, StrLen(value) - 2)
 
+			commaPos := InStr(trimmedVal, ",")
+			quote1Pos := InStr(trimmedVal, '"')
+			quote2Pos := InStr(trimmedVal, "'")
+			bracketOpenPos := InStr(trimmedVal, "[")
+			bracketClosePos := InStr(trimmedVal, "]")
+
+			inQuote1 := 0
+			inQuote2 := 0
+			inBracket := 0
+
+			validComma := []
+			while (commaPos) {
+				checkPos := [commaPos]
+				if (quote1Pos != 0) {
+					if (inQuote1 && quote1Pos != inQuote1 && commaPos > quote1Pos) {
+						inQuote1 := 0
+					}
+					else if (commaPos > quote1Pos) {
+						inQuote1 := quote1Pos
+					}
+
+					checkPos.Push(quote1Pos)
+				}
+				if (quote2Pos != 0) {
+					if (inQuote2 && quote2Pos != inQuote2 && commaPos > quote2Pos) {
+						inQuote2 := 0
+					}
+					else if (commaPos > quote2Pos) {
+						inQuote2 := quote2Pos
+					}
+
+					checkPos.Push(quote2Pos)
+				}
+				if (bracketClosePos != 0) {
+					if (inBracket && bracketClosePos > inBracket && commaPos > bracketClosePos) {
+						inBracket := 0
+					}
+
+					checkPos.Push(bracketClosePos)
+				}
+				if (bracketOpenPos != 0) {
+					if (commaPos > bracketOpenPos) {
+						inBracket := bracketOpenPos
+					}
+
+					checkPos.Push(bracketOpenPos)
+				}
+
+				nextPos := Min(checkPos*) + 1
+				if (!inQuote1 && !inQuote2 && !inBracket) {
+					validComma.Push(commaPos)
+					nextPos := commaPos + 1
+				}
+
+				commaPos := InStr(trimmedVal, ",",, nextPos)
+				quote1Pos := InStr(trimmedVal, '"',, nextPos)
+				quote2Pos := InStr(trimmedVal, "'",, nextPos)
+				bracketOpenPos := InStr(trimmedVal, "[",, nextPos)
+				bracketClosePos := InStr(trimmedVal, "]",, nextPos)
+			}
+
+			remainingStr := trimmedVal
+			prevIndex := 1
+			arrayItems := []
+			loop validComma.Length {
+				splitIndex := validComma[A_Index] - (prevIndex - 1)
+				arrayItems.Push(Trim(SubStr(remainingStr, 1, splitIndex), " `t`r`n,"))
+
+				remainingStr := SubStr(remainingStr, splitIndex)
+				prevIndex := validComma[A_Index]
+			}
+
+			arrayItems.Push(Trim(remainingStr, " `t`r`n,"))
+			
 			retVal := []
-			for item in tempArr {
+			for item in arrayItems {
 				retVal.Push(fromString(item, trimString))
 			}
 		}
 
-		return (trimString && Type(retVal) = "String") ? Trim(retVal, ' `t`r`n"') : retVal
+		if (trimString && Type(retVal) = "String") {
+			retVal := Trim(retVal, whitespace)
+			if ((SubStr(retVal, 1, 1) = '"' && SubStr(retVal, -1, 1) = '"') || (SubStr(retVal, 1, 1) = "'" && SubStr(retVal, -1, 1) = "'")) {
+				retVal := SubStr(retVal, 2, StrLen(retVal) - 2)
+			}
+		}
+
+		return retVal
 	}
 }
 
@@ -1075,45 +1174,131 @@ reverseRegexClean(text) {
 	return retString
 }
 
-; checks whether or not a given subString is within quotation marks / custom in the mainString
+; returns all regex matches like the global flag
+;  haystack - similar to RegExMatch
+;  pattern - similar to RegExMatch
+;  &outputVar - similar to RegExMatch
+;  startingPos - similar to RegExMatch
+;
+; returns the leftmost's result's position, or 0
+globalRegExMatch(haystack, pattern, &outputVar := "", startingPos := 1) {
+	index := 1
+	outputVar := {
+		__Item: [],
+		Pos: [],
+		Len: [],
+		Name: [],
+		Count: 0
+	}
+
+	leftMostPos := 0
+	while (startingPos > 0 && startingPos < StrLen(haystack) && RegExMatch(haystack, pattern, &currOutput, startingPos)) {
+		; i don't know why i have to do this
+		if (currOutput.Count = 0) {
+			outputVar.__Item.Push(currOutput[0])
+			outputVar.Name.Push(currOutput.Name[0])
+			outputVar.Len.Push(currOutput.Len[0])
+			outputVar.Pos.Push(currOutput.Pos[0])
+
+			outputVar.Count += 1
+			index += 1 
+
+			startingPos := currOutput.Pos[0] + currOutput.Len[0]
+
+			if (leftMostPos = 0 || currOutput.Pos[0] < leftMostPos) {
+				leftMostPos := currOutput.Pos[0]
+			}
+		}
+		else {
+			loop currOutput.Count {
+				outputVar.__Item.Push(currOutput[A_Index])
+				outputVar.Name.Push(currOutput.Name[A_Index])
+				outputVar.Len.Push(currOutput.Len[A_Index])
+				outputVar.Pos.Push(currOutput.Pos[A_Index])
+	
+				outputVar.Count += 1
+				index += 1 
+	
+				startingPos := currOutput.Pos[A_Index] + currOutput.Len[A_Index]
+	
+				if (leftMostPos = 0 || currOutput.Pos[A_Index] < leftMostPos) {
+					leftMostPos := currOutput.Pos[A_Index]
+				}
+			}
+		}
+	}
+
+	return leftMostPos
+}
+
+; checks whether or not a given subString is within quotation marks in the mainString
 ;  mainString - string to check for the substring in
 ;  subString - string to check whether or not surrounded by quotation marks
-;  startChar - a list of starting chars to match with endChar (if no endChar, then match withh startChar)
-;  endChar - a list of endChar that is matched 1-to-1 with startChar
+;  startPos - starting position to check from for subString
+;  allowPartial - if true -> returns the position if even if there's no closing quote
 ;
-; returns boolean based on if subString is within quotes
-inQuotes(mainString, subString, startChar := "", endChar := "") {
-	startChar := (startChar = "") ? ['"', "'"] : toArray(startChar)
-	endChar   := (endChar = "")   ? ['"', "'"] : toArray(endChar)
+; returns the position of the first existing subString if it is within quotes
+inQuotes(mainString, subString := "", startPos := 1, allowPartial := false) {
+	quoteTypes := ['"', "'", "``"]
 
-	if (startChar.Length != endChar.Length) {
-		ErrorMsg("inQuotes: startChar & endChar have different lengths")
-	}
-
-	stringsToCheck := StrSplit(mainString, subString,, 2)
-	if (stringsToCheck.Length != 2) {
-		return false
-	}
-
-	quoteCount := []
-	loop startChar.Length {
-		tempString := RegExReplace(stringsToCheck[1], regexClean(startChar[A_Index]),, &startCount)
-		RegExReplace(tempString, regexClean(endChar[A_Index]),, &endCount)
-
-		tempNum := startCount - endCount
-		if (startChar[A_Index] = endChar[A_Index]) {
-			tempNum := Mod(tempNum, 2)
+	if (subString = "") {
+		for quote in quoteTypes {
+			if (SubStr(mainString, 1, 1) = quote && SubStr(mainString, -1, 1) = quote) {
+				return 1
+			}
 		}
-		
-		quoteCount.Push(tempNum)
+
+		return 0
 	}
 
-	total := 0
-	loop quoteCount.Length {
-		total += quoteCount[A_Index]
+	subPos := InStr(mainString, subString,, startPos)
+	; substring doesn't exist
+	if (!subPos) {
+		return 0
 	}
 
-	return (total > 0) ? true : false
+	for quote in quoteTypes {
+		partialFound  := false
+		startQuotePos := 0
+		stringPtr := 1
+
+		while (true) {
+			if (stringPtr > StrLen(mainString)) {
+				break
+			}
+
+			quotePos := InStr(mainString, quote,, stringPtr)
+			; first quote is after subString or doesn't exist
+			if (!quotePos || (startQuotePos = 0 && quotePos > subPos)) {
+				break
+			}
+
+			; set start pos
+			if (startQuotePos = 0) {
+				startQuotePos := quotePos
+				partialFound := true
+			}
+			; check end pos
+			else {
+				; substring is between quotes
+				if (quotePos > subPos) {
+					return subPos
+				}
+				else {
+					partialFound  := false
+					startQuotePos := 0
+				}
+			}
+
+			stringPtr := quotePos + 1
+		}
+
+		if (allowPartial && partialFound) {
+			return subPos
+		}
+	}
+
+	return 0
 }
 
 ; gets the string's eol setup (either `r, `n, or `r`n)

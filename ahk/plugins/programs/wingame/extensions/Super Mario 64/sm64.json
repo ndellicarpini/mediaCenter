@@ -1,0 +1,9 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "Super Mario 64 Plus.exe",
+        "matchType": "partial"
+    },
+    
+    "className": "SM64Program"
+}

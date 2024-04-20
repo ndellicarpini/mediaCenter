@@ -1,0 +1,22 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "soh.exe",
+        "matchType": "partial"
+    },
+
+    "exe": "soh.exe",
+    "className": "HarkinianProgram",
+    "hotkeys": {
+        "15&7": "program.loadState",
+        "15&8": "program.saveState",
+        "6&13": "program.loadState",
+        "6&14": "program.saveState"
+    },
+    "pauseOptions": {
+        "Save State": "program.saveState",
+        "Load State": "program.loadState",
+        "Reset Game": "program.reset"
+    },
+    "pauseOrder": ["Save State", "Load State", "Reset Game"]
+}

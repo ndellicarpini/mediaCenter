@@ -1,0 +1,11 @@
+{
+    "extends": {
+        "id": "eagame",
+        "args": "Madden19.exe",
+        "matchType": "partial"
+    },
+
+    "mouseMoveDelay ": 20000,
+    "postLaunchDelay": 1500,
+    "postLaunchSend": "{Enter}"
+}

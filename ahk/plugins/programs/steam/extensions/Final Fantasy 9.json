@@ -1,0 +1,13 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/377840",
+        "matchType": "partial"
+    },
+
+    "postLaunchDelay": 2000,
+    "launcher": {
+        "exe": "FF9_Launcher.exe",
+        "mouseClick": [0.850, 0.910]
+    }
+}

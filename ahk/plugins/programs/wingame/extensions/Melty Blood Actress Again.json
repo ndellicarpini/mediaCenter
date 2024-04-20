@@ -1,0 +1,10 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "MBAA.exe",
+        "matchType": "partial"
+    },
+
+    "postLaunchDelay": 500,
+    "postLaunchSend": "{Enter}"
+}

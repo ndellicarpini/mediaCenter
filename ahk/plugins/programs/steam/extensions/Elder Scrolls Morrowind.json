@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/10659920623238643712",
+        "matchType": "partial"
+    },
+
+    "mouseMoveDelay": 5000,
+    "mouse": {
+        "initialPos": [0.5, 0.5]
+    }
+}

@@ -29,7 +29,3 @@ STEAM
 
 KODI 
 - fix twitch thumbnails -> in converter.py
-- disable gamepad (shoudld i delete this?)
-  - https://forums.libretro.com/t/game-controller-inputs-running-in-the-backgroud-of-kodi-after-launching-retrorch/3640/2
-  - https://kodi.wiki/view/JSON-RPC_API#Transports
-  - https://www.autohotkey.com/boards/viewtopic.php?t=61259

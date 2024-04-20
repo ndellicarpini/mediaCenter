@@ -1,0 +1,13 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": ["steam://rungameid/12140", "steam://rungameid/12150"],
+        "matchType": "partial",
+        "multiType": "or"
+    },
+
+    "defaultArgs": "-nodialog -skipstartup",
+    "mouse": {
+        "initialPos": [0.5, 0.5]
+    }
+}

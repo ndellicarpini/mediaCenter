@@ -208,7 +208,7 @@ class PauseInterface extends Interface {
 
             if (funcArr[1] = "desktopmode") {
                 if (!globalStatus["desktopmode"]) {
-                    enableDesktopMode()
+                    enableDesktopMode(true)
                 }
                 else {
                     disableDesktopMode()
@@ -230,7 +230,13 @@ class PauseInterface extends Interface {
                     }
                 }
                 else if (funcArr[1] = "suspendScript") {
-                    globalStatus["suspendScript"] := !globalStatus["suspendScript"]
+                    if (!globalStatus["suspendScript"]) {
+                        globalStatus["loadscreen"]["enable"] := false
+                        globalStatus["suspendScript"] := true
+                    }
+                    else {
+                        globalStatus["suspendScript"] := false
+                    }
                 }
                 else {
                     super._select()

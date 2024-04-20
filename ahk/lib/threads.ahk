@@ -23,6 +23,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         #Include lib\std.ahk
         #Include lib\input\hotkeys.ahk
         #Include lib\input\input.ahk
+        #Include lib\input\devices.ahk
 
         ; SetKeyDelay 50, 50
         CoordMode "Mouse", "Screen"
@@ -37,23 +38,18 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         global globalInputConfigs := ObjFromPtr(A_Args[5])
 
         if (!globalInputStatus.Has(inputID) || !globalInputConfigs.Has(inputID)) {
-            ExitApp()
+            return
         }
 
         global thisInput   := []
         global thisHotkeys := Map()
         global thisMouse   := Map()
 
+        global currConnected := []
         global currHotkeyInput := Map()
-        global currMouseInput  := Map(
-            "lclick", 0,
-            "rclick", 0,
-            "mclick", 0,
-            "hscroll", 0,
-            "vscroll", 0)
+        global currMouseInput  := Map()
             
         global buttonTime := globalStatus["input"]["buttonTime"]
-        global currSource := globalStatus["input"]["source"]
 
         ; ----- FUNCTIONS -----
 
@@ -64,11 +60,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         ProgramSend(key, time := -1) {
             global globalStatus
 
-            if (globalStatus["currProgram"]["hwnd"] = 0) {
+            if (globalStatus["currProgram"]["exe"] = "") {
                 return
             }
 
-            WindowSend(key, globalStatus["currProgram"]["hwnd"], time, true)
+            WindowSend(key, "ahk_exe " globalStatus["currProgram"]["exe"], time, true)
         }
 
         ; updates the global input status
@@ -101,8 +97,8 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 return
             }
 
-            if (SubStr(hotkeyFunction, 1, 5) = "Send " && globalStatus["currProgram"]["id"] = globalStatus["input"]["source"]
-                && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+            if (SubStr(hotkeyFunction, 1, 5) = "Send " && globalStatus["currProgram"]["id"] != ""
+                && !globalStatus["currGui"] && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
                 
                 hotkeyFunction := StrReplace(hotkeyFunction, "Send ", "ProgramSend ",,, 1)
             }
@@ -179,12 +175,18 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         ; intialize input type & devices
         loop maxConnected {
             thisInput.Push(%globalInputConfigs[inputID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[inputID]))
+            currConnected.Push(thisInput[A_Index].connected)
             
             updateGlobalStatus(A_Index)
             globalInputStatus[inputID][A_Index]["vibrating"] := false
 
             currHotkeyInput[A_Index] := Map()
-            currMouseInput[A_Index] := Map()
+            currMouseInput[A_Index] := Map(
+                "lclick", 0,
+                "rclick", 0,
+                "mclick", 0,
+                "hscroll", 0,
+                "vscroll", 0)
 
             inputTimers[A_Index] := ButtonStatusTimer.Bind(A_Index)
             SetTimer(inputTimers[A_Index], inputInterval)
@@ -193,41 +195,18 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         }
 
         SetTimer(DeviceStatusTimer, Round(globalConfig["General"]["AvgLoopSleep"] * 2.5))
-
-        loopSleep := maxConnected * inputInterval
+        loopSleep := Round(globalConfig["General"]["AvgLoopSleep"])
 
         loop {
-            ; check if input hotkeySource has changed
-            if (currSource != globalStatus["input"]["source"]) {
-                try {
-                    toDelete := []
-                    ; delete all non-gui actions from the input buffer
-                    ; (keep gui ones for smoother controls betwee guis)
-                    loop globalStatus["input"]["buffer"].Length {
-                        if (StrLower(SubStr(globalStatus["input"]["buffer"][A_Index], 1, 4)) != "gui.") {
-                            toDelete.Push(A_Index)
-                        }
-                    }
-                    
-                    if (toDelete.Length > 1) {
-                        loop toDelete.Length {
-                            globalStatus["input"]["buffer"].RemoveAt(toDelete[A_Index] - (A_Index - 1))
-                        }
-                    }
-                }
-            }
-
-            currSource := globalStatus["input"]["source"]
             buttonTime := globalStatus["input"]["buttonTime"]
 
-            thisHotkeys := optimizeHotkeys((globalStatus["input"]["hotkeys"].Has(inputID))
-                ? globalStatus["input"]["hotkeys"][inputID]
-                : Map(), buttonTime)
+            if (globalStatus["input"]["hotkeys"].Has(inputID)) {
+                try thisHotkeys := optimizeHotkeys(globalStatus["input"]["hotkeys"][inputID], buttonTime)
+            }
+            if (globalStatus["input"]["mouse"].Has(inputID)) {
+                try thisMouse := globalStatus["input"]["mouse"][inputID]
+            }
 
-            thisMouse := (globalStatus["input"]["mouse"].Has(inputID))
-                ? globalStatus["input"]["mouse"][inputID]
-                : Map()
-            
             Sleep(loopSleep)
 
             ; close if main is no running
@@ -237,6 +216,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 }
 
                 SetTimer(DeviceStatusTimer, 0)
+                Sleep(70)
 
                 loop thisInput.Length {
                     thisInput[A_Index].destroyDevice()
@@ -249,9 +229,8 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     globalInputStatus[inputID][A_Index] := 0
                 }
                 
-                ExitApp()
+                break
             }
-
         }
 
         return
@@ -261,18 +240,36 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         ButtonStatusTimer(currIndex) {
             Critical("Off")
 
+            global exitThread
             global globalStatus
             global thisHotkeys
             global thisMouse
+            global currConnected
             global currHotkeyInput
             global currMouseInput 
             global buttonTime
 
-            status := thisInput[currIndex].getStatus()     
-            updateGlobalStatus(currIndex)    
-
-            if (!thisInput[currIndex].connected || exitThread) {
+            if (exitThread) {
+                SetTimer(, 0)
                 return
+            }
+
+            status := thisInput[currIndex].getStatus()     
+            updateGlobalStatus(currIndex)
+
+            ; check if the device is connected
+            if (!thisInput[currIndex].connected) {
+                if (currConnected[currIndex]) {
+                    currConnected[currIndex] := false
+                }
+
+                return
+            }
+
+            ; initialize the device if newly connected
+            if (!currConnected[currIndex]) {
+                thisInput[currIndex].initDevice()
+                currConnected[currIndex] := true
             }
 
             ; check all current status hotkeys
@@ -346,7 +343,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             for key, value in currHotkeyInput[currIndex] {
                 ; hotkey is no longer supported by current state
                 if (!thisHotkeys.Has(key)) {
-                    removeHotkey(key, currIndex)
+                    ; removeHotkey(key, currIndex)
                     continue
                 }
 
@@ -388,6 +385,12 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     ; check if key combination using the hotkey is being pressed, and prioritize it
                     for key2, value2 in currHotkeyInput[currIndex] {
                         if (key != key2 && (InStr(key, key2) || InStr(key2, key)) && value2["modifier"] != "[PATTERN]") {
+                            ; always block pausemenu from opening when using as "up"
+                            if (StrLower(value2["up"]) = "pausemenu") {
+                                value2["blocked"] := true
+                                continue
+                            }
+
                             numAmpersand2 := StrSplit(key2, "&").Length 
                             ; don't block inferior input if already sent & has down function (usually for {key up})
                             if (numAmpersand > numAmpersand2) {
@@ -411,18 +414,23 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 ; go nuclear once exit key has been held for 5 seconds
                 if (A_TickCount - value["startTime"] > 4900 && StrLower(value["down"]) = "program.exit") {                            
                     value["startTime"] := A_TickCount
-                    
-                    winList := WinGetList()
-                    loop winList.Length {
-                        currPath := WinGetProcessPath(winList[A_Index])
-                        currProcess := WinGetProcessName(winList[A_Index])
 
-                        if (!WinActive(winList[A_Index]) || currProcess = "explorer.exe" || currPath = A_AhkPath) {
-                            continue
+                    if (globalStatus["currProgram"]["exe"] != "") {
+                        try ProcessKill(globalStatus["currProgram"]["exe"])
+                    }
+                    else {
+                        winList := WinGetList()
+                        loop winList.Length {
+                            currPath := WinGetProcessPath(winList[A_Index])
+                            currProcess := WinGetProcessName(winList[A_Index])
+    
+                            if (!WinActive(winList[A_Index]) || currProcess = "explorer.exe" || currPath = A_AhkPath) {
+                                continue
+                            }
+                            
+                            try ProcessKill(WinGetPID(winList[A_Index]))
+                            break
                         }
-                        
-                        try ProcessKill(WinGetPID(winList[A_Index]))
-                        return
                     }
                 }
             }
@@ -523,45 +531,45 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 ; check left click button
                 if (checkL) {
                     if (status["buttons"][Integer(thisMouse["lclick"])]) {
-                        if (!(currMouseInput["lclick"] & (2 ** A_Index))) {
+                        if (!(currMouseInput[currIndex]["lclick"] & (2 ** A_Index))) {
                             MouseClick("Left",,,,, "D")
-                            currMouseInput["lclick"] := currMouseInput["lclick"] | (2 ** A_Index)
+                            currMouseInput[currIndex]["lclick"] := currMouseInput[currIndex]["lclick"] | (2 ** A_Index)
                         }
                     }
                     else {
-                        if (currMouseInput["lclick"] & (2 ** A_Index)) {
+                        if (currMouseInput[currIndex]["lclick"] & (2 ** A_Index)) {
                             MouseClick("Left",,,,, "U")
-                            currMouseInput["lclick"] := currMouseInput["lclick"] ^ (2 ** A_Index)
+                            currMouseInput[currIndex]["lclick"] := currMouseInput[currIndex]["lclick"] ^ (2 ** A_Index)
                         }
                     }
                 }
                 ; check right click button
                 if (checkR) {
                     if (status["buttons"][Integer(thisMouse["rclick"])]) {
-                        if (!(currMouseInput["rclick"] & (2 ** A_Index))) {
+                        if (!(currMouseInput[currIndex]["rclick"] & (2 ** A_Index))) {
                             MouseClick("Right",,,,, "D")
-                            currMouseInput["rclick"] := currMouseInput["rclick"] | (2 ** A_Index)
+                            currMouseInput[currIndex]["rclick"] := currMouseInput[currIndex]["rclick"] | (2 ** A_Index)
                         }
                     }
                     else {
-                        if (currMouseInput["rclick"] & (2 ** A_Index)) {
+                        if (currMouseInput[currIndex]["rclick"] & (2 ** A_Index)) {
                             MouseClick("Right",,,,, "U")
-                            currMouseInput["rclick"] := currMouseInput["rclick"] ^ (2 ** A_Index)
+                            currMouseInput[currIndex]["rclick"] := currMouseInput[currIndex]["rclick"] ^ (2 ** A_Index)
                         }
                     }
                 }
                 ; check middle click button
                 if (checkM) {
                     if (status["buttons"][Integer(thisMouse["mclick"])]) {
-                        if (!(currMouseInput["mclick"] & (2 ** A_Index))) {
+                        if (!(currMouseInput[currIndex]["mclick"] & (2 ** A_Index))) {
                             MouseClick("Middle",,,,, "D")
-                            currMouseInput["mclick"] := currMouseInput["mclick"] | (2 ** A_Index)
+                            currMouseInput[currIndex]["mclick"] := currMouseInput[currIndex]["mclick"] | (2 ** A_Index)
                         }
                     }
                     else {
-                        if (currMouseInput["mclick"] & (2 ** A_Index)) {
+                        if (currMouseInput[currIndex]["mclick"] & (2 ** A_Index)) {
                             MouseClick("Middle",,,,, "U")
-                            currMouseInput["mclick"] := currMouseInput["mclick"] ^ (2 ** A_Index)
+                            currMouseInput[currIndex]["mclick"] := currMouseInput[currIndex]["mclick"] ^ (2 ** A_Index)
                         }
                     }
                 }
@@ -579,7 +587,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 hscroll := Round(adjustAxis(hscroll, deadzone) * 3)
                 vscroll := Round(adjustAxis(vscroll, deadzone) * 3)
                 
-                if (Abs(currMouseInput["hscroll"] * hscroll) > 6) {
+                if (Abs(currMouseInput[currIndex]["hscroll"] * hscroll) > 6) {
                     if (hscroll > 0) {
                         MouseClick("WheelRight")
                     }
@@ -587,9 +595,9 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         MouseClick("WheelLeft")
                     }
                     
-                    currMouseInput["hscroll"] := 0
+                    currMouseInput[currIndex]["hscroll"] := 0
                 }
-                if (Abs(currMouseInput["vscroll"] * vscroll) > 6) {
+                if (Abs(currMouseInput[currIndex]["vscroll"] * vscroll) > 6) {
                     if (vscroll > 0) {
                         MouseClick("WheelDown")
                     }
@@ -597,21 +605,27 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         MouseClick("WheelUp")
                     }
 
-                    currMouseInput["vscroll"] := 0
+                    currMouseInput[currIndex]["vscroll"] := 0
                 }
 
-                currMouseInput["hscroll"] += 1
-                currMouseInput["vscroll"] += 1
+                currMouseInput[currIndex]["hscroll"] += 1
+                currMouseInput[currIndex]["vscroll"] += 1
             }
 
             return
         }
 
         DeviceStatusTimer() {
+            global exitThread
             global inputID
             global globalInputConfigs
             global globalInputStatus
             global thisInput
+
+            if (exitThread) {
+                SetTimer(, 0)
+                return
+            }
 
             loop globalInputConfigs[inputID]["maxConnected"] {
                 globalVibe := globalInputStatus[inputID][A_Index]["vibrating"]
@@ -671,16 +685,33 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
         global globalRunning      := ObjFromPtr(A_Args[4])
 
         ; initialize default hotkeys
+        defaultHotkeys      := Map()
+        defaultMouse        := Map()
+        guiHotkeys          := Map()
+
         desktopmodeHotkeys  := Map()
         desktopmodeMouse    := Map()
         kbmmodeHotkeys      := Map()
         kbmmodeMouse        := Map()
 
-        programHotkeys      := Map()
-        guiHotkeys          := Map()
+        emptyHotkeys := Map()
+        emptyMouse   := Map()
 
         ; set default hotkeys from input plugins
         for key, value in globalInputConfigs {
+            emptyHotkeys[key] := Map()
+            emptyMouse[key] := Map()
+
+            ; add default program hotkeys
+            if (value.Has("default")) {
+                if (value["default"].Has("hotkeys")) {
+                    defaultHotkeys[key] := value["default"]["hotkeys"]
+                }
+                if (value["default"].Has("mouse")) {
+                    defaultMouse[key] := value["default"]["mouse"]
+                }
+            }
+
             ; add desktopmode hotkeys
             if (value.Has("desktopmode")) {
                 if (value["desktopmode"].Has("hotkeys")) {
@@ -701,11 +732,6 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                 }
             }
 
-            ; add default program hotkeys
-            if (value.Has("programHotkeys") && value["programHotkeys"].Has("default")) {
-                programHotkeys[key] := value["programHotkeys"]["default"]
-            }
-
             ; add default & individual gui hotkeys
             if (value.Has("interfaceHotkeys") && value["interfaceHotkeys"].Has("default")) {
                 guiHotkeys[key] := value["interfaceHotkeys"]["default"]
@@ -715,16 +741,17 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 2)
 
         loop {
-            currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
-            hotkeySource  := globalStatus["input"]["source"]
+            currSuspended   := globalStatus["suspendScript"]
+            currDesktopMode := globalStatus["desktopmode"]
+            currKBMMode     := globalStatus["kbmmode"]
 
             currProgram := globalStatus["currProgram"]["id"]
             currGui     := globalStatus["currGui"]
 
-            currHotkeys := Map()
-            currMouse   := Map()
+            currHotkeys := ObjDeepClone(defaultHotkeys)
+            currMouse   := ObjDeepClone(emptyMouse)
 
-            if (hotkeySource = currGui) {
+            if (currGui != "") {
                 currHotkeys := ObjDeepClone(guiHotkeys)
 
                 for key, value in globalInputConfigs {
@@ -736,30 +763,17 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                 globalStatus["input"]["buttonTime"] := 0
             }
 
-            else if (hotkeySource = "suspended") {
-                currHotkeys := ObjDeepClone(programHotkeys)
-            }
-
-            else if (hotkeySource = "desktopmode") {
+            else if (currDesktopMode && !currSuspended) {
                 currHotkeys := ObjDeepClone(desktopmodeHotkeys)
                 currMouse   := ObjDeepClone(desktopmodeMouse)
 
                 globalStatus["input"]["buttonTime"] := 0
             }
 
-            else if (hotkeySource != "" && !currSuspended) {
-                if (hotkeySource = "error") {
-                    currHotkeys := ObjDeepClone(kbmmodeHotkeys)
-                    currMouse   := ObjDeepClone(kbmmodeMouse)
+            else if (globalStatus["loadscreen"]["show"] && !currSuspended) {
+                currHotkeys := ObjDeepClone(defaultHotkeys)
 
-                    globalStatus["input"]["buttonTime"] := 0
-                }
-
-                else if (hotkeySource = "kbmmode") {
-                    if (currProgram != "" && globalRunning.Has(currProgram)) {
-                        currHotkeys := ObjDeepClone(programHotkeys)
-                    }
-
+                if (globalStatus["kbmmode"]) {
                     for key, value in globalInputConfigs {
                         currHotkeys[key] := addHotkeys((currHotkeys.Has(key)) ? currHotkeys[key] : Map(), kbmmodeHotkeys[key])
                     }
@@ -768,17 +782,19 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
 
                     globalStatus["input"]["buttonTime"] := 0
                 }
+            }
 
-                else if (hotkeySource = currProgram && globalRunning.Has(currProgram)) {
-                    currHotkeys := ObjDeepClone(programHotkeys)
+            else if (currProgram != "" && globalRunning.Has(currProgram) && !currSuspended) {
+                try {
+                    currHotkeys := ObjDeepClone(defaultHotkeys)
 
                     checkHotkeys := globalRunning[currProgram].hotkeys.Count > 0
                     checkMouse   := globalRunning[currProgram].mouse.Count > 0
                     for key, value in globalInputConfigs {
                         if (checkHotkeys) {
                             currHotkeys[key] := addHotkeys(currHotkeys[key], globalRunning[currProgram].hotkeys)
-                            if (value.Has("programHotkeys") && value["programHotkeys"].Has(currProgram)) {
-                                currHotkeys[key] := addHotkeys(currHotkeys[key], value["programHotkeys"][currProgram])
+                            if (value.Has("defaultHotkeys") && value["defaultHotkeys"].Has(currProgram)) {
+                                currHotkeys[key] := addHotkeys(currHotkeys[key], value["defaultHotkeys"][currProgram])
                             }
 
                             globalStatus["input"]["buttonTime"] := Min(globalStatus["input"]["buttonTime"], globalRunning[currProgram].hotkeyButtonTime)
@@ -804,7 +820,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                     globalStatus["input"][key] := 0
                 }
 
-                ExitApp()
+                break
             }
         }
     )"
@@ -981,7 +997,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
 
             ; close if main is no running
             if (!WinHidden(MAINNAME) || exitThread) {
-                ExitApp()
+                break
             }
         }
     )"

@@ -1,0 +1,9 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/8870",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": "BioShockInfinite -run %command%"
+}

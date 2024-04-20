@@ -30,6 +30,18 @@ class WinGameProgram extends Program {
         
             exe := pathArr.RemoveAt(pathArr.Length)
             path := LTrim(joinArray(pathArr, "\"), '"' . '"')
+
+            if (Type(this.dir) != "Array") {
+                currDir := this.dir
+
+                this.dir := [path]
+                if (currDir != "") {
+                    this.dir.Push(currDir)
+                }
+            }
+            else {
+                this.dir.Push(path)
+            }
         
             RunAsUser(game, cleanArgs, path)
         }
@@ -37,121 +49,4 @@ class WinGameProgram extends Program {
             return false
         }
     }
-}
-
-; --- WINDOWS GAME W/ REQUIRED LAUNCHER TO SKIP ---
-class WinGameProgramWithLauncher extends WinGameProgram {
-    _launcherEXE      := ""   ; exe of launcher application
-    _launcherMousePos := []   ; array of positions to click as a double array
-    _launcherDelay    := 1000 ; delay before clicking
-    
-    _launch(game, args*) {
-        global globalStatus
-
-        if (super._launch(game, args*) = false) {
-            return false
-        }
-
-        if (this._launcherEXE = "") {
-            return
-        }
-
-        restoreAllowExit := this.allowExit
-        this.allowExit   := true
-
-        count := 0
-        maxCount := 30
-        ; wait for executable
-        while (!WinShown("ahk_exe " this._launcherEXE) && count < maxCount) {
-            if (this.exists()) {
-                return
-            }
-            else if (this.shouldExit) {
-                return false
-            }
-
-            Sleep(100)
-            count += 1
-        }
-
-        if (count >= maxCount) {
-            return false
-        }
-
-        ; flatten double array
-        mouseArr := []
-        loop this._launcherMousePos.Length {
-            if (Type(this._launcherMousePos[A_Index]) = "Array") {
-                currIndex := A_Index
-                loop this._launcherMousePos[currIndex].Length {
-                    mouseArr.Push(this._launcherMousePos[currIndex][A_Index])
-                }
-            }
-            else {
-                mouseArr.Push(this._launcherMousePos[A_Index])
-            }
-        }
-
-        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " this._launcherEXE
-
-        hiddenCount := 0
-        maxCount := 3
-        ; try to skip launcher as long as exectuable is shown
-        while (hiddenCount < maxCount) {
-            if (this.exists()) {
-                this.allowExit := restoreAllowExit
-                globalStatus["loadscreen"]["overrideWNDW"] := ""
-
-                return
-            }
-            else if (this.shouldExit) {
-                globalStatus["loadscreen"]["overrideWNDW"] := ""
-                return false
-            }
-
-            loop (mouseArr.Length / 2) {
-                index := ((A_Index - 1) * 2) + 1
-
-                Sleep(this._launcherDelay)
-
-                if (this.exists()) {
-                    this.allowExit := restoreAllowExit
-                    globalStatus["loadscreen"]["overrideWNDW"] := ""
-
-                    return
-                }
-                else if (this.shouldExit) {
-                    globalStatus["loadscreen"]["overrideWNDW"] := ""
-                    return false
-                }
-
-                if (!WinShown("ahk_exe " this._launcherEXE)) {
-                    hiddenCount += 1
-                    continue
-                }
-
-                MouseClick("Left"
-                    , percentWidthRelativeWndw(mouseArr[index], "ahk_exe " this._launcherEXE)
-                    , percentHeightRelativeWndw(mouseArr[index + 1], "ahk_exe " this._launcherEXE)
-                    ,,, "D"
-                )
-                Sleep(75)
-                MouseClick("Left",,,,, "U")
-                Sleep(75)
-                MouseMove(percentWidth(1), percentHeight(1))    
-            }
-        }
-
-        this.allowExit := restoreAllowExit
-        globalStatus["loadscreen"]["overrideWNDW"] := ""
-    }
-
-    ; dank ass bad practice
-    exit() {
-        if (this._launcherEXE != "" && ProcessExist(this._launcherEXE)) {
-            ProcessClose(this._launcherEXE)
-        }
-
-        super.exit()
-    }    
 }

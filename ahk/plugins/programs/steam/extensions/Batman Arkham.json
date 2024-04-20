@@ -1,0 +1,13 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": ["steam://rungameid/200260", "steam://rungameid/35140"],
+        "matchType": "partial",
+        "multiType": "or"
+    },
+
+    "launcher": {
+        "exe": "BmLauncher.exe",
+        "mouseClick": [0.500, 0.666]
+    }
+}

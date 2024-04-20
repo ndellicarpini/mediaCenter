@@ -1,0 +1,10 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": ["steam://rungameid/203160", "steam://rungameid/391220"],
+        "matchType": "partial",
+        "multiType": "or"
+    },
+
+    "defaultArgs": "-nolauncher"
+}

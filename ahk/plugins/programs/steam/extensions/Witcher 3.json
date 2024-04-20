@@ -1,0 +1,9 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/292030",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": "--launcher-skip"
+}

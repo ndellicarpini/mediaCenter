@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/22380",
+        "matchType": "partial"
+    },
+
+    "launcher": {
+        "exe": "FalloutNVLauncher.exe",
+        "mouseClick": [0.922, 0.278]
+    }
+}

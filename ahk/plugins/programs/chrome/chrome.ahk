@@ -1,7 +1,4 @@
 class ChromeProgram extends Program {
-    _mouseMoveDelay := 100
-    _fullscreenDelay := 100
-
     _restore() {
         retVal := super._restore()
 
@@ -29,9 +26,9 @@ class ChromeProgram extends Program {
         try {
             WinGetClientPos(&X, &Y, &W, &H, hwnd)
 
-            return (W >= (MONITOR_W * 0.95) && H >= (MONITOR_H * 0.95) 
-                && (X + (W * 0.05)) >= MONITOR_X && X < (MONITOR_X + MONITOR_W) 
-                && (Y + (H * 0.05)) >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H)) ? true : false
+            return (W >= (MONITOR_W * 0.98) && H >= (MONITOR_H * 0.98) 
+                && (X + (W * 0.02)) >= MONITOR_X && X < (MONITOR_X + MONITOR_W) 
+                && (Y + (H * 0.02)) >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H)) ? true : false
         }
 
         return false

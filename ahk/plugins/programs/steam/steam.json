@@ -2,9 +2,7 @@
     "id": "steam",
     "name": "Steam",
     "className": "SteamProgram",
-
-    "exe": "steam.exe",
-    "dir": "C:\\Steam",
+    
     "defaultArgs": "-silent",
 
     "background": true,

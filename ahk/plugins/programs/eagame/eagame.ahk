@@ -1,14 +1,8 @@
-class EAGameProgram extends Program {
-    _launch(game, args*) {
-        pathArr := StrSplit(game, "\")
-    
-        exe := pathArr.RemoveAt(pathArr.Length)
-        path := LTrim(joinArray(pathArr, "\"), '"' . "'")
-    
-        try {
-            RunAsUser(game, args, path)
-        }
-        catch {
+class EAGameProgram extends WinGameProgram {
+    _launch(args*) {
+        global globalStatus
+        
+        if (super._launch(args*) = false) {
             return false
         }
 
@@ -75,7 +69,7 @@ class EAGameProgram extends Program {
         ; wait for ea to show
         while (!WinShown("ahk_exe EADesktop.exe") && count < maxCount) {
             count += 1
-            Sleep(100)
+            Sleep(500)
         }
     
         count := 0

@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/489830",
+        "matchType": "partial"
+    },
+
+    "launcher": {
+        "exe": "SkyrimSELauncher.exe",
+        "mouseClick": [0.925, 0.112]
+    }
+}

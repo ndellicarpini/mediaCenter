@@ -1,0 +1,11 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/26800",
+        "matchType": "partial"
+    },
+
+    "postLaunchDelay": 500,
+    "postLaunchSend": "!{Enter}",
+    "fullscreenDelay": 1200
+}

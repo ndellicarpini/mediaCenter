@@ -266,38 +266,17 @@ createConsole(params, launchProgram := true, setCurrent := true, customAttribute
                 }
             }
 
-            programConfig := ObjDeepClone(value2)
-            paramString := console . " " . rom
-
-            ; replace config options specified in the overrides
-            if (paramString != "" && programConfig.Has("overrides") && Type(programConfig["overrides"]) = "Map") {  
-                for key3, value3 in programConfig["overrides"] {
-                    if (key3 = "" || !RegExMatch(paramString, "U)" . key3)) {
-                        continue
-                    }
-
-                    ; replace config fields w/ override
-                    if (IsObject(value3)) {
-                        for key4, value4 in value3 {
-                            programConfig[key4] := value4
-                        }
-                    }
-                    ; assume className is replaced
-                    else {
-                        programConfig["className"] := value2
-                    }
-
-                    break
-                }
-            }
+            programConfig := getExtendedProgramConfig(value, console . " " . rom) 
 
             ; create program class if has custom class
             if (programConfig.Has("className")) {
                 globalRunning[emuProgram] := %programConfig["className"]%(console, programConfig, value)
+                writeLog(emuProgram . " created (class: " . programConfig["className"] . ")", "PROGRAM")
             }
             ; create generic program
             else {
                 globalRunning[emuProgram] := Emulator(console, programConfig, value)   
+                writeLog(emuProgram . " created (class: Program)", "PROGRAM")
             }
 
             ; set new program as current

@@ -1,15 +1,17 @@
 class XInputDevice extends Input {
     static initialize() {
-        xLibrary := DllLoadLib("xinput1_3.dll")
+        xLibrary := DllLoadLib("xinput1_4.dll")
 
-        xGetStatusPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'UInt', 100)
-        xGetBatteryPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputGetBatteryInformation')
-        xSetVibrationPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputSetState')
-    
+        xGetStatusPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'UInt', 100, 'Ptr')
+        xGetDeviceInfoPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'UInt', 108, 'Ptr')
+        xGetBatteryPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputGetBatteryInformation', 'Ptr')
+        xSetVibrationPtr := DllCall('GetProcAddress', 'UInt', xLibrary, 'AStr', 'XInputSetState', 'Ptr')
+
         return Map(
             "dllLibPtr", xLibrary,
             "getStatusPtr", xGetStatusPtr,
             "getBatteryPtr", xGetBatteryPtr,
+            "getDeviceInfoPtr", xGetDeviceInfoPtr,
             "setVibrationPtr", xSetVibrationPtr
         )
     }
@@ -27,6 +29,7 @@ class XInputDevice extends Input {
         this.getStatus()
 
         if (this.connected) {
+            this.checkDeviceInfo()
             this.checkConnectionType()
             this.checkBatteryLevel()
         }
@@ -104,6 +107,36 @@ class XInputDevice extends Input {
         this.axis[6] := NumGet(xBuf.Ptr, 7, "UChar") / 255    ; RT
 
         return Map("buttons", this.buttons, "axis", this.axis)
+    }
+
+    checkDeviceInfo() {
+        xBuf := Buffer(30, 0)
+        xResult := DllCall(this.initResults["getDeviceInfoPtr"], "UInt", 1, "UInt", this.pluginPort, "UInt", 0, "Ptr", xBuf.Ptr)
+        if (xResult = 1167) {
+            return
+        }
+        
+        type := NumGet(xBuf.Ptr, 0, "UChar")
+        subtype := NumGet(xBuf.Ptr, 1, "UChar")
+
+        vendorID := NumGet(xBuf.Ptr, 20, "UShort")
+        productID := NumGet(xBuf.Ptr, 22, "UShort")
+        revisionID := NumGet(xBuf.Ptr, 24, "UShort")
+        unknown1 := NumGet(xBuf.Ptr, 26, "UShort")
+        unknown2 := NumGet(xBuf.Ptr, 28, "UShort")
+
+        this.vendorID := vendorID
+        this.productID := productID
+        this.revisionID := revisionID
+
+        this.name := getInputDeviceName(this.vendorID, this.productID)
+
+        return Map(
+            "name", this.name,
+            "vendorID", this.vendorID,
+            "productID", this.productID,
+            "revisionID", this.revisionID
+        )
     }
 
     checkConnectionType() {

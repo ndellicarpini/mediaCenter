@@ -5,9 +5,9 @@
 #SingleInstance Force
 
 #Include lib\std.ahk
-#Include lib\confio.ahk
+#Include lib\config.ahk
 
-globalConfig := readConfig("global.cfg",,"brackets", "Plugins")
+pluginConfig := Config("global.cfg", "ini").data["Plugins"]
 
 ; check if main exists
 if (!FileExist("main.ahk")) {
@@ -31,17 +31,17 @@ if (WinHidden(MAINNAME)) {
 }
 
 pluginIncludeDirs := []
-if (globalConfig.items.Has("AHKPluginDir") && globalConfig.items["AHKPluginDir"] != "") {
-    pluginIncludeDirs.Push(globalConfig.items["AHKPluginDir"])
+if (pluginConfig.Has("AHKPluginDir") && pluginConfig["AHKPluginDir"] != "") {
+    pluginIncludeDirs.Push(pluginConfig["AHKPluginDir"])
 }
-if (globalConfig.items.Has("ConsolePluginDir") && globalConfig.items["ConsolePluginDir"] != "") {
-    pluginIncludeDirs.Push(globalConfig.items["ConsolePluginDir"])
+if (pluginConfig.Has("ConsolePluginDir") && pluginConfig["ConsolePluginDir"] != "") {
+    pluginIncludeDirs.Push(pluginConfig["ConsolePluginDir"])
 }
-if (globalConfig.items.Has("InputPluginDir") && globalConfig.items["InputPluginDir"] != "") {
-    pluginIncludeDirs.Push(globalConfig.items["InputPluginDir"])
+if (pluginConfig.Has("InputPluginDir") && pluginConfig["InputPluginDir"] != "") {
+    pluginIncludeDirs.Push(pluginConfig["InputPluginDir"])
 }
-if (globalConfig.items.Has("ProgramPluginDir") && globalConfig.items["ProgramPluginDir"] != "") {
-    pluginIncludeDirs.Push(globalConfig.items["ProgramPluginDir"])
+if (pluginConfig.Has("ProgramPluginDir") && pluginConfig["ProgramPluginDir"] != "") {
+    pluginIncludeDirs.Push(pluginConfig["ProgramPluginDir"])
 } 
 
 mainString := fileToString("main.ahk")  

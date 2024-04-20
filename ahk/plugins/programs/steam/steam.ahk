@@ -1,4 +1,17 @@
 class SteamProgram extends Program {
+    __New(args*) {
+        super.__New(args*)
+
+        try {
+            pathArr := StrSplit(RegRead("HKEY_CURRENT_USER\Software\Valve\Steam", "SteamExe"), "/")
+            this.exe := pathArr.RemoveAt(pathArr.Length)
+            this.dir := validateDir(joinArray(pathArr, "\"))       
+        }
+        catch {
+            ErrorMsg("Steam not installed?")
+        }
+    }
+
     _launch(args*) {
         global globalStatus
 
@@ -31,7 +44,7 @@ class SteamProgram extends Program {
         ; idk how long to sleep for, steam doesn't really tell me when its done cooking
         while (count < maxCount) {
             if (!firstShown && WinShown(INTERFACES["loadscreen"]["wndw"]) && WinShown("Sign in to Steam")) {
-                Sleep(1000)
+                Sleep(500)
 
                 ; need to flash alternate window in order to fix stupid steam black screen
                 ; why is everything chromium?
@@ -44,6 +57,7 @@ class SteamProgram extends Program {
                 }
             }
             
+            MouseMove(percentWidth(1), percentHeight(1))
             count += 1
             Sleep(100)
         }

@@ -868,7 +868,6 @@ setCurrentGui(id) {
     global globalStatus
 
     globalStatus["currGui"] := id
-    globalStatus["input"]["source"] := id
 }
 
 ; get the most recently opened gui if it exists, otherwise return blank
