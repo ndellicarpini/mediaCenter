@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/409720",
+        "matchType": "partial",
+        "multiType": "or"
+    },
+
+    "defaultArgs": "BioShock2HD -run %command%",
+    "postLaunchSend": "{Enter}",
+    "postLaunchDelay": 1500
+}

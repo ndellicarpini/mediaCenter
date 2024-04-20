@@ -1,0 +1,12 @@
+{
+    "id": "steam",
+    "name": "Steam",
+    "className": "SteamProgram",
+    
+    "defaultArgs": "-silent",
+
+    "background": true,
+    "requireInternet": true,
+
+    "allowHungCheck": false
+}

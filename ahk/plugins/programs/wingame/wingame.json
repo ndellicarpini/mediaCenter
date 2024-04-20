@@ -1,0 +1,9 @@
+{
+	"id": "wingame",
+	"name": "Windows Game",
+	"className": "WinGameProgram",
+
+	"requireFullscreen": true,
+
+	"dirs": ["D:\\Games", "D:\\Rockstar"]
+}

@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/377160",
+        "matchType": "partial"
+    },
+
+    "launcher": {
+        "exe": "Fallout4Launcher.exe",
+        "mouseClick": [0.922, 0.109]
+    }
+}

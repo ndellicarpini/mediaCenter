@@ -1,0 +1,24 @@
+{
+    "id": "pcsx2",
+    "name": "PCSX2",
+    "className": "PCSX2Emulator",
+
+    "exe": "pcsx2-qtx64-avx2.exe",
+    "dir": "C:\\Emulators\\PCSX2",
+
+    "requireFullscreen": true,
+    "overlayActivateFix": true,
+    "priority": "H",
+
+    "numStates": 1,
+    "fastForward": true,
+    "reset": true,
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {
+        "15&8": "program.saveState",
+        "15&7": "program.loadState",
+        "15&6>0.3": "program.fastForward"
+    }
+}

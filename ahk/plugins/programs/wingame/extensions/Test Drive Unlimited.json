@@ -1,0 +1,10 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "TestDriveUnlimited.exe",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": ["-races", "-vsync", "-hd", "-fuel"],
+    "mouseMoveDelay": 18000
+}

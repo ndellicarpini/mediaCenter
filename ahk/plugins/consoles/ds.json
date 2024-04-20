@@ -1,0 +1,12 @@
+{
+    "id": "ds",
+    "romDir": "D:\\Roms\\DS",
+    "romNameIndex": 0,
+
+    "emulators": ["desmume"],
+    "extensions": [".nds"],
+
+    "romVersions": [
+        
+    ]
+}

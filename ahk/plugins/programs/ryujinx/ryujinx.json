@@ -1,0 +1,15 @@
+{
+    "id": "ryujinx",
+    "name": "Ryujinx",
+    "className": "RyujinxEmulator",
+
+    "exe": "Ryujinx.exe",
+    "dir": "C:\\Emulators\\Ryujinx",
+
+    "requireFullscreen": true,
+    "priority": "H",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {}
+}

@@ -1,0 +1,16 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "Lucas Simpsons Hit & Run Mod Launcher.exe",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": "-launch",
+    "hotkeys": {
+        "buttonTime": 0,
+        "8": {
+            "up": "Send '{Escape up}'", 
+            "down": "Send '{Escape down}'"
+        }
+    }
+}

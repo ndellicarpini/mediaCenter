@@ -1,0 +1,17 @@
+{
+    "id": "cemu",
+    "name": "Cemu",
+    "className": "CemuEmulator",
+
+    "exe": "Cemu.exe",
+    "dir": "C:\\Emulators\\Cemu",
+    "defaultArgs": "-f -g",
+
+    "requireFullscreen": true,
+    "overlayActivateFix": true,
+    "priority": "H",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {}
+}

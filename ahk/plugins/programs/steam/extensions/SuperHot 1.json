@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/322500",
+        "matchType": "partial"
+    },
+
+    "launcher": {
+        "exe": "SUPERHOT Launcher.exe",
+        "mouseClick": [[0.205, 0.500], [0.373, 0.833]]
+    }
+}

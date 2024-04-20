@@ -1,0 +1,39 @@
+{
+    "id": "retroarch",
+    "name": "RetroArch",
+    "className": "RetroArchEmulator",
+
+    "exe": "retroarch.exe",
+    "dir": "C:\\Emulators\\RetroArch",
+
+    "requireFullscreen": true,
+    "overlayActivateFix": true,
+    "priority": "H",
+
+    "numStates": 1,
+    "fastForward": true,
+    "rewind": true,
+    "reset": true,
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {
+        "15&8": "program.saveState",
+        "15&7": "program.loadState",
+        "15&5>0.3": "program.rewind",
+        "15&6>0.3": "program.fastForward"
+    },
+
+    "pauseOptions": {
+        "Toggle MAME Menu": "program.mameMenu",
+        "Toggle Menu": "program.menu"
+    },
+
+    "pauseOrder": [
+        "Save State", 
+        "Load State", 
+        "Toggle Menu", 
+        "Toggle MAME Menu", 
+        "Reset Game"
+    ]
+}

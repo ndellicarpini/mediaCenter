@@ -1,0 +1,13 @@
+{
+    "id": "kodi",
+	"name": "Kodi",
+    "className": "KodiProgram",
+
+    "dir": "C:\\Kodi",
+    "exe": "kodi.exe",
+    "defaultArgs": "-fs -p",
+
+    "requireFullscreen": true,
+    "allowQuickAccess": true,
+    "allowExit": false
+}

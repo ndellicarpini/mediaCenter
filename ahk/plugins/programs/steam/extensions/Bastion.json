@@ -1,0 +1,10 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/107100",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": "-x 3840 -y 2160",
+    "requireFullscreen": false
+}

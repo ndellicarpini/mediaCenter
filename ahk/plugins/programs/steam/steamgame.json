@@ -1,0 +1,16 @@
+{
+    "id": "steamgame",
+	"name": "Windows Game",
+	"className": "SteamGameProgram",
+
+	"requireInternet": true,
+	"requireFullscreen": true,
+
+	"pauseOptions": {
+        "Toggle Steam Menu": "program.menu"
+    },
+
+    "pauseOrder": [
+        "Toggle Steam Menu"
+    ]
+}

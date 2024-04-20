@@ -1,0 +1,19 @@
+{
+    "id": "xemu",
+    "name": "Xemu",
+    "className": "XemuEmulator",
+
+    "exe": "xemu.exe",
+    "dir": "C:\\Emulators\\Xemu",
+    "defaultArgs": "-full-screen -dvd_path",
+
+    "requireFullscreen": true,
+    "overlayActivateFix": true,
+    "priority": "H",
+
+    "reset": true,
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {}
+}

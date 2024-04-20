@@ -1,0 +1,14 @@
+{
+    "id": "gb",
+    "romDir": "D:\\Roms\\GB",
+    "romNameIndex": 0,
+
+    "emulators": ["retroarch"],
+    "extensions": [".gb", ".gbc"],
+
+    "core": "gambatte",
+
+    "romVersions": [
+        
+    ]
+}

@@ -1,0 +1,20 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": [
+            "KINGDOM HEARTS HD 1.5+2.5 ReMIX.exe", 
+            "KINGDOM HEARTS HD 2.8 Final Chapter Prologue.exe",
+            "KINGDOM HEARTS III.exe"
+        ],
+        "matchType": "partial",
+        "multiType": "or"
+    },
+
+    "hotkeys": {
+        "buttonTime": 0,
+        "7": {
+            "up": "Send '{Escape up}'", 
+            "down": "Send '{Escape down}'"
+        }
+    }
+}

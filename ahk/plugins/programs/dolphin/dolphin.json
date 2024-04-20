@@ -1,0 +1,23 @@
+{
+    "id": "dolphin",
+    "name": "Dolphin",
+    "className": "DolphinEmulator",
+
+    "exe": "Dolphin.exe",
+    "dir": "C:\\Emulators\\Dolphin",
+
+    "requireFullscreen": true,
+    "priority": "H",
+
+    "numStates": 1,
+    "fastForward": true,
+    "reset": true,
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {
+        "15&8": "program.saveState",
+        "15&7": "program.loadState",
+        "15&6>0.3": "program.fastForward"
+    }
+}

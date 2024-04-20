@@ -1,0 +1,12 @@
+{
+    "id": "xbox",
+    "romDir": "D:\\Roms\\Xbox",
+    "romNameIndex": 0,
+
+    "emulators": ["xemu"],
+    "extensions": [".iso", ""],
+
+    "romVersions": [
+        
+    ]
+}

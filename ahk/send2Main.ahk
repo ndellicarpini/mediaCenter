@@ -1,15 +1,17 @@
-#Include lib-mc\std.ahk
-#Include lib-mc\messaging.ahk
+#Include lib\std.ahk
+#Include lib\messaging.ahk
 
 #SingleInstance Force
 
+SetCurrentWinTitle(SENDNAME)
+
 ; check that mediacenter is actually running
 DetectHiddenWindows(true)
-if (!WinExist("MediaCenterMain")) {
-    ErrorMsg("MediaCenterMain is not running", true)
+if (!WinExist(MAINNAME)) {
+    MsgBox(MAINNAME . " is not running")
 }
 
 sendListToMain(A_Args)
 
 Sleep(100)
-ExitApp()
+ProcessClose(DllCall("GetCurrentProcessId"))

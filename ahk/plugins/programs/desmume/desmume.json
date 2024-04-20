@@ -1,0 +1,102 @@
+{
+    "id": "desmume",
+    "name": "DeSmuME",
+    "className": "DeSmuMEEmulator",
+
+    "exe": "DeSmuME-VS2019-x64-Release.exe",
+    "dir": "C:\\Emulators\\DeSmuME",
+
+    "requireFullscreen": true,
+
+    "numStates": 1,
+    "fastForward": true,
+    "reset": true,
+
+    "controls": ["Xbox Controller"],
+
+    "mouse": {
+        "initialPos": [0.5, 0.5],
+        "x": 3,
+        "y": -4,
+        "lclick": 10,
+        "deadzone": 0.15
+    },
+
+    "hotkeys": {
+        "buttonTime": 0,
+        "15&8": {
+            "down": "program.saveState",
+            "time": 70
+        },
+        "15&7": {
+            "down": "program.loadState",
+            "time": 70
+        },
+        "15&6>0.3": {
+            "down": "program.fastForward",
+            "time": 70
+        },
+
+        "1": {
+            "down": "Send '{z down}'",
+            "up": "Send '{z up}'"
+        },
+        "2": {
+            "down": "Send '{x down}'",
+            "up": "Send '{x up}'"
+        },
+        "3": {
+            "down": "Send '{a down}'",
+            "up": "Send '{a up}'"
+        },
+        "4": {
+            "down": "Send '{s down}'",
+            "up": "Send '{s up}'"
+        },
+        "8": {
+            "down": "Send '{Enter down}'",
+            "up": "Send '{Enter up}'"
+        },
+        "7": {
+            "down": "Send '{RShift down}'",
+            "up": "Send '{RShift up}'"
+        },
+        "5|5>0.05": {
+            "down": "Send '{q down}'",
+            "up": "Send '{q up}'"
+        },
+        "6|6>0.05": {
+            "down": "Send '{w down}'",
+            "up": "Send '{w up}'"
+        },
+        "11|2>0.4": {
+            "down": "Send '{Up down}'",
+            "up": "Send '{Up up}'"
+        },
+        "12|2<-0.4": {
+            "down": "Send '{Down down}'",
+            "up": "Send '{Down up}'"
+        },
+        "13|1<-0.4": {
+            "down": "Send '{Left down}'",
+            "up": "Send '{Left up}'"
+        },
+        "14|1>0.4": {
+            "down": "Send '{Right down}'",
+            "up": "Send '{Right up}'"
+        }
+    },
+
+    "pauseOptions": {
+        "Swap Screens": "program.swapScreens",
+        "Change Screen Layout": "program.layoutScreens"
+    },
+
+    "pauseOrder": [
+        "Save State", 
+        "Load State", 
+        "Swap Screens", 
+        "Change Screen Layout", 
+        "Reset Game"
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/22330",
+        "matchType": "partial"
+    },
+
+    "launcher": {
+        "exe": "OblivionLauncher.exe",
+        "mouseClick": [0.664, 0.250]
+    }
+}

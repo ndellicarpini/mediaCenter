@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/20920",
+        "matchType": "partial"
+    },
+
+    "launcher": {
+        "exe": "Launcher.exe",
+        "mouseClick": [0.585, 0.875]
+    }
+}
