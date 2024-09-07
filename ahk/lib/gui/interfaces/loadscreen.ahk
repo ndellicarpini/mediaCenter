@@ -52,7 +52,7 @@ class LoadScreenInterface extends Interface {
     }
 
     hideControls() {
-        this.guiObj.BackColor := "#000000"
+        this.guiObj.BackColor := "000000"
 
         index := 1
         for key, value in this.guiObj {

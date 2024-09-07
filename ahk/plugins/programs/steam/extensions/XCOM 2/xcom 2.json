@@ -1,0 +1,10 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/268500",
+        "matchType": "partial"
+    },
+
+    "className": "XCOM2Program",
+    "defaultArgs": "-review -allowconsole %command%"
+}

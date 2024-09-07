@@ -266,7 +266,7 @@ createConsole(params, launchProgram := true, setCurrent := true, customAttribute
                 }
             }
 
-            programConfig := getExtendedProgramConfig(value, console . " " . rom) 
+            programConfig := getExtendedProgramConfig(value2, console . " " . rom) 
 
             ; create program class if has custom class
             if (programConfig.Has("className")) {

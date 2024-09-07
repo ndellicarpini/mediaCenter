@@ -1,16 +1,20 @@
 class BigBoxProgram extends Program {
     _launch(args*) {
-        count := 0
-        maxCount := 100
-        ; make sure LaunchBox is not open while launching bigbox
-        while (ProcessExist("LaunchBox.exe") && count < maxCount) {
-            count += 1
-            Sleep(200)
-        }
+        global globalStatus
 
-        if (ProcessExist("LaunchBox.exe")) {
-            ProcessClose("LaunchBox.exe")
-            Sleep(500)
+        if (globalStatus["currProgram"]["id"] = this.id && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+            count := 0
+            maxCount := 100
+            ; make sure LaunchBox is not open while launching bigbox
+            while (ProcessExist("LaunchBox.exe") && count < maxCount) {
+                count += 1
+                Sleep(200)
+            }
+
+            if (ProcessExist("LaunchBox.exe")) {
+                ProcessClose("LaunchBox.exe")
+                Sleep(500)
+            }
         }
 
         ; for some reason BigBox freaks out when using RunAsUser (ShellExecute) 

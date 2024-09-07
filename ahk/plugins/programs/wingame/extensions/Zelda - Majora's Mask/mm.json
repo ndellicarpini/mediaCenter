@@ -1,0 +1,10 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "Zelda64Recompiled.exe",
+        "matchType": "partial"
+    },
+
+    "exe": "Zelda64Recompiled.exe",
+    "className": "Zelda64RecompiledProgram"
+}

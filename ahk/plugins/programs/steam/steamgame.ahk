@@ -205,6 +205,8 @@ class SteamGameProgram extends Program {
                     uriArr := StrSplit(Trim(URI, "/"), "/")
                     gameID := uriArr[uriArr.Length]
                     argString := joinArray(cleanArgs)
+                    argString := StrReplace(argString, '\', '\\')
+                    argString := StrReplace(argString, '"', '\"')
 
                     userID := RegRead("HKEY_CURRENT_USER\Software\Valve\Steam\ActiveProcess", "ActiveUser")
                     if (userID = 0) {
@@ -250,7 +252,7 @@ class SteamGameProgram extends Program {
                         }
                         
                         oldLaunchString := ""
-                        newLaunchString := whitespace . "`"LaunchOptions`"" . deliminator . '"' . StrReplace(argString, '"', '\"') . '"`n'
+                        newLaunchString := whitespace . "`"LaunchOptions`"" . deliminator . '"' . argString . '"`n'
                         if (RegExMatch(gameData, "mU)^\s*`"LaunchOptions`".*$", &oldLaunchMatch)) {
                             oldLaunchString := oldLaunchMatch[0]
                         }
@@ -261,7 +263,7 @@ class SteamGameProgram extends Program {
                                 Sleep(1000)
                             }
 
-                            newGameData := RTrim(RegExReplace(gameData, "mU)^\s*`"LaunchOptions`".*$"), " `t" . eol) . whitespace . "`"LaunchOptions`"" . deliminator . '"' . StrReplace(argString, '"', '\"') . '"' eol
+                            newGameData := RTrim(RegExReplace(gameData, "mU)^\s*`"LaunchOptions`".*$"), " `t" . eol) . whitespace . "`"LaunchOptions`"" . deliminator . '"' . argString . '"' eol
                             localConfigStr := StrReplace(localConfigStr, gameData, newGameData)
             
                             localConfigFile := FileOpen(localConfig, "w")
@@ -306,7 +308,9 @@ class SteamGameProgram extends Program {
             count := 0
             maxCount := (!steamOpen) ? 600 : 200
             ; wait for either the game or a common steam window
-            while (count < maxCount && !steamShown() && !this.exists()) {
+            while (count < maxCount && !steamShown() && !this.exists() 
+                && !((this.launcher.Has("exe") && ProcessExist(this.launcher["exe"]) || (this.launcher.Has("wndw") && WinHidden(this.launcher["wndw"]))))) {
+                
                 if (count > 25 && this.shouldExit) {    
                     SetTitleMatchMode(restoreTTMM)
                     return false
@@ -317,7 +321,7 @@ class SteamGameProgram extends Program {
             }
         
             ; if game -> success
-            if (this.exists()) {
+            if (this.exists() || (this.launcher.Has("exe") && ProcessExist(this.launcher["exe"])) || (this.launcher.Has("wndw") && WinHidden(this.launcher["wndw"]))) {
                 this.allowExit := restoreAllowExit
                 SetTitleMatchMode(restoreTTMM)
         
@@ -351,7 +355,7 @@ class SteamGameProgram extends Program {
             firstShown := false
             ; while launching window is shown, just wait
             while (steamShown()) {
-                if (this.exists()) {
+                if (this.exists() || (this.launcher.Has("exe") && ProcessExist(this.launcher["exe"])) || (this.launcher.Has("wndw") && WinHidden(this.launcher["wndw"]))) {
                     break
                 }
 
@@ -386,7 +390,7 @@ class SteamGameProgram extends Program {
                             count := 0
                             maxCount := 5
                             while (count < maxCount) {
-                                if (this.exists()) {
+                                if (this.exists() || (this.launcher.Has("exe") && ProcessExist(this.launcher["exe"])) || (this.launcher.Has("wndw") && WinHidden(this.launcher["wndw"]))) {
                                     firstShown := true
                                     break
                                 }
@@ -454,123 +458,5 @@ class SteamGameProgram extends Program {
             SetTimer(OpenMenu.Bind(loopCount + 1), Neg(100))
             return
         }
-    }
-}
-
-; --- STEAM APPS W/ REQUIRED LAUNCHER TO SKIP ---
-class SteamGameProgramWithLauncher extends SteamGameProgram {
-    _launcherEXE      := ""   ; exe of launcher application
-    _launcherMousePos := []   ; array of positions to click as a double array
-    _launcherDelay    := 1000 ; delay before clicking
-    
-    _launch(URI, args*) {
-        global globalStatus
-
-        if (super._launch(URI, args*) = false) {
-            return false
-        }
-
-        if (this._launcherEXE = "") {
-            return
-        }
-
-        restoreAllowExit := this.allowExit
-        this.allowExit   := true
-
-        count := 0
-        maxCount := 30
-        ; wait for executable
-        while (!WinShown("ahk_exe " this._launcherEXE) && count < maxCount) {
-            if (this.exists()) {
-                return
-            }
-            else if (this.shouldExit) {
-                return false
-            }
-
-            Sleep(100)
-            count += 1
-        }
-
-        if (count >= maxCount) {
-            return false
-        }
-
-        ; flatten double array
-        mouseArr := []
-        loop this._launcherMousePos.Length {
-            if (Type(this._launcherMousePos[A_Index]) = "Array") {
-                currIndex := A_Index
-                loop this._launcherMousePos[currIndex].Length {
-                    mouseArr.Push(this._launcherMousePos[currIndex][A_Index])
-                }
-            }
-            else {
-                mouseArr.Push(this._launcherMousePos[A_Index])
-            }
-        }
-
-
-        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe " this._launcherEXE
-
-        hiddenCount := 0
-        maxCount := 3
-        ; try to skip launcher as long as exectuable is shown
-        while (hiddenCount < maxCount) {
-            if (this.exists()) {
-                this.allowExit := restoreAllowExit
-                globalStatus["loadscreen"]["overrideWNDW"] := ""
-
-                return
-            }
-            else if (this.shouldExit) {
-                globalStatus["loadscreen"]["overrideWNDW"] := ""
-                return false
-            }
-
-            loop (mouseArr.Length / 2) {
-                index := ((A_Index - 1) * 2) + 1
-
-                Sleep(this._launcherDelay)
-
-                if (this.exists()) {
-                    this.allowExit := restoreAllowExit
-                    globalStatus["loadscreen"]["overrideWNDW"] := ""
-
-                    return
-                }
-                else if (this.shouldExit) {
-                    globalStatus["loadscreen"]["overrideWNDW"] := ""
-                    return false
-                }
-
-                if (!WinShown("ahk_exe " this._launcherEXE)) {
-                    hiddenCount += 1
-                    continue
-                }
-
-                MouseClick("Left"
-                    , percentWidthRelativeWndw(mouseArr[index], "ahk_exe " this._launcherEXE)
-                    , percentHeightRelativeWndw(mouseArr[index + 1], "ahk_exe " this._launcherEXE)
-                    ,,, "D"
-                )
-                Sleep(75)
-                MouseClick("Left",,,,, "U")
-                Sleep(75)
-                MouseMove(percentWidth(1), percentHeight(1))    
-            }
-        }
-
-        this.allowExit := restoreAllowExit
-        globalStatus["loadscreen"]["overrideWNDW"] := ""
-    }
-
-    ; dank ass bad practice
-    exit() {
-        if (this._launcherEXE != "" && ProcessExist(this._launcherEXE)) {
-            ProcessClose(this._launcherEXE)
-        }
-
-        super.exit()
     }
 }

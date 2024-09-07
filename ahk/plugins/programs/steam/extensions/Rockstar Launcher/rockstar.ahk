@@ -1,4 +1,4 @@
-class GTA5Program extends WinGameProgram {
+class RockstarProgram extends SteamGameProgram {
     _launch(game, args*) {
         global globalStatus
 

@@ -38,7 +38,7 @@ class SteamProgram extends Program {
         }
         
         count := 0
-        maxCount := 100
+        maxCount := 50
 
         firstShown := false
         ; idk how long to sleep for, steam doesn't really tell me when its done cooking

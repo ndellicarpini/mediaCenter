@@ -26,7 +26,7 @@ class EAGameProgram extends WinGameProgram {
         count := 0
         maxCount := 40
         ; wait for ea to show
-        while (!this.exists() && count < maxCount) {
+        while (!this.exists() && !(this.launcher.Has("exe") && ProcessExist(this.launcher["exe"])) && !(this.launcher.Has("wndw") && WinHidden(this.launcher["wndw"])) && count < maxCount) {
             if (WinShown("ahk_exe EALauncher.exe")) {
                 globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EALauncher.exe"
             }

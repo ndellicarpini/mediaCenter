@@ -775,7 +775,7 @@ class Program {
             ; if window exists -> stop checking
             if (this.getHWND() || !this.exists() || this.shouldExit) {
                 this._waitingWindowTimer := false
-                if (loopCount > 10) {
+                if (loopCount > 5) {
                     resetLoadScreen()
                 }
 
@@ -783,7 +783,7 @@ class Program {
             }
 
             ; at 3s mark -> enable load screen to wait
-            if (loopCount = 10) {            
+            if (loopCount = 5) {            
                 setLoadScreen("Waiting for " . this.name . "...")
             }
             ; at 20s mark -> reset program
@@ -795,7 +795,7 @@ class Program {
 
                 this.exit(false)
                 Sleep(500)
-                this.launch(ObjDeepClone(this._launchArgs))
+                this.launch(ObjDeepClone(this._launchArgs)*)
 
                 Critical(restoreCritical)
                 return
@@ -1071,10 +1071,13 @@ class Program {
         ; repeated check while program is hung
         CheckHungTimer() {
             global globalGuis
+            global globalStatus
 
             ; if exists & hung
             currPID := this.getPID()
-            if (!this.paused && ProcessExist(currPID) && !this.checkResponding()) {               
+            if (!globalStatus["suspendScript"] && globalStatus["currProgram"]["id"] = this.id 
+                && !this.paused && !this.minimized && ProcessExist(currPID) && !this.checkResponding()) {               
+                
                 if (this.hungCount > this.maxHungCount) {
                     ; create "wait for program" gui dialog
                     if (!this._waitingHungTimer) {
@@ -1141,6 +1144,8 @@ class Program {
         
         Sleep(500)
         resetLoadScreen()
+        
+        this.shouldExit := false
 
         if (updateGlobalRunning) {
             updatePrograms()
@@ -1347,8 +1352,11 @@ class Program {
 
     ; get program exe name
     getEXE() {
-        global wmiCOM
         global globalStatus
+        global wmiCOM
+        global mainPID
+        
+        maintainerPID := WinHidden(MAINLOOP) ? WinGetPID(WinHidden(MAINLOOP)) : 0
 
         launcherEXE := ""
         if (this.launcher.Count > 0) {
@@ -1400,30 +1408,32 @@ class Program {
         toDelete := []
         ; build lists to 1.) check for child processes, 2.) delete from list
         loop this._currPIDList.Length {
-            pid := this._currPIDList[this._currPIDList.Length - (A_Index - 1)]
-            if ((currPID && pid = currPID) || (currShownPID && pid = currShownPID)) {
-                if (currPID && pid = currPID) {
-                    foundPID := true
-                }
-                if (currShownPID && pid = currShownPID) {
-                    foundShownPID := true
+            try {
+                pid := this._currPIDList[this._currPIDList.Length - (A_Index - 1)]
+                if ((currPID && pid = currPID) || (currShownPID && pid = currShownPID)) {
+                    if (currPID && pid = currPID) {
+                        foundPID := true
+                    }
+                    if (currShownPID && pid = currShownPID) {
+                        foundShownPID := true
+                    }
+
+                    toCheck.Push(pid)
+                    continue
                 }
 
-                toCheck.Push(pid)
-                continue
-            }
-
-            if (ProcessExist(pid)) {
-                toCheck.Push(pid)
-            }
-            else {
-                toDelete.Push(this._currPIDList.Length - (A_Index - 1))
+                if (ProcessExist(pid)) {
+                    toCheck.Push(pid)
+                }
+                else {
+                    toDelete.Push(this._currPIDList.Length - (A_Index - 1))
+                }
             }
         }
 
         ; if process no longer exists -> remove from list
         for index in toDelete {
-            this._currPIDList.RemoveAt(index)
+            try this._currPIDList.RemoveAt(index)
         }
 
         ; add currPID to list if not found
@@ -1465,14 +1475,15 @@ class Program {
                 name := process.Name
                 pid  := process.ProcessId
                 if ((launcherEXE = "" || StrLower(launcherEXE) != StrLower(name)) && name != "" 
-                    && !InStr(ignoredPID, pid . "|") && !InStr(ignoredEXE, StrLower(name) . "|")) {
+                    && !InStr(ignoredPID, pid . "|") && !InStr(ignoredEXE, StrLower(name) . "|")
+                    && pid != mainPID && pid != maintainerPID) {
                     
                     this._currPIDList.Push(pid)
                 }
             }
         }
 
-        retEXE  := (this._currShownEXE != "") ? this._currShownEXE : this._currEXE
+        retEXE := (this._currShownEXE != "") ? this._currShownEXE : this._currEXE
         if (this.id = globalStatus["currProgram"]["id"] && globalStatus["currProgram"]["exe"] != retEXE) {
             globalStatus["currProgram"]["exe"] := retEXE
         }
@@ -1754,14 +1765,27 @@ class Program {
             
             sessionPID := 0
             DllCall(NumGet(NumGet(sessionInterface.Ptr, 0, "UPtr") + 14 * A_PtrSize, 0, "UPtr"), "Ptr", sessionInterface.Ptr, "UInt*", &sessionPID)
+            if (sessionPID = 0) {
+                continue
+            }
             
-            exeNameBuff := Buffer(512, 0)
-            processPtr := DllCall("OpenProcess", "UInt", 0x1000, "UInt", 0, "UInt", sessionPID, "UPtr")
-            DllCall("QueryFullProcessImageName", "UPtr", processPtr, "UInt", 0, "Str", exeNameBuff.Ptr, "UInt*", 512, "UInt")
-            DllCall("CloseHandle", "UPtr", processPtr, "UInt")
-            
-            exeNameArr := StrSplit(StrGet(exeNameBuff), "\")
-            if (sessionPID != 0 && (sessionPID = this.getPID() || (exeNameArr.Length > 0 && exeNameArr[exeNameArr.Length] = this.getEXE()))) {
+            processPtr := DllCall("OpenProcess", "UInt", 0x0010 | 0x0400, "UInt", 0, "UInt", sessionPID, "UPtr")
+            processName := ""
+
+            size := 4096
+            processNameBuff := Buffer(size, 0)
+            processNamePtr  := DllCall("psapi.dll\GetModuleBaseName", "Ptr", processPtr, "Ptr", 0, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
+            if (processNamePtr) {
+                processName := StrGet(processNameBuff)
+            }
+            else {
+                DllCall("psapi.dll\GetProcessImageFileName", "Ptr", processPtr, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
+                processNameArr := StrSplit(StrGet(processNameBuff), "\")
+                processName := processNameArr[processNameArr.Length]
+            }
+
+            DllCall("CloseHandle", "Ptr", processPtr)
+            if (sessionPID = this.getPID() || processName = this.getEXE()) {
                 interfacePtrs.Push(ComObjQuery(sessionInterface.Ptr, isav).Ptr)
             }
         }
@@ -1829,6 +1853,9 @@ checkRunningEXEs(exe, retName := false, requireShown := false) {
 ; return either "" if the process is not running, or the name of the process
 checkRunningDIRs(dir, retName := false, ignoreEXE := "", requireShown := false) {
     global wmiCOM
+    global mainPID
+    
+    maintainerPID := WinHidden(MAINLOOP) ? WinGetPID(WinHidden(MAINLOOP)) : 0
 
     if (dir = "") {
         return (retName) ? "" : false
@@ -1863,15 +1890,16 @@ checkRunningDIRs(dir, retName := false, ignoreEXE := "", requireShown := false) 
 
         if (processPathArr.Length > 0) {
             processName := processPathArr[processPathArr.Length]
-            if (InStr(ignoreStr, StrLower(processName) . "|")) {
-                continue
-            }
-            
-            if (requireShown && !WinShown("ahk_exe " processName)) {
+            if (processName = "" || InStr(ignoreStr, StrLower(processName) . "|")) {
                 continue
             }
 
-            return (retName) ? processName : true 
+            processPID := ProcessExist(processName)
+            if ((!requireShown || (requireShown && WinShown("ahk_exe " processName)))
+                && processPID != mainPID && processPID != maintainerPID) {
+
+                return (retName) ? processName : true
+            }
         }
     }
 
@@ -1895,7 +1923,6 @@ checkRunningWNDWs(wndw, retName := false, requireShown := false) {
     retVal := ""
     if (IsObject(wndw)) {
         for key, empty in wndw {
-            ; if not hidden -> check for a valid interactable wndw
             if (WinExist(key)) {
                 retVal := key
                 break
@@ -2179,18 +2206,18 @@ resetCurrentProgram() {
 ; checks that the program exists
 ;  programConfig - config from program to check 
 ;
-; returns true false if program, true true if console
+; returns [program exists, console name if console else ""]
 checkProgramExists(programConfig) {
     global globalConsoles
 
     ; create program class if has custom class
     try {
         if (programConfig.Has("className")) {
-            return [%programConfig["className"]%(programConfig).getEXE() != "", false]
+            return [%programConfig["className"]%(programConfig).getEXE() != "", ""]
         }
         ; create generic program
         else {
-            return [Program(programConfig).getEXE() != "", false]
+            return [Program(programConfig).getEXE() != "", ""]
         }
     }
     ; if fails - assume its a console
@@ -2198,17 +2225,17 @@ checkProgramExists(programConfig) {
         for key, value in globalConsoles {
             if (inArray(programConfig["id"], value["emulators"])) {
                 if (programConfig.Has("className")) {
-                    return [%programConfig["className"]%(key, programConfig, value).getEXE() != "", true]
+                    return [%programConfig["className"]%(key, programConfig, value).getEXE() != "", key]
                 }
                 ; create generic emulator
                 else {
-                    return [Emulator(key, programConfig, value).getEXE() != "", true]
+                    return [Emulator(key, programConfig, value).getEXE() != "", key]
                 }
             }
         }
     }
 
-    return [false, false]
+    return [false, ""]
 }
 
 ; checks & updates the running list of programs
@@ -2240,8 +2267,8 @@ checkAllPrograms() {
 
                     checkArr := checkProgramExists(tempValue)
                     if (checkArr[1]) {
-                        if (checkArr[2]) {
-                            createConsole([key, ""], false, false)
+                        if (checkArr[2] != "") {
+                            createConsole([checkArr[2], ""], false, false)
                         }
                         else {
                             createProgram(key, false, false)
@@ -2253,8 +2280,8 @@ checkAllPrograms() {
 
         checkArr := checkProgramExists(value)
         if (checkArr[1]) {
-            if (checkArr[2]) {
-                createConsole([key, ""], false, false)
+            if (checkArr[2] != "") {
+                createConsole([checkArr[2], ""], false, false)
             }
             else {
                 createProgram(key, false, false)
@@ -2360,7 +2387,7 @@ waitForInternetProgram(programID, timeout := 30) {
 	
 	addrPtr := 0
 	while (count < timeout) {
-		if (programID != "" && globalRunning[programID].shouldExit) {
+		if (programID != "" && (!globalRunning.Has(programID) || globalRunning[programID].shouldExit)) {
 			DllCall("Ws2_32\WSACleanup")
 			resetLoadScreen()
 			return false
@@ -2379,7 +2406,7 @@ waitForInternetProgram(programID, timeout := 30) {
 			addrLen := NumGet(addrPtr + 16, 0, "Ptr")
 			addr    := NumGet(addrPtr + 16, 16, "Ptr")
 
-			DllCall("Ws2_32\WSAAddressToStringW", "Ptr", addr, "UInt", addrLen, "Ptr", 0, "Str", wsaData.Ptr, "UInt*", 204)
+			DllCall("Ws2_32\WSAAddressToStringW", "Ptr", addr, "UInt", addrLen, "Ptr", 0, "Ptr", wsaData.Ptr, "UInt*", 204)
 			DllCall("Ws2_32\FreeAddrInfoW", "Ptr", addrPtr)
 
 			http := ComObject("WinHttp.WinHttpRequest.5.1")

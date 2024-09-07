@@ -1,7 +1,7 @@
 {
     "extends": {
         "id": "steamgame",
-        "args": ["steam://rungameid/12100", "steam://rungameid/12110", "steam://rungameid/12120"],
+        "args": ["steam://rungameid/12100", "steam://rungameid/12110", "steam://rungameid/12120", "steam://rungameid/11546269777118887936", "steam://rungameid/10243668675131342848"],
         "matchType": "partial",
         "multiType": "or"
     },

@@ -1,8 +1,18 @@
 class ChromeProgram extends Program {
     _restore() {
+        global MONITOR_X
+        global MONITOR_Y
+        global MONITOR_W
+        global MONITOR_H
+
         retVal := super._restore()
 
-        if (WinGetMinMax(this.getHWND()) = 1) {
+        hwnd := this.getHWND()
+        WinGetClientPos(&X, &Y,,, hwnd)
+
+        if (WinGetMinMax(hwnd) = 1
+            && (X >= MONITOR_X && X < (MONITOR_X + MONITOR_W)) 
+            && (Y >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H))) {
             this._fullscreen()
         }
 
@@ -10,6 +20,11 @@ class ChromeProgram extends Program {
     }
 
     _fullscreen() {
+        global MONITOR_X
+        global MONITOR_Y
+        global MONITOR_W
+        global MONITOR_H
+
         hwnd := this.getHWND()
         if (WinGetMinMax(hwnd) = 1) {
             WinRestoreMessage(hwnd)
@@ -45,6 +60,10 @@ class ChromeProgram extends Program {
             }
 
             currHWND := this.getHWND()
+        }
+
+        if (this.getEXE() != "") {
+            super._exit()
         }
     }
 

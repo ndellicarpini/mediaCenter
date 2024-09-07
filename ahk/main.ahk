@@ -3,6 +3,7 @@
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include plugins\ahk\boot.ahk
+#Include plugins\ahk\delfinovin.ahk
 #Include plugins\ahk\loadscreen.ahk
 #Include plugins\inputs\xinput\xinput.ahk
 #Include plugins\programs\bigbox\bigbox.ahk
@@ -20,11 +21,12 @@
 #Include plugins\programs\ryujinx\ryujinx.ahk
 #Include plugins\programs\steam\steam.ahk
 #Include plugins\programs\steam\steamgame.ahk
-#Include plugins\programs\steam\extensions\Red Dead Redemption 2\rdr2.ahk
+#Include plugins\programs\steam\extensions\Rockstar Launcher\rockstar.ahk
 #Include plugins\programs\steam\extensions\Shenmue\shenmue.ahk
+#Include plugins\programs\steam\extensions\XCOM 2\xcom 2.ahk
 #Include plugins\programs\wingame\wingame.ahk
-#Include plugins\programs\wingame\extensions\Grand Theft Auto 5\gta5.ahk
 #Include plugins\programs\wingame\extensions\Super Mario 64\sm64.ahk
+#Include plugins\programs\wingame\extensions\Zelda - Majora's Mask\mm.ahk
 #Include plugins\programs\wingame\extensions\Zelda - Ocarina of Time\oot.ahk
 #Include plugins\programs\xemu\xemu.ahk
 #Include plugins\programs\xenia\xenia.ahk
@@ -540,7 +542,7 @@ loop {
         for key, value in globalThreads {
             ; if thread crashed, reset main
             try {
-                value.FuncPtr("")
+                bruh := value.ThreadID
             }
             catch {
                 ProcessClose(mainPID)
@@ -793,7 +795,7 @@ ShutdownScript(restoreTaskbar := true) {
 
     ; tell the threads to close
     for key, value in globalThreads {
-        value.exitThread := true
+        value.ExitApp()
     }
     
     Sleep(500)

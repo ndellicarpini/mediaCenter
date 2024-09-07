@@ -27,6 +27,10 @@ class Config {
 	;       - [TODO] yml -> formatted like an yml document with indents
 	__New(toRead, type := "ini") {
 		this.type := type
+		this.read(toRead)
+	}
+
+	read(toRead) {
 		if (FileExist(toRead)) {
 			this.path := toRead
 			this.original := fileToString(toRead)
@@ -46,9 +50,165 @@ class Config {
 				this.originalData := this._readXML(this.original)
 			case "yml":
 				this.originalData := this._readYML(this.original)
+			case "toml":
+				this.originalData := this._readTOML(this.original)
 		}
 
 		this.data := this._cleanOriginalData(this.originalData)
+		return this.data
+	}
+
+	write(path := "", backupOriginal := true) {
+		readDataArr(item, originalItem) {
+			if (Type(originalItem) != "Array" || item.Length != originalItem.Length) {
+				return true
+			}
+
+			retArr := []
+			loop item.Length {
+				originalValue := this._cleanOriginalData(originalItem[A_Index])
+				if (item[A_Index] != originalValue && Type(item[A_Index]) != Type(originalValue)) {
+					retArr.Push(false)
+				} else if (Type(item[A_Index]) = "Map") {
+					retArr.Push(readDataMap(item[A_Index], originalValue))
+				} else if (Type(item[A_Index]) = "Array") {
+					retArr.Push(readDataArr(item[A_Index], originalValue))
+				} else {
+					retArr.Push((item[A_Index] != originalValue))
+				}
+			}
+
+			return retArr
+		}
+
+		readDataMap(item, originalItem) {
+			if (Type(originalItem) != "Map") {
+				return true
+			}
+
+			retMap := Map()
+			for key, value in item {
+				if (!originalItem.Has(key)) {
+					MsgBox("not have" . key)
+					return true
+				}
+
+				originalValue := this._cleanOriginalData(originalItem[key])
+				if (value != originalValue && Type(value) != Type(originalValue)) {
+					retMap[key] := true
+				}
+				else if (Type(value) = "Map") {
+					retMap[key] := readDataMap(value, originalValue)
+				} 
+				else if (Type(value) = "Array") {
+					retMap[key] := readDataArr(value, originalValue)
+				} 
+				else {
+					retMap[key] := (value != originalValue)
+				}
+			}
+
+			return retMap
+		}
+
+		writeDataArr(text, diff, item, originalItem) {
+			retText := text
+			loop item.Length {
+				if (diff[A_Index] = false) {
+					continue
+				}
+
+				currText := originalItem[A_Index]["text"]
+				if (!InStr(retText, currText, true)) {
+					continue
+				}
+
+				newText := ""
+				if (Type(item[A_Index]) = "Map" && Type(originalItem[A_Index]["value"]) = "Map") {
+					newText := writeDataMap(currText, diff[A_Index], item[A_Index], originalItem[A_Index]["value"])
+				} 
+				else if (Type(item[A_Index]) = "Array" && Type(originalItem[A_Index]["value"]) = "Array") {
+					newText := writeDataArr(currText, diff[A_Index], item[A_Index], originalItem[A_Index]["value"])
+				} else {
+					newText := StrReplace(currText, originalItem[A_Index]["value"], item[A_Index], true,, 1)
+				}
+
+				retText := StrReplace(retText, currText, newText, true,, 1)
+			}
+
+			return retText
+		}
+
+		writeDataMap(text, diff, item, originalItem) {
+			retText := text
+			for key, currDiff in diff {
+				if (currDiff = false) {
+					continue
+				}
+
+				currText := originalItem[key]["text"]
+				if (!InStr(retText, currText, true)) {
+					continue
+				}
+
+				newText := ""
+				if (Type(item[key]) = "Map" && Type(originalItem[key]["value"]) = "Map") {
+					newText := writeDataMap(currText, currDiff, item[key], originalItem[key]["value"])
+				} 
+				else if (Type(item[key]) = "Array" && Type(originalItem[key]["value"]) = "Array") {
+					newText := writeDataArr(currText, currDiff, item[key], originalItem[key]["value"])
+				} else {
+					newItem := item[key]
+					if (InStr(originalItem[key]["value"], "true") && newItem = 0) {
+						if (InStr(originalItem[key]["value"], "true", true)) {
+							newItem := "false"
+						}
+						else if (InStr(originalItem[key]["value"], "True", true)) {
+							newItem := "False"
+						}
+						else if (InStr(originalItem[key]["value"], "TRUE", true)) {
+							newItem := "FALSE"
+						}
+					}
+					else if (InStr(originalItem[key]["value"], "false") && newItem = 1) {
+						if (InStr(originalItem[key]["value"], "false", true)) {
+							newItem := "true"
+						}
+						else if (InStr(originalItem[key]["value"], "False", true)) {
+							newItem := "True"
+						}
+						else if (InStr(originalItem[key]["value"], "FALSE", true)) {
+							newItem := "TRUE"
+						}
+					}
+
+					newText := StrReplace(currText, originalItem[key]["value"], toString(newItem), true,, 1)
+				}
+
+				retText := StrReplace(retText, currText, newText, true,, 1)
+			}
+
+			return retText
+		}
+
+		; TODO - figure out how to handle type changes or array length changes
+		diffMap := readDataMap(this.data, this.originalData)
+		newText := writeDataMap(this.original, diffMap, this.data, this.originalData)
+
+		writePath := (path != "") ? path : this.path
+		if (writePath = "") {
+			ErrorMsg("Can't write config file without path")
+		}
+
+		if (backupOriginal && FileExist(writePath)) {
+			FileCopy(writePath, writePath . "." . FormatTime(, "MM_dd_yyyyTHH_mm_ss") . "-backup")
+		}
+		
+		writeFile := FileOpen(writePath, "w")
+		writeFile.Write(newText)
+		writeFile.Close()
+
+		this.read(writePath)
 	}
 
 	_readINI(text) {
@@ -698,6 +858,11 @@ class Config {
 	}
 
 	_readYML(text) {
+		; TODO
+		return Map()
+	}
+
+	_readTOML(text) {
 		; TODO
 		return Map()
 	}

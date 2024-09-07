@@ -1,0 +1,11 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": ["steam://rungameid/12210"],
+        "matchType": "partial",
+    },
+
+    "className": "RockstarProgram",
+    "ignoreEXE": ["SocialClubHelper.exe", "Launcher.exe", "RockstarService.exe"],
+    "defaultArgs": "-windowed"
+}

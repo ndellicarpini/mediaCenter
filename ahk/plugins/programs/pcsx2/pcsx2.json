@@ -3,7 +3,7 @@
     "name": "PCSX2",
     "className": "PCSX2Emulator",
 
-    "exe": "pcsx2-qtx64-avx2.exe",
+    "exe": "pcsx2-qt.exe",
     "dir": "C:\\Emulators\\PCSX2",
 
     "requireFullscreen": true,

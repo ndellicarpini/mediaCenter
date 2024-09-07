@@ -56,7 +56,7 @@
 
             "[REPEAT]2": "Send {Backspace}",
 
-            "5>0.3": "Send !{Tab}",
+            "5>0.3": "desktopAltTab",
             "6>0.3": {
                 "down": "desktopAltDown",
                 "up": "desktopAltUp"

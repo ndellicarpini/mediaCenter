@@ -210,6 +210,18 @@ toggleKeyboard() {
     }
 }
 
+; presses alt-tab with appropriate timing not to break start menu
+; windows 11 is just weird man
+;
+; returns null
+desktopAltTab() {
+    Send("{Alt down}")
+    Sleep(85)
+    Send("{Tab}")
+    Sleep(85)
+    Send("{Alt up}")
+}
+
 ; holds the alt key down & presses tab to show Alt+Tab menu
 ;
 ; returns null

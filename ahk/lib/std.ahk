@@ -75,6 +75,16 @@ RunAsUser(program, parameters := "", directory := "") {
 	cleanParameters := Trim((Type(parameters) = "Array") ? joinArray(parameters) : parameters)
 	cleanDirectory := Trim(directory, A_Space . "'" . '"')
 
+	if (!WinHidden("ahk_class Shell_TrayWnd")) {
+		if (ProcessExist("explorer.exe")) {
+			ProcessClose("explorer.exe")
+			Sleep(1000)
+		}
+
+		Run("explorer.exe")
+		Sleep(5000)
+	}
+
 	if (!A_IsAdmin) {
 		return Run(program . ((cleanParameters != "") ? A_Space . cleanParameters : ""), directory)
 	}
@@ -471,21 +481,7 @@ WinResponsive(window) {
 		id := WinGetID(window)
 	}
 
-	resetDHW := A_DetectHiddenWindows
-	DetectHiddenWindows(true)
-	
-	retVal := DllCall("SendMessageTimeout"
-		, "UInt", id
-		, "UInt", 0x0000
-		, "Int", 0
-		, "Int", 0
-		, "UInt", 0x0008
-		, "UInt", 100
-		, "UInt*", 0
-	)
-
-	DetectHiddenWindows(resetDHW)
-	return (retVal != 0 && A_LastError != 1460)
+	return !DllCall("IsHungAppWindow", "UInt", id)
 }
 
 ; sets the current script's window title to the string in name
@@ -1100,7 +1096,19 @@ arrayEquals(arr1, arr2, checkOrder := true) {
 	if (checkOrder) {
 		retVal := true
 		loop arr1.Length {
-			retVal := retVal && (arr1[A_Index] = arr2[A_Index])
+			if (arr1[A_Index] != arr2[A_Index] && Type(arr1[A_Index]) != Type(arr2[A_Index])) {
+				return false
+			} else if (Type(arr1[A_Index]) = "Map") {
+				retVal := retVal && mapEquals(arr1[A_Index], arr2[A_Index])
+			} else if (Type(arr1[A_Index]) = "Array") {
+				retVal := retVal && arrayEquals(arr1[A_Index], arr2[A_Index])
+			} else {
+				retVal := retVal && (arr1[A_Index] = arr2[A_Index])
+			}
+
+			if (!retVal) {
+				return false
+			}
 		}
 
 		return retVal

@@ -3,7 +3,7 @@ customBoot() {
     setLoadScreen()
 
     if (!ProcessExist("explorer.exe")) {
-        Run "explorer.exe"
+        Run("explorer.exe")
 
         count := 0
         maxCount := 50
