@@ -1,0 +1,19 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": [
+			"steam://rungameid/48190", 
+			"steam://rungameid/33230", 
+			"steam://rungameid/242050",
+			"steam://rungameid/2556990",
+			"steam://rungameid/242550",
+			"steam://rungameid/207490",
+			"steam://rungameid/641080"
+		],
+        "matchType": "partial",
+        "multiType": "or"
+    },
+
+    "className": "SteamUbisoftProgram",
+	"ubisoftConnectEXE": "C:\\Program Files (x86)\\Ubisoft\\Ubisoft Game Launcher\\UbisoftConnect.exe"
+}
