@@ -1,5 +1,9 @@
 ; boot
-customBoot() {
+customBoot(args*) {
+    if (inArray("-backup", args)) {
+        return
+    }
+
     setLoadScreen()
 
     if (!ProcessExist("explorer.exe")) {

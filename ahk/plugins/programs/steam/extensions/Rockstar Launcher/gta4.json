@@ -2,7 +2,7 @@
     "extends": {
         "id": "steamgame",
         "args": ["steam://rungameid/12210"],
-        "matchType": "partial",
+        "matchType": "partial"
     },
 
     "className": "RockstarProgram",

@@ -42,7 +42,8 @@ class Emulator extends Program {
 
         ; try to find required config values from console and save other values to custom config
         for key, value in consoleConfig {
-            this.%key% := value
+            ; needs to be a try bc functions arent included in HasOwnProp??
+            try this.%key% := value
 
             if (key = "romDir") {
                 dirFound := true

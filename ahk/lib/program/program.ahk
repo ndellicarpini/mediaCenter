@@ -66,6 +66,7 @@ class Program {
     _waitingFullscreenTimer := false
     _waitingMouseMoveTimer  := false
     _waitingWindowTimer     := false
+    _waitingWindowFailed    := false
 
     _restoreMousePos := []
     _launchArgs := []
@@ -198,6 +199,14 @@ class Program {
                 else {
                     this.pauseOrder := exeConfig["pauseOrder"]
                 }
+            }
+        }
+    
+        ; add custom keys from config
+        for key, value in exeConfig {
+            if (!this.HasOwnProp(key)) {
+                ; needs to be a try bc functions arent included in HasOwnProp??
+                try this.%key% := value
             }
         }
     }
@@ -549,6 +558,12 @@ class Program {
     ; activates the program's window
     restore() {
         global globalStatus
+
+        ; exit the program if failed to find window
+        if (this._waitingWindowFailed) {
+            this.exit()
+            return
+        }
         if (this.hungCount > 0 || this.shouldExit || this._waitingWindowTimer) {
             return
         }
@@ -775,29 +790,35 @@ class Program {
             ; if window exists -> stop checking
             if (this.getHWND() || !this.exists() || this.shouldExit) {
                 this._waitingWindowTimer := false
-                if (loopCount > 5) {
+                if (loopCount > 8) {
                     resetLoadScreen()
                 }
 
                 return
             }
 
-            ; at 3s mark -> enable load screen to wait
-            if (loopCount = 5) {            
+            ; at 8s mark -> enable load screen to wait
+            if (loopCount = 8) {            
                 setLoadScreen("Waiting for " . this.name . "...")
             }
-            ; at 20s mark -> reset program
-            else if (loopCount > 19) {
+            ; ; at 20s mark -> reset program
+            ; else if (loopCount > 19) {
+            ;     this._waitingWindowTimer := false
+
+            ;     restoreCritical := A_IsCritical
+            ;     Critical("On")
+
+            ;     this.exit(false)
+            ;     Sleep(500)
+            ;     this.launch(ObjDeepClone(this._launchArgs)*)
+
+            ;     Critical(restoreCritical)
+            ;     return
+            ; }
+            ; at 30s mark -> exit program
+            else if (loopCount > 30) {
+                this._waitingWindowFailed := true
                 this._waitingWindowTimer := false
-
-                restoreCritical := A_IsCritical
-                Critical("On")
-
-                this.exit(false)
-                Sleep(500)
-                this.launch(ObjDeepClone(this._launchArgs)*)
-
-                Critical(restoreCritical)
                 return
             }
             
@@ -809,14 +830,15 @@ class Program {
         global globalStatus
 
         exe := (this._currShownEXE != "" && ProcessExist(this._currShownEXE)) ? this._currShownEXE : this.getEXE()
-        if (!WinShown("ahk_exe " . exe)) {
+        exeWNDW := (IsInteger(exe) ? "ahk_pid " : "ahk_exe ") . exe
+        if (!WinShown(exeWNDW)) {
             return
         }
         
         try {       
             ; try to activate window if non active
             overlayActive := (this.overlay) ? WinActive(this.overlay) : false
-            if (!WinActive("ahk_exe " . exe) || overlayActive) {
+            if (!WinActive(exeWNDW) || overlayActive) {
                 return WinActivateForeground(this.getHWND())
             }
         }
@@ -1035,8 +1057,8 @@ class Program {
 
         existing := this._exists(requireShown)
         ; if not existing and existed, and if multiple exe/wndw, wait and check for new window
-        if (existed && !existing && !this._waitingExistTimer && (IsObject(this.exe) || IsObject(this.wndw) || (this.exe = "" && this.wndw = "" && this.dir != ""))) {
-            SetTimer(DelayCheckExists, Neg(2000))
+        if (existed && !existing && !this._waitingExistTimer && (IsObject(this.exe) || IsObject(this.wndw) || (this.exe = "" && this.wndw = ""))) {
+            SetTimer(DelayCheckExists.Bind(0, 0), Neg(250))
             this._waitingExistTimer := true
 
             return true
@@ -1046,7 +1068,7 @@ class Program {
             ; check if wndw hung 
             if (existing && !this.checkResponding()) {
                 if (this.hungCount = 0) {
-                    SetTimer(CheckHungTimer, -1000)
+                    SetTimer(CheckHungTimer, Neg(1000))
                     this.hungCount += 1
                 }
             }
@@ -1060,11 +1082,28 @@ class Program {
         return existing
 
         ; check if exists
-        DelayCheckExists() {
+        DelayCheckExists(loopCount := 0, existedCount := 0) {
             this.getEXE()
             this.getHWND()
             
-            this._waitingExistTimer := false
+            ; return to main exists() if either:
+            ; - loopCount = timeout (1.5s)
+            ; - existedCount = program exists (0.75s)
+            if (loopCount > 5 || existedCount > 2) {
+                this._waitingExistTimer := false
+                return
+            }
+
+            if (this._currEXE = "") {
+                existedCount := -1
+
+                ; reset loop count if existed recently 
+                if (existedCount > 0) {
+                    loopCount := -1
+                }
+            }
+
+            SetTimer(DelayCheckExists.Bind(loopCount + 1, existedCount + 1), Neg(250))
             return
         }
 
@@ -1092,7 +1131,8 @@ class Program {
                 }
 
                 this.hungCount += 1
-                SetTimer(CheckHungTimer, -1000)
+                writeLog(this.id . " hanging... (" . this.hungCount . ")")
+                SetTimer(CheckHungTimer, Neg(1000))
             }
             ; reset hung count if no longer exists/hung
             else {
@@ -1136,7 +1176,7 @@ class Program {
         setLoadScreen("Exiting " . this.name . "...")
 
         restoreCritical := A_IsCritical
-        Critical("On")
+        Critical("Off")
 
         this._exit()
 
@@ -1144,8 +1184,6 @@ class Program {
         
         Sleep(500)
         resetLoadScreen()
-        
-        this.shouldExit := false
 
         if (updateGlobalRunning) {
             updatePrograms()
@@ -1156,53 +1194,65 @@ class Program {
     }
     _exit() {
         try {
-            lastEXE := this.getEXE()
-
             count := 0
-            maxCount := 50
+            maxCount := 60
             ; wait for program executable to close
             while (this.exists() && count < maxCount) {
-                exe := this.getEXE()
-                if (exe = "") {
-                    break
+                ; update PID list
+                this.getEXE()
+                if (this._currPIDList.Length = 0) {
+                    return
                 }
 
-                if (exe != lastEXE) {
-                    lastEXE := exe
-                    count := 0
-                }
+                ; try to exit all exes every 7.5s or once 25s have passed
+                if (count >= 50 || Mod(count, 15) = 0) {
+                    currPID := this._currPIDList[1]
 
-                ; attempt to winclose right away
-                if (count = 0) {
-                    if (this.hungCount = 0) {
-                        WinCloseAll("ahk_exe " exe)
+                    internalLoopCount := 0
+                    while (true) {
+                        try {
+                            if (!ProcessExist(currPID)) {
+                                break
+                            }
+                            
+                            ; go hard in the paint when
+                            ;  - the program is hung
+                            ;  - the program has been exiting for >22.5s
+                            ;  - over 15 PIDs have been cycled during the exit
+                            if (this.hungCount = 0 && count < 50 && internalLoopCount < 15) {
+                                ; attempt to processclose >= 15s
+                                if (count >= 30) {
+                                    ProcessClose(currPID)
+                                } 
+                                else {
+                                    WinCloseAll("ahk_pid " currPID)
+                                }
+    
+                                Sleep(75)
+                            }
+                            ; this is the hard in the paint
+                            else {
+                                writeLog(this.id . " gone nuclear (PID: " . currPID . ")", "PROGRAM")
+                                ProcessKill(currPID)
+                            }
+
+                            ; update PID list
+                            this.getEXE()
+
+                            ; if winclose did not immediately exit program, then wait
+                            if (this._currPIDList.Length = 0 || this._currPIDList[1] = currPID) {
+                                break
+                            ; if winclose did exit program, move to next
+                            } else {
+                                currPID := this._currPIDList[1]
+                                internalLoopCount += 1
+                            }
+                        }
                     }
-                    else {
-                        ProcessKill(this.getPID())
-                    }
-                }
-                ; attempt to winclose again @ 10s
-                else if (count = 20) {
-                    ; if program is hanging, kill it
-                    if (this.hungCount = 0) {
-                        WinCloseAll("ahk_exe " exe)
-                    }
-                    else {
-                        ProcessKill(this.getPID())
-                    }
-                }
-                ; attempt to processclose @ 20s
-                else if (count = 40) {
-                    ProcessClose(exe)
                 }
                 
                 count += 1
                 Sleep(500)
-            }
-
-            ; if exists -> go nuclear @ 25s
-            if (this.exists()) {
-                ProcessKill(this.getPID())
             }
         }
     }
@@ -1336,7 +1386,8 @@ class Program {
         allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
 
         exe := (this._currShownEXE != "" && ProcessExist(this._currShownEXE)) ? this._currShownEXE : this.getEXE()
-        if (this.id = globalStatus["currProgram"]["id"] && this.hungCount = 0 && !WinActive("ahk_exe " exe) 
+        exeWNDW := (IsInteger(exe) ? "ahk_pid " : "ahk_exe ") . exe
+        if (this.id = globalStatus["currProgram"]["id"] && this.hungCount = 0 && !WinActive(exeWNDW) 
             && allowActivate && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
             
             this._restore()
@@ -1347,7 +1398,9 @@ class Program {
     }
     _send(key, time := -1) {
         exe := (this._currShownEXE != "" && ProcessExist(this._currShownEXE)) ? this._currShownEXE : this.getEXE()
-        try WindowSend(key, "ahk_exe " exe, time)
+        exeWNDW := (IsInteger(exe) ? "ahk_pid " : "ahk_exe ") . exe
+
+        try WindowSend(key, exeWNDW, time)
     }
 
     ; get program exe name
@@ -1389,7 +1442,7 @@ class Program {
         }
         ; get the shown exe for a non-background program
         else if (this._currShownEXE = "" || !ProcessExist(this._currShownEXE) || !WinShown("ahk_exe " this._currShownEXE)) {
-            if (WinShown("ahk_exe " this._currEXE)) {
+            if (WinShown((IsInteger(this._currEXE) ? "ahk_pid " : "ahk_exe ") . this._currEXE)) {
                 this._currShownEXE := this._currEXE
             }
             else {
@@ -1417,17 +1470,13 @@ class Program {
                     if (currShownPID && pid = currShownPID) {
                         foundShownPID := true
                     }
-
-                    toCheck.Push(pid)
-                    continue
                 }
 
-                if (ProcessExist(pid)) {
-                    toCheck.Push(pid)
-                }
-                else {
+                if (!ProcessExist(pid)) {
                     toDelete.Push(this._currPIDList.Length - (A_Index - 1))
                 }
+
+                toCheck.Push(pid)
             }
         }
 
@@ -1497,11 +1546,18 @@ class Program {
             loop pidLength {
                 pid := this._currPIDList[pidLength - (A_Index - 1)]
                 if (ProcessExist(pid)) {
+                    processName := "eb4a1cf3-5c16-4659-8db0-2f4918747197"
                     if (requireShown && WinShown("ahk_pid " pid)) {
-                        return ProcessGetName(pid)
+                        processName := ProcessGetName(pid)
                     }
                     else if (!requireShown) {
-                        return ProcessGetName(pid)
+                        processName := ProcessGetName(pid)
+                    }
+
+                    ; the pid can sometimes be something without a title (ie. "System Idle Process")
+                    ; this is worst case scenario - just return PID
+                    if (processName != "eb4a1cf3-5c16-4659-8db0-2f4918747197") {
+                        return (processName != "") ? processName : pid
                     }
                 }
             }
@@ -2284,6 +2340,7 @@ checkAllPrograms() {
                 createConsole([checkArr[2], ""], false, false)
             }
             else {
+                writeLog(key . " was detected as already running")
                 createProgram(key, false, false)
             }
         }
@@ -2298,19 +2355,19 @@ checkAllPrograms() {
             continue
         }
 
-        if (!globalRunning[key].exists()) {
-            ; yes this actually needs a try
-            try {
+        ; yes this actually needs a try
+        try {
+            if (!globalRunning[key].exists()) {
                 if (!currSuspended && !currDesktopMode) {
-                    globalRunning[key].postExit()
+                    try globalRunning[key].postExit()
                 }
     
                 writeLog(key . " deleted", "PROGRAM")
                 globalRunning.Delete(key)
             }
-        }
-        else if (!globalRunning[key].background) {
-            activeProgram := true
+            else if (!globalRunning[key].background) {
+                activeProgram := true
+            }
         }
     }
 

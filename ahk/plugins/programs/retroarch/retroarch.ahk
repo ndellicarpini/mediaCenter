@@ -16,6 +16,14 @@ class RetroArchEmulator extends Emulator {
     }
 
     _launch(args*) {
+        ; cheater cheater pumpkin eater
+        for arg in args {
+            if (Type(arg) = "String" && InStr(StrLower(arg), "neo turf masters")) {
+                this.core := "neocd"
+                break
+            }
+        }
+
         retArgs := []
         if (this.HasOwnProp("core") && this.core != "") {
             retArgs.Push("-L", "cores\" . this.core . "_libretro.dll")

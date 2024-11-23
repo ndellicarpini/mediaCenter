@@ -23,6 +23,7 @@
 #Include plugins\programs\steam\steamgame.ahk
 #Include plugins\programs\steam\extensions\Rockstar Launcher\rockstar.ahk
 #Include plugins\programs\steam\extensions\Shenmue\shenmue.ahk
+#Include plugins\programs\steam\extensions\Ubisoft Launcher\ubisoft.ahk
 #Include plugins\programs\steam\extensions\XCOM 2\xcom 2.ahk
 #Include plugins\programs\wingame\wingame.ahk
 #Include plugins\programs\wingame\extensions\Super Mario 64\sm64.ahk
@@ -368,10 +369,8 @@ globalThreads["misc"] := miscThread(
 Sleep(250)
 
 ; ----- BOOT -----
-if (!inArray("-backup", globalConfig["StartArgs"]) && globalConfig.Has("Overrides") 
-    && globalConfig["Overrides"].Has("boot") && globalConfig["Overrides"]["boot"] != "") {
-    
-    try %globalConfig["Overrides"]["boot"]%()
+if (globalConfig.Has("Overrides") && globalConfig["Overrides"].Has("boot") && globalConfig["Overrides"]["boot"] != "") {
+    try %globalConfig["Overrides"]["boot"]%(globalConfig["StartArgs"]*)
 }
 
 ; initial backup of status
@@ -429,12 +428,7 @@ loop {
             createConsole(message)
         }
         else {
-            try {
-                runFunction(message)
-            }
-            catch {
-                globalStatus["input"]["buffer"].Push(joinArray(message))
-            }
+            try RunBufferedFunction(joinArray(message))
         }
 
         Critical(restoreCritical)
@@ -532,11 +526,6 @@ loop {
         updatePrograms()
     }
 
-    ; check if status has updated & backup
-    if (statusUpdated()) {
-        try statusBackup()
-    }
-
     ; every maxDelayCount loops -> check threads & maintainer
     if (delayCount > maxDelayCount) {
         for key, value in globalThreads {
@@ -551,7 +540,7 @@ loop {
 
         ; check that maintainer is running
         if (forceMaintain && !WinHidden(MAINLOOP)) {
-            Run A_AhkPath . A_Space . "maintainer.ahk", A_ScriptDir, "Hide"
+            Run(A_AhkPath . A_Space . "maintainer.ahk", A_ScriptDir, "Hide")
         }
 
         ; check that no other instances of main are running
@@ -571,9 +560,101 @@ loop {
 
         delayCount := 0
     }
+
+    ; check if status has updated & backup
+    if (statusUpdated()) {
+        try statusBackup()
+    }
     
     delayCount += 1
     Sleep(loopSleep)
+}
+
+return
+
+; runs a function string (generally from send2Main or the input buffer)
+;  bufferedFunc - function string
+RunBufferedFunction(bufferedFunc) {
+    global globalConfig
+    global globalStatus        
+    global globalRunning       
+    global globalGuis
+    
+    currProgram := globalStatus["currProgram"]["id"]
+    currGui     := globalStatus["currGui"]
+    currLoad    := globalStatus["loadscreen"]["show"]
+    currKBMM    := globalStatus["kbmmode"]
+    currDesktop := globalStatus["desktopmode"]
+
+    ; update pause status & create/destroy pause menu
+    if (StrLower(bufferedFunc) = "pausemenu") {
+        ; check the following conditions to allow the pause screen to show
+        ;  - the load screen is not active
+        ;  - config EnablePauseMenu is not explicitly set to "false"
+        ;  - if a program exists -> the program allows pausing
+        ;  - if a gui exists -> the gui allows pausing
+        if (!(globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
+            ; && (!currLoad || (currLoad && globalStatus["loadscreen"]["overrideWNDW"] != "")) 
+            && !(currProgram != "" && globalRunning.Has(currProgram) && !globalRunning[currProgram].allowPause)
+            && !(currGui != "" && globalGuis.Has(currGui) && !globalGuis[currGui].allowPause)) {
+
+            try {
+                if (!globalGuis.Has("pause")) {
+                    createInterface("pause")
+                }
+                else {
+                    globalGuis["pause"].Destroy()
+                }
+            }
+        }
+    }
+
+    ; the nuclear option
+    else if (StrLower(bufferedFunc) = "nuclear") {
+        if (currProgram != "" && globalRunning[currProgram].exists()) {
+            try ProcessKill(globalRunning[currProgram].getPID())
+        }
+
+        ; need to think about if this is necessary?
+        ; i mean if this is working main isn"t crashed right?
+        ProcessKill(MAINNAME)
+    }
+
+    ; run current gui funcion
+    else if (StrLower(SubStr(bufferedFunc, 1, 4)) = "gui.") {
+        ; need to do separate check so that bufferedFunc doesn't propagate to runFunction
+        if (currGui != "" && globalGuis.Has(currGui)) {
+            tempArr  := StrSplit(bufferedFunc, A_Space)
+            tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
+
+            try globalGuis[currGui].%tempFunc%(tempArr*)
+        }
+    }
+
+    ; run current program function
+    else if (StrLower(SubStr(bufferedFunc, 1, 8)) = "program.") {
+        ; need to do separate check so that bufferedFunc doesn't propagate to runFunction
+        if (currProgram != "" && globalPrograms.Has(currProgram) && !globalStatus["suspendScript"]) {
+            tempArr  := StrSplit(bufferedFunc, A_Space)
+            tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
+            
+            if (tempFunc = "exit") {
+                if (currProgram != "" && globalRunning[currProgram].allowExit) {
+                    try globalRunning[currProgram].exit()
+                }
+            }
+            else {
+                try globalRunning[currProgram].%tempFunc%(tempArr*)
+            }
+        }
+    }
+
+    ; run function
+    else if (bufferedFunc != "") {
+        runFunction(bufferedFunc)
+    }
+
+    return
 }
 
 ; run function from top of input buffer
@@ -588,88 +669,11 @@ InputBufferTimer() {
             return
         }
 
-        bufferedFunc := globalStatus["input"]["buffer"][1]
-        
-        currProgram := globalStatus["currProgram"]["id"]
-        currGui     := globalStatus["currGui"]
-        currLoad    := globalStatus["loadscreen"]["show"]
-        currKBMM    := globalStatus["kbmmode"]
-        currDesktop := globalStatus["desktopmode"]
-
-        ; update pause status & create/destroy pause menu
-        if (StrLower(bufferedFunc) = "pausemenu") {
-            ; check the following conditions to allow the pause screen to show
-            ;  - the load screen is not active
-            ;  - config EnablePauseMenu is not explicitly set to "false"
-            ;  - if a program exists -> the program allows pausing
-            ;  - if a gui exists -> the gui allows pausing
-            if (!(globalConfig["GUI"].Has("EnablePauseMenu") && globalConfig["GUI"]["EnablePauseMenu"] = false)
-                && (!currLoad || (currLoad && globalStatus["loadscreen"]["overrideWNDW"] != "")) 
-                && !(currProgram != "" && globalRunning.Has(currProgram) && !globalRunning[currProgram].allowPause)
-                && !(currGui != "" && globalGuis.Has(currGui) && !globalGuis[currGui].allowPause)) {
-
-                try {
-                    if (!globalGuis.Has("pause")) {
-                        createInterface("pause")
-                    }
-                    else {
-                        globalGuis["pause"].Destroy()
-                    }
-                }
-            }
-        }
-
-        ; the nuclear option
-        else if (StrLower(bufferedFunc) = "nuclear") {
-            if (currProgram != "" && globalRunning[currProgram].exists()) {
-                try ProcessKill(globalRunning[currProgram].getPID())
-            }
-
-            ; need to think about if this is necessary?
-            ; i mean if this is working main isn"t crashed right?
-            ProcessKill(MAINNAME)
-        }
-
-        ; run current gui funcion
-        else if (StrLower(SubStr(bufferedFunc, 1, 4)) = "gui.") {
-            ; need to do separate check so that bufferedFunc doesn't propagate to runFunction
-            if (currGui != "" && globalGuis.Has(currGui)) {
-                tempArr  := StrSplit(bufferedFunc, A_Space)
-                tempFunc := StrReplace(tempArr.RemoveAt(1), "gui.", "") 
-    
-                try globalGuis[currGui].%tempFunc%(tempArr*)
-            }
-        }
-
-        ; run current program function
-        else if (StrLower(SubStr(bufferedFunc, 1, 8)) = "program.") {
-            ; need to do separate check so that bufferedFunc doesn't propagate to runFunction
-            if (currProgram != "" && globalPrograms.Has(currProgram) && !globalStatus["suspendScript"]) {
-                tempArr  := StrSplit(bufferedFunc, A_Space)
-                tempFunc := StrReplace(tempArr.RemoveAt(1), "program.", "")
-                
-                if (tempFunc = "exit") {
-                    if (currProgram != "" && globalRunning[currProgram].allowExit) {
-                        try globalRunning[currProgram].exit()
-                    }
-                }
-                else {
-                    try globalRunning[currProgram].%tempFunc%(tempArr*)
-                }
-            }
-        }
-
-        ; run function
-        else if (bufferedFunc != "") {
-            runFunction(bufferedFunc)
-        }
-
-        ; don't clean buffer until everything has been processed
+        RunBufferedFunction(globalStatus["input"]["buffer"][1])
         globalStatus["input"]["buffer"].RemoveAt(1)
     }
     catch {
         globalStatus["input"]["buffer"] := []
-        return
     }
 
     return

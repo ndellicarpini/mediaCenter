@@ -77,7 +77,7 @@ class Interface {
         Critical(restoreCritical)
         return retVal
     }
-    _Show(options) {
+    _Show(options := "") {
         optionsArr := StrSplit(options, A_Space)
         for item in optionsArr {
             if (StrLower(SubStr(item, 1, 1)) = "x") {
