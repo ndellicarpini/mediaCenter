@@ -592,7 +592,7 @@ RunBufferedFunction(bufferedFunc) {
     ; update pause status & create/destroy pause menu
     if (StrLower(bufferedFunc) = "pausemenu") {
         ; check the following conditions to allow the pause screen to show
-        ;  - the load screen is not active
+        ;  - the load screen is not active (DISABLED)
         ;  - config EnablePauseMenu is not explicitly set to "false"
         ;  - if a program exists -> the program allows pausing
         ;  - if a gui exists -> the gui allows pausing
@@ -603,7 +603,7 @@ RunBufferedFunction(bufferedFunc) {
 
             try {
                 if (!globalGuis.Has("pause")) {
-                    createInterface("pause")
+                    createInterface("pause",,, (currLoad || currDesktop || currSuspended))
                 }
                 else {
                     globalGuis["pause"].Destroy()
