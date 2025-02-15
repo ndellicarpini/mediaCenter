@@ -24,7 +24,8 @@ class Config {
 	;       - ini -> standard config file using bracketed category names 
 	;	    - json -> formatted like a json file {...}
 	;       - [TODO] xml -> formatted like an xml document with <x>...</x>
-	;       - [TODO] yml -> formatted like an yml document with indents
+	;       - yaml -> formatted like an yaml document with indents
+	;       - [TODO] toml -> why does this format even exist?
 	__New(toRead, type := "ini") {
 		this.type := type
 		this.read(toRead)
@@ -48,8 +49,8 @@ class Config {
 				this.originalData := this._readJSON(this.original)
 			case "xml":
 				this.originalData := this._readXML(this.original)
-			case "yml":
-				this.originalData := this._readYML(this.original)
+			case "yaml", "yml":
+				this.originalData := this._readYAML(this.original)
 			case "toml":
 				this.originalData := this._readTOML(this.original)
 		}
@@ -857,9 +858,147 @@ class Config {
 		return Map()
 	}
 
-	_readYML(text) {
-		; TODO
-		return Map()
+	_readYAML(text, overrideBaseIndent := -1) {		
+		if ((RegExMatch(text, "^\s*\{") && RegExMatch(text, "\},*\s*$")) 
+			|| (RegExMatch(text, "^\s*\[") && RegExMatch(text, "\],*\s*$"))) {
+
+			return Map("value", this._readJSON(text), "text", text)
+		}
+
+		retType := ""
+		retValue := ""
+		baseIndent := overrideBaseIndent
+
+		currKey := ""
+		currText := ""
+		currValue := ""
+		currValueIndent := -1
+		lineIndex := 1
+
+		parseCurrValue() {
+			if (retType = "map") {
+				retValue[currKey] := Map(
+					"value", this._readYAML(currValue, currValueIndent),
+					"text", currText,
+				)
+			} else if (retType = "array") {
+				retValue.Push(Map(
+					"value", this._readYAML(currValue, currValueIndent),
+					"text", currText,
+				))
+			} else if (retType = "string") {
+				retValue .= currValue
+			}
+		}
+
+		loop parse, text, this.eol  {
+			rawLine := A_LoopField
+			; strip comments from end of line
+			if (globalRegExMatch(A_LoopField, "(?:^|\s)(#|;|%|\/\/)", &commentMatchObj)) {
+				loop commentMatchObj.Count {
+					foundChar := Trim(commentMatchObj[A_Index])
+					if (!inQuotes(
+						A_LoopField,
+						foundChar, 
+						commentMatchObj.Pos[A_Index] + commentMatchObj.Len[A_Index] - (StrLen(foundChar) + 1)
+					)) {
+						rawLine := SubStr(rawLine, 1, commentMatchObj.Pos[1] - 1)
+						break
+					}
+				}
+			}
+			; skip line if empty
+			if (!rawLine || !globalRegExMatch(rawLine, "\S+")) {
+				continue
+			}
+
+			currIndent := 0
+			if (globalRegExMatch(rawLine, "^\s+", &indentMatchObj)) {
+				currIndent := indentMatchObj.Len[1]
+			}
+
+			; set up the base indent for identifying children items
+			if (lineIndex = 1) {
+				baseIndent := Max(baseIndent, currIndent)
+			}
+			; add children items to currValue
+			else if (currIndent > baseIndent) {
+				currText .= A_LoopField . this.eol
+				currValue .= rawLine . this.eol
+
+				continue
+			}
+
+			; parse current value
+			if (currValue && currIndent = baseIndent) {
+				parseCurrValue()
+			}
+			
+			currText := A_LoopField . this.eol
+			foundMatch := false
+			if (globalRegExMatch(rawLine, "^.+:(?!\S)", &mapMatchObj)) {
+				loop mapMatchObj.Count {
+					trailingChars := 1
+					if (globalRegExMatch(mapMatchObj[A_Index], "\s+$", &trailingObj)) {
+						trailingChars += StrLen(trailingObj[1])
+					}
+					
+					if (!inQuotes(rawLine,	":", mapMatchObj.Pos[A_Index] + mapMatchObj.Len[A_Index] - trailingChars)) {
+						if (!retType) {
+							retType := "map"
+							retValue := Map()
+						}
+
+						currKey := Trim(SubStr(rawLine, 1, mapMatchObj.Len[A_Index] - 1))
+						currValue := SubStr(rawLine, mapMatchObj.Len[A_Index] + 1) . this.eol
+						currValueIndent := StrLen(StrSplit(rawLine, currKey,, 2)[1])
+
+						foundMatch := true
+						break
+					}
+				}
+			}
+			if (!foundMatch && globalRegExMatch(rawLine, "^\s*-\s", &listMatchObj)) {
+				loop listMatchObj.Count {
+					trailingChars := 1
+					if (globalRegExMatch(listMatchObj[A_Index], "\s+$", &trailingObj)) {
+						trailingChars += StrLen(trailingObj[1])
+					}
+
+					if (!inQuotes(rawLine, "-", listMatchObj.Pos[A_Index] + listMatchObj.Len[A_Index] - trailingChars)) {
+						; initialize retValue on first loop
+						if (!retType) {
+							retType := "array"
+							retValue := []
+						}
+
+						currValue := SubStr(rawLine, listMatchObj.Len[A_Index] + 1) . this.eol
+						currValueIndent := listMatchObj.Len[A_Index]
+
+						foundMatch := true
+						break
+					}
+				}
+			}
+			if (!foundMatch) {
+				; initialize retValue on first loop
+				if (!retType) {
+					retType := "string"
+				}
+
+				currValue := rawLine . this.eol
+				currvalueIndent := baseIndent
+			}
+
+			lineIndex += 1
+		}
+		
+		; parse any remaining current value
+		if (currValue) {
+			parseCurrValue()
+		}
+
+		return retValue
 	}
 
 	_readTOML(text) {

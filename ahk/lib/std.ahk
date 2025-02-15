@@ -894,13 +894,6 @@ toString(value, prefix := "") {
 	
 			return retString
 		}
-		else if (Type(value) = "Config") {
-			retString .= "`n" . prefix . "INDENT[" . toString(StrLen(value.indent)) . "]`n"
-			retString .= RTrim(toString(value.items, prefix . "  "), " `t`r`n") . "`n`n"
-			retString .= prefix . RTrim(toString(value.subConfigs, prefix . "  "), " `t`r`n") . "`n"
-	
-			return RTrim(retString, " `t`r`n") . "`n"
-		}
 		else {
 			for key, item in value.OwnProps() {
 				if (IsObject(item) && Type(item) != "Array") {
