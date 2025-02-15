@@ -35,6 +35,15 @@ setGUIConstants() {
         ? StrReplace(globalConfig["GUI"]["SelectionColor"], "#") : "3399ff"
 }
 
+; gets monitor info for specified monitor
+;  monitorNum - monitor to get info for
+;
+; returns array of [x, y, w, h]
+getMonitorInfo(monitorNum) {
+    MonitorGet(monitorNum, &ML, &MT, &MR, &MB)
+    return [ML, MT, Floor(Abs(MR - ML)), Floor(Abs(MB - MT))]
+}
+
 ; sets global monitor gui variables
 ;
 ; returns null
@@ -52,14 +61,16 @@ setMonitorInfo() {
         return
     }
 
-    MONITOR_N := (globalConfig["GUI"].Has("Monitor") && globalConfig["GUI"]["Monitor"] != "") ? globalConfig["GUI"].items["Monitor"] : 0
-    
-    MonitorGet(MONITOR_N, &ML, &MT, &MR, &MB)
+    MONITOR_N := (globalConfig["GUI"].Has("MonitorNum") && globalConfig["GUI"]["MonitorNum"] != "") ? globalConfig["GUI"]["MonitorNum"] : 0
+    if (MONITOR_N <= 0) {
+        MONITOR_N := MonitorGetPrimary()
+    }
 
-    MONITOR_X := ML
-    MONITOR_Y := MT
-    MONITOR_H := Floor(Abs(MB - MT))
-    MONITOR_W := Floor(Abs(MR - ML))
+    info := getMonitorInfo(MONITOR_N)
+    MONITOR_X := info[1]
+    MONITOR_Y := info[2]
+    MONITOR_W := info[3]
+    MONITOR_H := info[4]
 }
 
 ; sets global interface classes from overrides in global.cfg
@@ -87,7 +98,7 @@ setInterfaceOverrides() {
 ;
 ; returns proper size in pixels
 percentWidth(width, useSize := true, useDPI := false) {
-    retVal := MONITOR_X + (width * MONITOR_W * ((useSize && width < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    retVal := (width * MONITOR_W * ((useSize && width < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
     ; check that new width isn't greater than the screen
     if (retVal > MONITOR_W) {
         return MONITOR_W
@@ -103,13 +114,38 @@ percentWidth(width, useSize := true, useDPI := false) {
 ;
 ; returns proper size in pixels
 percentHeight(height, useSize := true, useDPI := false) {
-    retVal := MONITOR_Y + (height * MONITOR_H * ((useSize && height < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
+    retVal := (height * MONITOR_H * ((useSize && height < 1) ? SIZE : 1) * ((useDPI) ? (A_ScreenDPI / 96) : 1))
     ; check that new height isn't greater than the screen
     if (retVal > MONITOR_H) {
         return MONITOR_H
     }
 
     return retVal
+}
+
+; get the proper width of an interface based on the pixel size of screen
+; keeps the aspect ratio relative to the original design aspect ratio of 16/9
+;  width - percentage of the screen width
+;
+; returns proper size in pixels
+interfaceWidth(width) {
+    aspectRatioMult := (16/9) / (MONITOR_W / MONITOR_H)
+    retVal := width * aspectRatioMult * MONITOR_W * SIZE
+    
+    return Min(retVal, MONITOR_W)
+}
+
+; get the proper height of an interface based on the pixel size of screen
+; keeps the aspect ratio relative to the original design aspect ratio of 16/9
+;  height - percentage of the screen width
+;
+; returns proper size in pixels
+interfaceHeight(height) {
+    ; aspectRatioMult := (16/9) / (MONITOR_W / MONITOR_H)
+    aspectRatioMult := 1
+    retVal := height * (1 / aspectRatioMult) * MONITOR_H * SIZE
+    
+    return Min(retVal, MONITOR_H)
 }
 
 ; gets the proper width in pixels based on pixel size of screen
@@ -230,4 +266,11 @@ getThumbnailPath(asset, globalConfig) {
 	}
 
     return assetPath
+}
+
+; hides the mouse cursor
+;
+; returns null
+HideMouseCursor() {
+    MouseMovePercent(1, 1, MONITOR_N)
 }

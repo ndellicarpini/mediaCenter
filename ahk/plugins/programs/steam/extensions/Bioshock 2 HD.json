@@ -6,7 +6,6 @@
         "multiType": "or"
     },
 
-    "defaultArgs": "BioShock2HD -run %command%",
     "postLaunchSend": "{Enter}",
-    "postLaunchDelay": 1500
+    "postLaunchDelay": 3500
 }

@@ -179,14 +179,12 @@ writeLog(text, prefix := "") {
 
 ; takes a screenshot & saves it w/ the requested params
 ;  name - name of the file
+;  monitorNum - number of monitor to take screenshot of (0 = default)
 ;  overridePath - custom path to save image
 ;
 ; returns null
-saveScreenshot(name, overridePath := "") {
-    global MONITOR_X
-    global MONITOR_Y
-    global MONITOR_W
-    global MONITOR_H
+saveScreenshot(name, monitorNum := 0, overridePath := "") {
+    global MONITOR_N
 
     if (!DirExist("data\thumbnails\")) {
         DirCreate("data\thumbnails\")
@@ -195,13 +193,19 @@ saveScreenshot(name, overridePath := "") {
     imgPath := expandDir(validateDir((overridePath != "") ? overridePath : "data\thumbnails")) . name . ".png"
 
     try {
+        monitorInfo := getMonitorInfo(monitorNum > 0 ? monitorNum : MONITOR_N)
+        monitorX := monitorInfo[1]
+        monitorY := monitorInfo[2]
+        monitorW := monitorInfo[3]
+        monitorH := monitorInfo[4]
+
         compatibleDC := CreateCompatibleDC()
         screenDC     := GetDC()
         
         dibsBuffer := Buffer(40, 0)
         NumPut("UInt", 40, dibsBuffer.Ptr, 0)
-        NumPut("UInt", MONITOR_W, dibsBuffer.Ptr, 4)
-        NumPut("UInt", MONITOR_H, dibsBuffer.Ptr, 8)
+        NumPut("UInt", monitorW, dibsBuffer.Ptr, 4)
+        NumPut("UInt", monitorH, dibsBuffer.Ptr, 8)
         NumPut("UShort", 1, dibsBuffer.Ptr, 12)
         NumPut("UShort", 32, dibsBuffer.Ptr, 14)
         NumPut("UInt", 0, dibsBuffer.Ptr, 16)
@@ -210,7 +214,7 @@ saveScreenshot(name, overridePath := "") {
         dibsSection := DllCall("CreateDIBSection", "UPtr", compatibleDC, "UPtr", dibsBuffer.Ptr, "UInt", 0, "UPtr*", &ppvBits, "UPtr", 0, "UInt", 0, "UPtr")
         gdiObject   := DllCall("SelectObject", "UPtr", compatibleDC, "UPtr", dibsSection)
     
-        DllCall("gdi32\BitBlt", "UPtr", compatibleDC, "Int", 0, "Int", 0, "Int", MONITOR_W, "Int", MONITOR_H, "UPtr", screenDC, "Int", MONITOR_X, "Int", MONITOR_Y, "UInt", 0x00CC0020)
+        DllCall("gdi32\BitBlt", "UPtr", compatibleDC, "Int", 0, "Int", 0, "Int", monitorW, "Int", monitorH, "UPtr", screenDC, "Int", monitorX, "Int", monitorY, "UInt", 0x00CC0020)
     
         ReleaseDC(screenDC)
     

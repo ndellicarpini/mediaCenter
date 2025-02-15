@@ -6,12 +6,22 @@ global GUIDESKTOPTITLE := "AHKDESKTOPMODE"
 ;
 ; returns null
 enableKBMMode(showDialog := true) {
+    global globalStatus
+    global globalRunning
+
     if (globalStatus["desktopmode"]) {
         return
     }
 
+    currProgram := globalStatus["currProgram"]["id"] 
+
+    monitorNum := MONITOR_N
+    if (currProgram != "" && globalRunning.Has(currProgram)) {
+        monitorNum := globalRunning[currProgram].monitorNum
+    }
+
     globalStatus["kbmmode"] := true
-    MouseMove(percentWidth(0.5, false), percentHeight(0.5, false))
+    MouseMovePercent(0.5, 0.5, monitorNum)
 
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
@@ -33,7 +43,7 @@ disableKBMMode() {
     }
     
     globalStatus["kbmmode"] := false
-    MouseMove(percentWidth(1), percentHeight(1))
+    HideMouseCursor()
 
     if (globalGuis.Has("notification")) {
         globalGuis["notification"].Destroy()
@@ -66,7 +76,7 @@ enableDesktopMode(minimizePrograms := false, showDialog := false) {
     }
 
     globalStatus["desktopmode"] := true
-    MouseMove(percentWidth(0.5, false), percentHeight(0.5, false))
+    MouseMovePercent(0.5, 0.5, MONITOR_N)
 
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
@@ -90,7 +100,7 @@ disableDesktopMode() {
     }
     
     globalStatus["desktopmode"]   := false
-    MouseMove(percentWidth(1), percentHeight(1))
+    HideMouseCursor()
 
     if (globalGuis.Has("notification")) {
         globalGuis["notification"].Destroy()

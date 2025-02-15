@@ -145,10 +145,8 @@ class SteamGameProgram extends Program {
                         Sleep(75)
                     }
 
-                    MouseMove(percentWidth(1), percentHeight(1))
-    
+                    HideMouseCursor()
                     Sleep(250)
-    
                     WinClose(wndw)
 
                     return
@@ -433,7 +431,7 @@ class SteamGameProgram extends Program {
 
     ; custom function
     menu() {
-        MouseMove(percentWidth(1, false), percentHeight(1, false))
+        HideMouseCursor()
 
         SetTimer(OpenMenu.Bind(0), Neg(100))
         return
@@ -443,7 +441,7 @@ class SteamGameProgram extends Program {
                 return
             }
 
-            if (WinGetID("A") = this.getHWND()) {
+            if (WinShown("A") && WinGetID("A") = this.getHWND()) {
                 this.send("{Shift down}")
                 Sleep(100)
                 this.send("{Tab}")
@@ -451,7 +449,7 @@ class SteamGameProgram extends Program {
                 this.send("{Shift up}")
         
                 Sleep(100)
-                MouseMove(percentWidth(1), percentHeight(1))
+                HideMouseCursor()
                 return
             }
 

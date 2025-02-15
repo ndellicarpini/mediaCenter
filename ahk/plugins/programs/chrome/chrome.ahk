@@ -1,18 +1,13 @@
 class ChromeProgram extends Program {
     _restore() {
-        global MONITOR_X
-        global MONITOR_Y
-        global MONITOR_W
-        global MONITOR_H
-
         retVal := super._restore()
 
         hwnd := this.getHWND()
         WinGetClientPos(&X, &Y,,, hwnd)
 
         if (WinGetMinMax(hwnd) = 1
-            && (X >= MONITOR_X && X < (MONITOR_X + MONITOR_W)) 
-            && (Y >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H))) {
+            && (X >= this._monitorX && X < (this._monitorX + this._monitorW)) 
+            && (Y >= this._monitorY && Y < (this._monitorY + this._monitorH))) {
             this._fullscreen()
         }
 
@@ -20,11 +15,6 @@ class ChromeProgram extends Program {
     }
 
     _fullscreen() {
-        global MONITOR_X
-        global MONITOR_Y
-        global MONITOR_W
-        global MONITOR_H
-
         hwnd := this.getHWND()
         if (WinGetMinMax(hwnd) = 1) {
             WinRestoreMessage(hwnd)
@@ -32,7 +22,7 @@ class ChromeProgram extends Program {
         }
 
         ; for some reason chrome's display area is smaller than the window (cool!)
-        WinMove(Round(MONITOR_X - (MONITOR_W * 0.003)), MONITOR_Y, Round(MONITOR_W + (MONITOR_W * 0.007)), Round(MONITOR_H + (MONITOR_H * 0.006)), hwnd)
+        WinMove(Round(this._monitorX - (this._monitorW * 0.003)), this._monitorY, Round(this._monitorW + (this._monitorW * 0.007)), Round(this._monitorH + (this._monitorH * 0.006)), hwnd)
     }
 
     _checkFullscreen() {
@@ -41,9 +31,10 @@ class ChromeProgram extends Program {
         try {
             WinGetClientPos(&X, &Y, &W, &H, hwnd)
 
-            return (W >= (MONITOR_W * 0.98) && H >= (MONITOR_H * 0.98) 
-                && (X + (W * 0.02)) >= MONITOR_X && X < (MONITOR_X + MONITOR_W) 
-                && (Y + (H * 0.02)) >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H)) ? true : false
+            return (W >= (this._monitorW * 0.98) && H >= (this._monitorH * 0.98)
+                && W <= (this._monitorW * 1.05) && H <= (this._monitorH * 1.05) 
+                && (X + (W * 0.02)) >= this._monitorX && X < (this._monitorX + this._monitorW) 
+                && (Y + (H * 0.02)) >= this._monitorY && Y < (this._monitorY + this._monitorH)) ? true : false
         }
 
         return false

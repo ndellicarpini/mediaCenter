@@ -1,0 +1,21 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://launch/976730/option2",
+        "matchType": "partial"
+    },
+
+    "ignoreEXE": "cmd.exe",
+
+    "postLaunchSend": "{F4}",
+    "postLaunchDelay": 2000,
+
+    "pauseOptions": {
+        "Toggle Multiplayer Menu": "Send {F4}",
+        "Toggle Steam Menu": "program.menu"
+    },
+    "pauseOrder": [
+        "Toggle Multiplayer Menu",
+        "Toggle Steam Menu"
+    ]
+}

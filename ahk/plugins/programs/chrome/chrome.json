@@ -40,8 +40,14 @@
         "5>0.75": "Send !{Left}",
         "6>0.75": "Send !{Right}",
 
-        "7": "toggleKeyboard",
-        "8": "Send ^t"
+        "7": {
+            "down": "toggleKeyboard",
+            "time": 70
+        },
+        "8": {
+            "down": "Send ^t",
+            "time": 70
+        },
     },
 
     "pauseOptions": {

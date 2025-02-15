@@ -125,7 +125,7 @@ setLoadScreen(text := "") {
         try globalGuis["pause"].Destroy()
     }
 
-    MouseMove(percentWidth(1, false), percentHeight(1, false))
+    HideMouseCursor()
 
     globalStatus["loadscreen"]["enable"] := true
     globalStatus["loadscreen"]["show"] := true

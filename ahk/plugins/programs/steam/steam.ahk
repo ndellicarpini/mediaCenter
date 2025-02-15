@@ -57,7 +57,7 @@ class SteamProgram extends Program {
                 }
             }
             
-            MouseMove(percentWidth(1), percentHeight(1))
+            HideMouseCursor()
             count += 1
             Sleep(100)
         }

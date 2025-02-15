@@ -18,18 +18,18 @@ class InputInterface extends Interface {
         this.selectColor := COLOR3
 
         this.guiObj.BackColor := COLOR1
-        this.guiObj.MarginX := percentHeight(0.01)
-        this.guiObj.MarginY := percentHeight(0.01)
+        this.guiObj.MarginX := interfaceHeight(0.01)
+        this.guiObj.MarginY := interfaceHeight(0.01)
 
-        this.guiWidth  := percentWidth(0.218)
-        this.guiHeight := percentHeight(0.08)
+        this.guiWidth  := interfaceWidth(0.218)
+        this.guiHeight := interfaceHeight(0.08)
 
         this.SetFont("bold s24")
-        this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . percentHeight(0.05) 
-            . " w" . (this.guiWidth - percentHeight(0.02)), "Input Devices")
+        this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . interfaceHeight(0.05) 
+            . " w" . (this.guiWidth - interfaceHeight(0.02)), "Input Devices")
 
         this.SetFont("norm s20")
-        ypos := percentHeight(0.075)
+        ypos := interfaceHeight(0.075)
 
         ; loop each type of input device
         for key, value in globalInputConfigs {
@@ -38,21 +38,21 @@ class InputInterface extends Interface {
             }
 
             ; add input device config name
-            this.Add("Text", "0x200 xm0 y" . ypos . " w" . (this.guiWidth - percentHeight(0.02)) . " h" . percentHeight(0.03)
+            this.Add("Text", "0x200 xm0 y" . ypos . " w" . (this.guiWidth - interfaceHeight(0.02)) . " h" . interfaceHeight(0.03)
                 , (value.Has("name")) ? value["name"] . "s" : "Unknown Devices")
-            this.Add("Text", "0x200 Background" . FONT_COLOR . " xm0 y+" . percentHeight(0.002) . " w" . (this.guiWidth - percentHeight(0.02)) 
-                . " h" . percentHeight(0.002), "")
+            this.Add("Text", "0x200 Background" . FONT_COLOR . " xm0 y+" . interfaceHeight(0.002) . " w" . (this.guiWidth - interfaceHeight(0.02)) 
+                . " h" . interfaceHeight(0.002), "")
 
-            this.guiHeight += percentHeight(0.05)
+            this.guiHeight += interfaceHeight(0.05)
 
             loop globalInputStatus[key].length {
                 device := globalInputStatus[key][A_Index]
         
-                this.guiHeight += percentHeight(0.05)
-                ypos      += percentHeight(0.05)
+                this.guiHeight += interfaceHeight(0.05)
+                ypos += interfaceHeight(0.05)
         
                 ; add device number text
-                this.Add("Text", "0x200 xm" . percentWidth(0.005) . " y" . ypos . " w" . percentWidth(0.06) . " h" . percentHeight(0.03)
+                this.Add("Text", "0x200 xm" . interfaceWidth(0.005) . " y" . ypos . " w" . interfaceWidth(0.06) . " h" . interfaceHeight(0.03)
                     , "Device " . A_Index)
 
                 connected      := device["connected"]
@@ -74,8 +74,8 @@ class InputInterface extends Interface {
                 controlName := key . "-" . A_Index
         
                 ; add disconnected text
-                this.Add("Text", "v" . controlName . "Text Center 0x200 hp0 x" . percentWidth(0.075) . " y" . ypos 
-                    . " w" . percentWidth(0.085) . ((connectionType = 1) ? " Hidden" : ""), connectionText)
+                this.Add("Text", "v" . controlName . "Text Center 0x200 hp0 x" . interfaceWidth(0.075) . " y" . ypos 
+                    . " w" . interfaceWidth(0.085) . ((connectionType = 1) ? " Hidden" : ""), connectionText)
                 
                 batteryLevel := device["batteryLevel"] * 100
                 batteryColor := "00FF00"
@@ -83,28 +83,28 @@ class InputInterface extends Interface {
                     batteryColor := "FF0000"
                 }
         
-                borderWidth := percentHeight(0.005)
+                borderWidth := interfaceHeight(0.005)
 
                 ; add battery level display
-                this.Add("Text", "v" . controlName . "Outline Background" . FONT_COLOR . " hp0 x" . percentWidth(0.079) 
-                    . " y" . ypos . " w" . percentWidth(0.075) . ((connectionType != 1) ? " Hidden" : ""), "")
+                this.Add("Text", "v" . controlName . "Outline Background" . FONT_COLOR . " hp0 x" . interfaceWidth(0.079) 
+                    . " y" . ypos . " w" . interfaceWidth(0.075) . ((connectionType != 1) ? " Hidden" : ""), "")
                 this.Add("Progress", "v" . controlName . "Progress Background" . COLOR1 . " c" . batteryColor . " yp+" . (borderWidth / 2) 
                     . " xp+" . (borderWidth / 2) . " wp-" . borderWidth . " hp-" . borderWidth . ((connectionType != 1) ? " Hidden" : ""), batteryLevel)
-                this.Add("Text", "v" . controlName . "Nub Background" . FONT_COLOR . " x+" . (borderWidth - percentWidth(0.002)) 
-                    . " y" . (ypos + percentHeight((0.03 - 0.01) / 2)) . " w" . percentWidth(0.004) . " h" . percentHeight(0.01) . ((connectionType != 1) ? " Hidden" : ""), "")
+                this.Add("Text", "v" . controlName . "Nub Background" . FONT_COLOR . " x+" . (borderWidth - interfaceWidth(0.002)) 
+                    . " y" . (ypos + interfaceHeight((0.03 - 0.01) / 2)) . " w" . interfaceWidth(0.004) . " h" . interfaceHeight(0.01) . ((connectionType != 1) ? " Hidden" : ""), "")
 
                 ; add vibe button
                 this.Add("Text", "v" . controlName . "Vibe f(vibe " . controlName . ") u(unvibe) Center 0x200 Background" 
-                    . COLOR2 . " xpos1 ypos" . A_Index . " x" . percentWidth(0.172) . " y" . ypos . " w" . percentWidth(0.04) . " h" . percentHeight(0.03) 
+                    . COLOR2 . " xpos1 ypos" . A_Index . " x" . interfaceWidth(0.172) . " y" . ypos . " w" . interfaceWidth(0.04) . " h" . interfaceHeight(0.03) 
                     . ((!value.Has("vibration") || !value["vibration"] || !connected) ? " Hidden" : ""), "Vibe")
             }
 
-            ypos += percentHeight(0.025)
+            ypos += interfaceHeight(0.025)
         }
     }
 
     _Show() {
-        super._Show("y0 x" . percentWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
+        super._Show("y0 x" . interfaceWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
         SetTimer(InputSecondTimer, -1000)
 
         return 
@@ -179,7 +179,7 @@ class InputInterface extends Interface {
     _Destroy() {
         currVibing := ObjDeepClone(this.vibrating)
         loop currVibing.Length {
-            this._unvibe(currVibing[A_Index])
+            this._unvibe()
         }
 
         super._Destroy()

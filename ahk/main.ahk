@@ -347,6 +347,9 @@ for item in globalConfig["StartArgs"] {
     }
 }
 
+; set the GUI constants
+setMonitorInfo()
+
 ; create loadscreen if appropriate
 if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
     globalStatus["loadscreen"]["enable"] := true
@@ -605,6 +608,9 @@ RunBufferedFunction(bufferedFunc) {
                 else {
                     globalGuis["pause"].Destroy()
                 }
+            }
+            catch {
+                writeLog("Failed to create pausemenu??")
             }
         }
     }

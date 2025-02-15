@@ -339,7 +339,9 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         numAmpersand := StrSplit(key, "&").Length 
                         ; check if key combination using the hotkey is being pressed, and prioritize it
                         for key2, value2 in currHotkeyInput[currIndex] {
-                            if (key != key2 && (InStr(key, key2) || InStr(key2, key)) && value2["modifier"] != "[PATTERN]") {
+                            if (key != key2 && (InStr(key, "&") || InStr(key2, "&")) 
+                                && (InStr(key, key2) || InStr(key2, key)) && value2["modifier"] != "[PATTERN]") {
+                                
                                 ; always block pausemenu from opening when using as "up"
                                 if (StrLower(value2["up"]) = "pausemenu") {
                                     value2["blocked"] := true
@@ -867,7 +869,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                         if (globalStatus["loadscreen"]["show"]) {
                             if (!globalGuis["loadscreen"].controlsVisible) {
                                 globalGuis["loadscreen"].restoreControls()
-                                MouseMove(percentWidth(1), percentHeight(1))
+                                HideMouseCursor()
                             }
 
                             ; create loadscreen if doesn't exist
@@ -899,7 +901,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                             if (WinActive(INTERFACES["loadscreen"]["wndw"])) {
                                 if (!globalGuis["loadscreen"].controlsVisible) {
                                     globalGuis["loadscreen"].restoreControls()
-                                    MouseMove(percentWidth(1), percentHeight(1))
+                                    HideMouseCursor()
                                 }
                             }
                             else if (globalGuis["loadscreen"].controlsVisible) {

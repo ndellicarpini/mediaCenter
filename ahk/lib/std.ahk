@@ -651,6 +651,23 @@ SendSafe(key, time := -1, async := false) {
 	}
 }
 
+; moves the mouse to the position x & y percent across the current monitor
+;  x - x percent for mouse pos
+;  y - y percent for mouse pos
+;  monitorNum - monitor for x & y percents
+;
+; returns null
+MouseMovePercent(x, y, monitorNum) {
+	MonitorGet(monitorNum, &ML, &MT, &MR, &MB)
+
+    monitorX := ML
+    monitorY := MT
+    monitorH := Floor(Abs(MB - MT))
+    monitorW := Floor(Abs(MR - ML))
+
+	MouseMove(monitorX + (x * monitorW), monitorY + (y * monitorH))
+}
+
 ; deep clones an object, supporting Maps & Arrays
 ; obj - obj to deep clone
 ;
@@ -1579,6 +1596,22 @@ getDynamicIncludes(toRead) {
 	return retString
 }
 
+; gets size of image in pixels
+;  path - image path
+;
+; returns [width, height]
+getImageDimensions(path) {
+	fullPath := expandDir(path)
+	SplitPath(fullPath, &cleanName, &cleanPath)
+
+	shellObj := ComObject("Shell.Application")
+	pathObj  := shellObj.namespace(cleanPath)
+	fileObj  := pathObj.parseName(cleanName)
+
+	dims := StrSplit(StrLower(fileObj.extendedProperty("Dimensions")), "x", " ?" chr(8234) chr(8236), 2)
+	return [Integer(Trim(dims[1])), Integer(Trim(dims[2]))]
+}
+
 ; gets the cpu load as a float percentage
 ;
 ; returns the cpu load
@@ -1648,6 +1681,7 @@ getNvidiaLoad() {
 ; returns null
 hideTaskbar() {
     try WinHide("ahk_class Shell_TrayWnd")
+    try WinHide("ahk_class Shell_SecondaryTrayWnd")
 }
 
 ; shows the windows taskbar
@@ -1655,13 +1689,14 @@ hideTaskbar() {
 ; returns null
 showTaskbar() {
     try WinShow("ahk_class Shell_TrayWnd")
+    try WinShow("ahk_class Shell_SecondaryTrayWnd")
 }
 
 ; returns whether the windows taskbar exists
 ; 
 ; returns true if the taskbar exists
 taskbarExists() {
-    return WinShown("ahk_class Shell_TrayWnd")
+    return WinShown("ahk_class Shell_TrayWnd") || WinShown("ahk_class Shell_SecondaryTrayWnd")
 }
 
 ; gets the current state of the taskbar autohide

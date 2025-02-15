@@ -128,7 +128,7 @@ class Interface {
         }
 
         if (this.overlayObj != "") {
-            this.overlayObj.Show("x0 y0 w" . percentWidth(1) . " h" . percentHeight(1))
+            this.overlayObj.Show("x" . MONITOR_X . " y" . MONITOR_Y . " w" . MONITOR_W . " h" . MONITOR_H)
             WinSetTransparent(200, "AHKOVERLAY")
         }
 

@@ -52,14 +52,14 @@ class KeyboardInterface extends Interface {
         this.selectColor := COLOR3
         this.guiObj.BackColor := COLOR1
 
-        this.guiWidth := percentWidth(0.39)
+        this.guiWidth := interfaceWidth(0.39)
         this.guiHeight := (this.guiWidth / 21) * 7
         this.SetFont("bold s18")
 
         this._createKeyboard()
 
         keySize := Round(this.guiWidth * 0.0588)
-        keySpacing := percentWidth(0.002) * 2
+        keySpacing := interfaceWidth(0.002) * 2
 
         xpos := this.control2D.Length
         ypos := this.control2D[xpos].Length
@@ -76,7 +76,7 @@ class KeyboardInterface extends Interface {
 
         MouseGetPos(&x, &y)
         this.restoreMousePos := [x, y]
-        MouseMove(percentWidth(1), percentHeight(1))
+        HideMouseCursor()
 
         super._Show("NoActivate x" . (percentWidth(0.5, false) - (this.guiWidth / 2)) . " y" . percentHeight(0.5, false) . " w" . this.guiWidth . " h" . this.guiHeight)
     }
@@ -197,7 +197,7 @@ class KeyboardInterface extends Interface {
 
     _createKBButton(text, color, xpos, ypos, widthScale) {   
         keySize := Round(this.guiWidth * 0.0588)
-        keySpacing := percentWidth(0.002)
+        keySpacing := interfaceWidth(0.002)
 
         offset := "x+" . keySpacing
         if (xpos = 1 || Type(xpos) = "String" && StrSplit(xpos, "-")[1] = 1) {

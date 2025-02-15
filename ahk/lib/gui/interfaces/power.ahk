@@ -17,12 +17,12 @@ class PowerInterface extends Interface {
 
         this.guiObj.BackColor := COLOR1
 
-        marginSize := percentWidth(0.01)
+        marginSize := interfaceWidth(0.01)
         this.guiObj.MarginX := marginSize
         this.guiObj.MarginY := marginSize
         
-        buttonSize := percentWidth(0.07)
-        buttonSpacing := percentWidth(0.018)
+        buttonSize := interfaceWidth(0.07)
+        buttonSpacing := interfaceWidth(0.018)
         powerOptions := this._createPowerOptions()
 
         this.SetFont("bold s22")
@@ -42,7 +42,7 @@ class PowerInterface extends Interface {
         }
 
         this.guiWidth := (buttonSize * index) + (buttonSpacing * (index - 1)) + (marginSize * 2)
-        this.guiHeight := percentHeight(0.2)        
+        this.guiHeight := interfaceHeight(0.2)        
     }
 
     _Show() {
@@ -53,12 +53,12 @@ class PowerInterface extends Interface {
             this._restoreMousePos := [x, y]
         }
 
-        guiX := MONITOR_X + ((MONITOR_W / 2) - (this.guiWidth / 2))
-        guiY := MONITOR_Y + ((MONITOR_H / 2) - (this.guiHeight / 2))
+        guiX := ((MONITOR_W / 2) - (this.guiWidth / 2))
+        guiY := ((MONITOR_H / 2) - (this.guiHeight / 2))
         super._Show("x" . guiX . " y" . guiY . " w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
-        MouseMove(percentWidth(1), percentHeight(1))
+        HideMouseCursor()
     }
 
     _Destroy() {

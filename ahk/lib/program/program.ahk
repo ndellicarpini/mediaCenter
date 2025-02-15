@@ -60,13 +60,21 @@ class Program {
     checkPropertiesDelay := 3000
 
     ; if waiting on check of program relaunching
-    _waitingExistTimer      := false
-    _waitingHungTimer       := false
-    _waitingPostLaunchTimer := false
-    _waitingFullscreenTimer := false
-    _waitingMouseMoveTimer  := false
-    _waitingWindowTimer     := false
-    _waitingWindowFailed    := false
+    _waitingExistTimer       := false
+    _waitingHungTimer        := false
+    _waitingPostLaunchTimer  := false
+    _waitingFullscreenTimer  := false
+    _waitingMouseMoveTimer   := false
+    _waitingWindowTimer      := false
+    _waitingWindowFailed     := false
+    _overrideFullscreenDelay := 0
+
+    ; controls win position on screen
+    monitorNum := MONITOR_N
+    _monitorX := 0
+    _monitorY := 0
+    _monitorW := 0
+    _monitorH := 0
 
     _restoreMousePos := []
     _launchArgs := []
@@ -136,10 +144,10 @@ class Program {
 
         ; parse ignoreEXEs
         if (exeConfig.Has("ignoreEXEs")) {
-            this.ignoreEXEs := exeConfig["ignoreEXEs"]
+            this.ignoreEXEs := Type(exeConfig["ignoreEXEs"]) = "Array" ? exeConfig["ignoreEXEs"] : [exeConfig["ignoreEXEs"]]
         }
         else if (exeConfig.Has("ignoreEXE")) {
-            this.ignoreEXEs := exeConfig["ignoreEXE"]
+            this.ignoreEXEs := Type(exeConfig["ignoreEXE"]) = "Array" ? exeConfig["ignoreEXE"] : [exeConfig["ignoreEXE"]]
         }
 
         ; parse default args
@@ -209,6 +217,13 @@ class Program {
                 try this.%key% := value
             }
         }
+
+        ; parse monitor info
+        monitorInfo := getMonitorInfo(this.monitorNum)
+        this._monitorX := monitorInfo[1]
+        this._monitorY := monitorInfo[2]
+        this._monitorW := monitorInfo[3]
+        this._monitorH := monitorInfo[4]
     }
 
     ; runs the program
@@ -217,6 +232,14 @@ class Program {
     ; returns null
     launch(args*) {
         global globalStatus
+        
+        this.time := A_TickCount
+
+        monitorInfo := getMonitorInfo(this.monitorNum)
+        this._monitorX := monitorInfo[1]
+        this._monitorY := monitorInfo[2]
+        this._monitorW := monitorInfo[3]
+        this._monitorH := monitorInfo[4]
 
         restoreCritical := A_IsCritical
         Critical("Off")
@@ -378,7 +401,7 @@ class Program {
                         Sleep(75)
                         MouseClick("Left",,,,, "U")
                         Sleep(75)
-                        MouseMove(percentWidth(1), percentHeight(1))    
+                        HideMouseCursor()
                     }
                 }
                 else {
@@ -472,7 +495,7 @@ class Program {
             }
 
             this.checkFullscreen()
-            saveScreenshot(this.id)
+            saveScreenshot(this.id, this.monitorNum)
 
             return
         }
@@ -491,7 +514,7 @@ class Program {
             }
 
             this.checkFullscreen()
-            saveScreenshot(this.id)
+            saveScreenshot(this.id, this.monitorNum)
 
             SetTimer(CheckPropertiesTimer, 0)
             return
@@ -661,7 +684,7 @@ class Program {
                         MouseMove(mouseX, mouseY)
                     }
                     else {
-                        MouseMove(percentWidth(1), percentHeight(1))
+                        HideMouseCursor()
                     }
                 }
             }
@@ -695,20 +718,19 @@ class Program {
         }
 
         ; after first restore -> fullscreen window if required
-        if (this.requireFullscreen && !this._waitingFullscreenTimer) {
-            SetTimer(DelayFullscreen, Neg(this.fullscreenDelay))
-            this._waitingFullscreenTimer := true
+        if (!this._waitingFullscreenTimer) {
+            SetTimer(DelayFullscreen, 
+                Neg(this._overrideFullscreenDelay != 0 ? this._overrideFullscreenDelay : this.fullscreenDelay)
+            )
+            this._waitingFullscreenTimer  := true
+            this._overrideFullscreenDelay := 0
         }
 
         ; after first restore -> move mouse to proper position
         if (!this._waitingMouseMoveTimer) {
             ; hide mouse
-            x := percentWidth(1, false)
-            y := percentHeight(1, false)
-            if (this.mouse.Has("initialPos")) {
-                x := percentWidth(this.mouse["initialPos"][1], false)
-                y := percentHeight(this.mouse["initialPos"][2], false)
-            }
+            x := this.mouse.Has("initialPos") ? this.mouse["initialPos"][1] : 1
+            y := this.mouse.Has("initialPos") ? this.mouse["initialPos"][2] : 1
 
             if (this.mouseMoveDelay != 0) {
                 SetTimer(DelayMouseMove.Bind(x, y), Neg(this.mouseMoveDelay))
@@ -748,21 +770,32 @@ class Program {
             }
 
             if (this._currShownEXE = "" || !WinActive("ahk_exe " this._currShownEXE) || this.shouldExit || globalStatus["currProgram"]["id"] != this.id) {
-                this._waitingFullscreenTimer := false
+                this._waitingFullscreenTimer  := false
                 return
             }
 
-            if (!this.checkFullscreen()) {
-                hwnd := this.getHWND()
-                ; don't fullscreen if window is a TOOLWINDOW (for launchers)
-                if (WinExist(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {
-                    this.fullscreen()
+            hwnd := this.getHWND()
+
+            ; don't interact if window is a TOOLWINDOW (for launchers)
+            if (hwnd && WinShown(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {               
+                WinGetPos(&X, &Y, &W, &H, hwnd)
+                if ((X + (W * 0.05)) < this._monitorX || X >= ((this._monitorX + this._monitorW) * 0.95)
+                    || (Y + (H * 0.05)) < this._monitorY || Y >= ((this._monitorY + this._monitorH) * 0.95)) {
+                    
+                    WinMove(this._monitorX, this._monitorY,,, hwnd)
                 }
 
-                ; if fullscreen failed, try again
-                if (!this.fullscreened) {
-                    this._waitingFullscreenTimer := false
+                if (this.requireFullscreen && !this.checkFullscreen()) {
+                    this.fullscreen()
+
+                    ; if fullscreen failed, try again
+                    if (!this.fullscreened) {
+                        this._waitingFullscreenTimer := false
+                    }
                 }
+            ; window is not valid for interaction - wait till it is
+            } else {
+                this._waitingFullscreenTimer := false
             }
 
             return
@@ -781,7 +814,7 @@ class Program {
                 return
             }
             
-            MouseMove(x, y)
+            MouseMovePercent(x, y, this.monitorNum)
             return
         }
 
@@ -790,15 +823,15 @@ class Program {
             ; if window exists -> stop checking
             if (this.getHWND() || !this.exists() || this.shouldExit) {
                 this._waitingWindowTimer := false
-                if (loopCount > 8) {
+                if (loopCount > 15) {
                     resetLoadScreen()
                 }
 
                 return
             }
 
-            ; at 8s mark -> enable load screen to wait
-            if (loopCount = 8) {            
+            ; at 15s mark -> enable load screen to wait
+            if (loopCount = 15) {            
                 setLoadScreen("Waiting for " . this.name . "...")
             }
             ; ; at 20s mark -> reset program
@@ -864,8 +897,9 @@ class Program {
 
         ; reset fullscreen status on minimize
         this.fullscreened := false
-        this._waitingFullscreenTimer := false
-        this._waitingMouseMoveTimer  := false
+        this._waitingFullscreenTimer  := false
+        this._waitingMouseMoveTimer   := false
+        this._overrideFullscreenDelay := 1000
 
         Critical(restoreCritical)
     }
@@ -877,6 +911,56 @@ class Program {
                 Sleep(200)
             }
         }
+    }
+
+    switchMonitor(newMonitor) {
+        global globalStatus
+
+        hwnd := this.getHWND()
+        if (!hwnd || this.background || !IsInteger(newMonitor) || Integer(newMonitor) < 0) {
+            return
+        } 
+
+        this.monitorNum := Integer(newMonitor)
+        
+        monitorInfo := getMonitorInfo(this.monitorNum)
+        this._monitorX := monitorInfo[1]
+        this._monitorY := monitorInfo[2]
+        this._monitorW := monitorInfo[3]
+        this._monitorH := monitorInfo[4]
+
+        if (this.id = globalStatus["currProgram"]["id"] && WinShown(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {
+            WinGetPos(&X, &Y, &W, &H, hwnd)
+
+            ; check that window is showing within proper monitor bounds, move to correct monitor if not
+            ; (custom fullscreen functions usually cause the window to get fullscreened on currently showing monitor)
+            if ((X + (W * 0.05)) < this._monitorX || X >= ((this._monitorX + this._monitorW) * 0.95) 
+                || (Y + (H * 0.05)) < this._monitorY || Y >= ((this._monitorY + this._monitorH) * 0.95)) {
+                
+                try WinRestoreMessage(hwnd)
+                Sleep(75)
+                try WinMove(this._monitorX, this._monitorY,,, hwnd)
+                Sleep(75)
+
+                this._restoreMousePos := []
+                if (this.requireFullscreen && !this.checkFullscreen()) {
+                    try this.fullscreen()
+                }
+
+                if (this.mouse.Has("initialPos")) {
+                    MouseMovePercent(this.mouse["initialPos"][1], this.mouse["initialPos"][2], this.monitorNum)
+                } else {
+                    HideMouseCursor()
+                }
+            }
+        }
+
+        ; reset fullscreen status on switching monitors
+        this.fullscreened := false
+        this._waitingFullscreenTimer  := false
+        this._overrideFullscreenDelay := 1000
+
+        Sleep(250)
     }
 
     ; fullscreen window if not fullscreened
@@ -903,8 +987,10 @@ class Program {
         WinGetPos(&X, &Y, &W, &H, hwnd)
         ; check that window is showing within proper monitor bounds, move to correct monitor if not
         ; (custom fullscreen functions usually cause the window to get fullscreened on currently showing monitor)
-        if ((X + (W * 0.05)) < MONITOR_X || X > (MONITOR_X + MONITOR_W) || (Y + (H * 0.05)) < MONITOR_Y || Y > (MONITOR_Y + MONITOR_H)) {
-            WinMove(MONITOR_X, MONITOR_Y,,, hwnd)
+        if ((X + (W * 0.05)) < this._monitorX || X >= ((this._monitorX + this._monitorW) * 0.95)
+            || (Y + (H * 0.05)) < this._monitorY || Y >= ((this._monitorY + this._monitorH) * 0.95)) {
+            
+            WinMove(this._monitorX, this._monitorY,,, hwnd)
         }
 
         this._fullscreen()
@@ -970,9 +1056,8 @@ class Program {
 
         ; currently rounding the INACCURATE client area as returned by WinGetClientPos
         ; bc of that i'm rounding the reported aspect ratios to common ones
-
-        validWidths  := [MONITOR_W, 21, 16, 4]
-        validHeights := [MONITOR_H,  9,  9, 3]
+        validWidths  := [this._monitorW, 21, 16, 4]
+        validHeights := [this._monitorH,  9,  9, 3]
 
         minDiff := 69
         aspectIndex := 1
@@ -985,11 +1070,11 @@ class Program {
             }
         }
 
-        multiplier := Min(MONITOR_W / validWidths[aspectIndex], MONITOR_H / validHeights[aspectIndex])
+        multiplier := Min(this._monitorW / validWidths[aspectIndex], this._monitorH / validHeights[aspectIndex])
         newW := validWidths[aspectIndex]  * multiplier
         newH := validHeights[aspectIndex] * multiplier
 
-        try WinMove(MONITOR_X + ((MONITOR_W - newW) / 2), MONITOR_Y + ((MONITOR_H - newH) / 2), newW, newH, hwnd)
+        try WinMove(this._monitorX + ((this._monitorW - newW) / 2), this._monitorY + ((this._monitorH - newH) / 2), newW, newH, hwnd)
     }
 
     ; return if program is "fullscreen" & update the fullscreen value of the program
@@ -998,7 +1083,13 @@ class Program {
             return
         }
 
+        oldFullscreened := this.fullscreened
         this.fullscreened := this._checkFullscreen()
+
+        if (oldFullscreened != this.fullscreened) {
+            this._waitingFullscreenTimer := false
+        }
+
         return this.fullscreened
     }
     _checkFullscreen() {
@@ -1006,9 +1097,10 @@ class Program {
 
         try {
             WinGetClientPos(&X, &Y, &W, &H, hwnd)
-            return (!(WinGetStyle(hwnd) & 0x20800000) && (W >= (MONITOR_W * 0.95)|| H >= (MONITOR_H * 0.95))
-                && (X + (W * 0.05)) >= MONITOR_X && X < (MONITOR_X + MONITOR_W) 
-                && (Y + (H * 0.05)) >= MONITOR_Y && Y < (MONITOR_Y + MONITOR_H)) ? true : false
+            return (!(WinGetStyle(hwnd) & 0x20800000) 
+                && ((W >= (this._monitorW * 0.95) && W <= (this._monitorW * 1.05)) || (H >= (this._monitorH * 0.95) && H <= (this._monitorH * 1.05)))
+                && (X + (W * 0.05)) >= this._monitorX && X < (this._monitorX + this._monitorW) 
+                && (Y + (H * 0.05)) >= this._monitorY && Y < (this._monitorY + this._monitorH)) ? true : false
         }
 
         return false
@@ -1207,6 +1299,7 @@ class Program {
                 ; try to exit all exes every 7.5s or once 25s have passed
                 if (count >= 50 || Mod(count, 15) = 0) {
                     currPID := this._currPIDList[1]
+                    currName := ProcessGetName(currPID)
 
                     internalLoopCount := 0
                     while (true) {
@@ -1221,7 +1314,7 @@ class Program {
                             ;  - over 15 PIDs have been cycled during the exit
                             if (this.hungCount = 0 && count < 50 && internalLoopCount < 15) {
                                 ; attempt to processclose >= 15s
-                                if (count >= 30) {
+                                if (!currName || count >= 30) {
                                     ProcessClose(currPID)
                                 } 
                                 else {
@@ -1230,10 +1323,16 @@ class Program {
     
                                 Sleep(75)
                             }
-                            ; this is the hard in the paint
+                            ; THIS IS THE HARD IN THE PAINT PART
                             else {
                                 writeLog(this.id . " gone nuclear (PID: " . currPID . ")", "PROGRAM")
                                 ProcessKill(currPID)
+                            }
+
+
+                            ; big assumption time - no exe without a proper name is worth saving
+                            if (!currName) {
+                                this._currPIDList.RemoveAt(1)
                             }
 
                             ; update PID list
@@ -1242,11 +1341,13 @@ class Program {
                             ; if winclose did not immediately exit program, then wait
                             if (this._currPIDList.Length = 0 || this._currPIDList[1] = currPID) {
                                 break
-                            ; if winclose did exit program, move to next
-                            } else {
-                                currPID := this._currPIDList[1]
-                                internalLoopCount += 1
                             }
+
+                            ; if winclose did exit program, move to next
+                            currPID := this._currPIDList[1]
+                            currName := ProcessGetName(currPID)
+
+                            internalLoopCount += 1
                         }
                     }
                 }
@@ -1321,7 +1422,7 @@ class Program {
                 }
     
                 ; get new thumbnail
-                saveScreenshot(this.id)
+                saveScreenshot(this.id, this.monitorNum)
             }
         }
 
@@ -1350,6 +1451,7 @@ class Program {
         
         if (this._restoreMousePos.Length = 2) {
             MouseMove(this._restoreMousePos[1], this._restoreMousePos[2])
+            this._restoreMousePos := []
         }
 
         try {
@@ -1364,7 +1466,7 @@ class Program {
                 }
     
                 ; get new thumbnail
-                saveScreenshot(this.id)
+                saveScreenshot(this.id, this.monitorNum)
             }
         }
         
@@ -1615,9 +1717,15 @@ class Program {
     getHWND() {
         global globalStatus
 
+        oldHWND := this._currHWND
         this._currHWND := this._getHWND()
         if (this.id = globalStatus["currProgram"]["id"] && this._currHWND != globalStatus["currProgram"]["hwnd"]) {
             globalStatus["currProgram"]["hwnd"] := this._currHWND
+            
+            if (oldHWND != this._currHWND) {
+                writeLog(this.id . " updated hwnd", "PROGRAM")
+                this.checkFullscreen()
+            }
         }
 
         return this._currHWND
@@ -2221,7 +2329,7 @@ setCurrentProgram(id) {
 
         ; get new thumbnail
         if (currProgram != "" && globalRunning.Has(currProgram) && WinActive(globalRunning[currProgram].getHWND())) {
-            saveScreenshot(currProgram)
+            saveScreenshot(currProgram, globalRunning[currProgram].monitorNum)
         }
 
         writeLog(id . " set as current program", "PROGRAM")
@@ -2234,7 +2342,7 @@ setCurrentProgram(id) {
         if (!currSuspended) {
             setLoadScreen()
             activateLoadScreen()
-            MouseMove(percentWidth(1), percentHeight(1))
+            HideMouseCursor()
             
             Sleep(200)
             resetLoadScreen()
@@ -2244,6 +2352,7 @@ setCurrentProgram(id) {
     if (globalRunning[id].exists(true) && !currSuspended) {
         globalRunning[id].fullscreened := false
         globalRunning[id]._waitingFullscreenTimer := false
+        globalRunning[id]._overrideFullscreenDelay := 1000
         globalRunning[id].restore()
     }
 }

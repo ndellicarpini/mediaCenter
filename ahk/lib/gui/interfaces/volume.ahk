@@ -22,28 +22,28 @@ class VolumeInterface extends Interface {
         this.selectColor := COLOR3
 
         this.guiObj.BackColor := COLOR1
-        this.guiObj.MarginX := percentHeight(0.01)
-        this.guiObj.MarginY := percentHeight(0.01)
+        this.guiObj.MarginX := interfaceHeight(0.01)
+        this.guiObj.MarginY := interfaceHeight(0.01)
 
-        this.guiWidth  := percentWidth(0.2)
-        this.guiHeight := percentHeight(0.17)
-        maxHeight := percentHeight(1)
+        this.guiWidth  := interfaceWidth(0.2)
+        this.guiHeight := interfaceHeight(0.17)
+        maxHeight := interfaceHeight(1)
 
         this.SetFont("bold s24")
-        this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . percentHeight(0.05) . " w" . (this.guiWidth - percentHeight(0.02)), "Volume Control")
+        this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . interfaceHeight(0.05) . " w" . (this.guiWidth - interfaceHeight(0.02)), "Volume Control")
 
-        volControlWidth     := percentWidth(0.16)
-        volControlHeight    := percentHeight(0.035)
-        volControlSelectBox := percentHeight(0.01)
+        volControlWidth     := interfaceWidth(0.16)
+        volControlHeight    := interfaceHeight(0.035)
+        volControlSelectBox := interfaceHeight(0.01)
 
         ; --- ADD MASTER VOLUME CONTROL ---
         this.SetFont("norm s20")
-        this.Add("Text", "Section xm0 y+" . percentHeight(0.018), "Master")
-        this.Add("Text", "vMasterControl Center f(changeVolume master) xpos1 ypos1 Background" . COLOR2 " h" . volControlHeight . " w" . volControlWidth . " y+" . percentHeight(0.0065), "")
+        this.Add("Text", "Section xm0 y+" . interfaceHeight(0.018), "Master")
+        this.Add("Text", "vMasterControl Center f(changeVolume master) xpos1 ypos1 Background" . COLOR2 " h" . volControlHeight . " w" . volControlWidth . " y+" . interfaceHeight(0.0065), "")
         this.Add("Progress", "vMasterProgress Background" . COLOR2 . " c" . FONT_COLOR 
             . " h" . (volControlHeight - volControlSelectBox) . " w" . (volControlWidth - volControlSelectBox) . " yp" . (volControlSelectBox / 2) . " xm" . (volControlSelectBox / 2), SoundGetVolume())
         
-        this.Add("Picture", "vMasterMute f(muteVolume master) xpos2 ypos1 yp-" . (volControlSelectBox / 2) . " x+" . percentWidth(0.012) . " h" . volControlHeight . " w" . volControlHeight
+        this.Add("Picture", "vMasterMute f(muteVolume master) xpos2 ypos1 yp-" . (volControlSelectBox / 2) . " x+" . interfaceWidth(0.012) . " h" . volControlHeight . " w" . volControlHeight
             , (!this.masterMute) ? getAssetPath("icons\gui\volume.png", globalConfig) : getAssetPath("icons\gui\volume-off.png", globalConfig))
 
         ; clean the program list
@@ -84,24 +84,24 @@ class VolumeInterface extends Interface {
         loop programList.Length {     
             ; adjust gui height up to max for additional programs
             if (this.guiHeight < maxHeight) {
-                newHeight := this.guiHeight + percentHeight(0.088)
+                newHeight := this.guiHeight + interfaceHeight(0.088)
                 this.guiHeight := (newHeight > maxHeight) ? maxHeight : newHeight
             }
 
             currProgram := globalRunning[programList[A_Index]]
 
-            this.Add("Text", "Section xm0 y+" . percentHeight(0.018), globalRunning[programList[A_Index]].name)
-            this.Add("Text", "v" . programList[A_Index] . "Control Center f(changeVolume " . programList[A_Index] . ") xpos1 ypos" . (A_Index + 1) . " Background" . COLOR2 " h" . volControlHeight . " w" . volControlWidth . " y+" . percentHeight(0.0065), "")
+            this.Add("Text", "Section xm0 y+" . interfaceHeight(0.018), globalRunning[programList[A_Index]].name)
+            this.Add("Text", "v" . programList[A_Index] . "Control Center f(changeVolume " . programList[A_Index] . ") xpos1 ypos" . (A_Index + 1) . " Background" . COLOR2 " h" . volControlHeight . " w" . volControlWidth . " y+" . interfaceHeight(0.0065), "")
             this.Add("Progress", "v" . programList[A_Index] . "Progress Background" . COLOR2 . " c" . FONT_COLOR 
                 . " h" . (volControlHeight - volControlSelectBox) . " w" . (volControlWidth - volControlSelectBox) . " yp" . (volControlSelectBox / 2) . " xm" . (volControlSelectBox / 2), (currProgram.muted) ? 0 : currProgram.volume)
             
-            this.Add("Picture", "v" . programList[A_Index] . "Mute f(muteVolume " . programList[A_Index] . ") xpos2 ypos" . (A_Index + 1) . " yp-" . (volControlSelectBox / 2) . " x+" . percentWidth(0.012) . " h" . volControlHeight . " w" . volControlHeight
+            this.Add("Picture", "v" . programList[A_Index] . "Mute f(muteVolume " . programList[A_Index] . ") xpos2 ypos" . (A_Index + 1) . " yp-" . (volControlSelectBox / 2) . " x+" . interfaceWidth(0.012) . " h" . volControlHeight . " w" . volControlHeight
                 , (!currProgram.muted) ? getAssetPath("icons\gui\volume.png", globalConfig) : getAssetPath("icons\gui\volume-off.png", globalConfig))
         }
     }
 
     _Show() {
-        super._Show("y0 x" . percentWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
+        super._Show("y0 x" . interfaceWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
     }
 
     _select() {
