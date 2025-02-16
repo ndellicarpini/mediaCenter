@@ -27,7 +27,6 @@ class Config {
 	;	    - json -> formatted like a json file {...}
 	;       - xml -> formatted like an xml document with <x>...</x>
 	;       - yaml -> formatted like an yaml document with indents
-	;       - [TODO] toml -> why does this format even exist?
 	__New(toRead, type := "ini") {
 		this.type := type
 		this.read(toRead)
@@ -45,7 +44,7 @@ class Config {
 		this.eol := getEOL(this.original)
 
 		switch (StrLower(this.type)) {
-			case "ini":
+			case "ini", "toml":
 				this.originalData := this._readINI(this.original)
 			case "json":
 				this.originalData := this._readJSON(this.original)
@@ -53,8 +52,6 @@ class Config {
 				this.originalData := this._readXML(this.original)
 			case "yaml", "yml":
 				this.originalData := this._readYAML(this.original)
-			case "toml":
-				this.originalData := this._readTOML(this.original)
 		}
 
 		this.data := this._cleanOriginalData(this.originalData)
@@ -151,7 +148,13 @@ class Config {
 
 				currText := originalItem[key]["text"]
 				if (!InStr(retText, currText, true)) {
-					continue
+					; double check that rogue eol wasnt added at the back
+					if (InStr(retText, RTrim(currText, this.eol), true)) {
+						currText := RTrim(currText, this.eol)
+					}
+					else {
+						continue
+					}
 				}
 
 				newText := ""
@@ -233,6 +236,7 @@ class Config {
 				numDeleted := 0
 				numToDelete := backupFiles.Length - this.maxBackups
 				while (numDeleted < numToDelete) {
+					; planned obsolescence
 					minTime := (3025 - 1970) * 31557600
 					minPath := ""
 
@@ -325,6 +329,17 @@ class Config {
 
 			; skip empty lines / comment lines
 			if (cleanLine = "" || RegExMatch(cleanLine, "U)^(#|;|\/\/)")) {
+				; make sure comments are added properly
+				if (prevKey != "") {
+					if (currCategory != "") {
+						retData[currCategory]["value"][prevKey]["text"] .= A_LoopField . this.eol
+						retData[currCategory]["text"] .= A_LoopField . this.eol
+					}
+					else {
+						retData[prevKey]["text"] .= A_LoopField . this.eol
+					}
+				}
+
 				continue
 			}
 

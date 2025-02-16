@@ -1210,7 +1210,7 @@ globalRegExMatch(haystack, pattern, &outputVar := "", startingPos := 1) {
 	}
 
 	leftMostPos := 0
-	while (startingPos > 0 && startingPos < StrLen(haystack) && RegExMatch(haystack, pattern, &currOutput, startingPos)) {
+	while (startingPos > 0 && startingPos <= StrLen(haystack) && RegExMatch(haystack, pattern, &currOutput, startingPos)) {
 		; i don't know why i have to do this
 		if (currOutput.Count = 0) {
 			outputVar.__Item.Push(currOutput[0])
