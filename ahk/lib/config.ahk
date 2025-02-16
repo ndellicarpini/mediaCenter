@@ -17,13 +17,15 @@ class Config {
 	;  value - value from data (could be subconfig)
 	;  text - original text for this key/value pair
 	originalData := Map()
+	; maximum number of backups that 1 file can have
+	maxBackups := 5
 
 	; reads from a file/string and generates a Config object
 	;  toRead - string/file to read
 	;  type - type of the config file
 	;       - ini -> standard config file using bracketed category names 
 	;	    - json -> formatted like a json file {...}
-	;       - [TODO] xml -> formatted like an xml document with <x>...</x>
+	;       - xml -> formatted like an xml document with <x>...</x>
 	;       - yaml -> formatted like an yaml document with indents
 	;       - [TODO] toml -> why does this format even exist?
 	__New(toRead, type := "ini") {
@@ -193,19 +195,76 @@ class Config {
 		}
 
 		; TODO - figure out how to handle type changes or array length changes
-		diffMap := readDataMap(this.data, this.originalData)
-		newText := writeDataMap(this.original, diffMap, this.data, this.originalData)
+		diffObj := (Type(this.data) = "Array" ? readDataArr : readDataMap)(this.data, this.originalData)
+		newText := (Type(this.data) = "Array" ? writeDataArr : writeDataMap)(this.original, diffObj, this.data, this.originalData)
 
 		writePath := (path != "") ? path : this.path
 		if (writePath = "") {
 			ErrorMsg("Can't write config file without path")
 		}
 
-		if (backupOriginal && FileExist(writePath)) {
-			FileCopy(writePath, writePath . "." . FormatTime(, "MM_dd_yyyyTHH_mm_ss") . "-backup")
+		encoding := ""
+		if (FileExist(writePath)) {
+			originalFile := FileOpen(writePath, "r")
+			encoding := originalFile.Encoding
+			originalFile.Close()
+
+			if (backupOriginal) {
+				SplitPath(writePath,,, &ext)
+				backupPath := SubStr(writePath, 1, StrLen(writePath) - (StrLen(ext) + 1))
+				FileCopy(writePath, backupPath . "." . FormatTime(, "MM-dd-yyyyTHH-mm-ss") . "-backup." . ext)
+				
+				backupFiles := []
+				loop files backupPath . "*-backup." . ext {
+					timeStr := FileGetTime(A_LoopFileFullPath, "C")
+					fakeTime := (
+						((Integer(SubStr(timeStr, 1, 4)) - 1970) * 31557600)
+						+ (((Integer(SubStr(timeStr, 5, 2)) * 32) + Integer(SubStr(timeStr, 7, 2))) * 86400)
+						+ (Integer(SubStr(timeStr, 9, 2)) * 3600)
+						+ (Integer(SubStr(timeStr, 11, 2)) * 60)
+					)
+
+					backupFiles.Push(Map(
+						"time", fakeTime,
+						"path", A_LoopFileFullPath
+					))
+				}
+
+				numDeleted := 0
+				numToDelete := backupFiles.Length - this.maxBackups
+				while (numDeleted < numToDelete) {
+					minTime := (3025 - 1970) * 31557600
+					minPath := ""
+
+					index := 1
+					minIndex := 0
+					for file in backupFiles {
+						if (file["time"] < minTime) {
+							minTime := file["time"]
+							minPath := file["path"]
+							minIndex := index
+						}
+
+						index += 1
+					}
+
+					if (!minPath || minIndex < 1) {
+						break
+					}
+
+					FileDelete(minPath)
+					backupFiles.RemoveAt(minIndex)
+					numDeleted += 1
+				}
+			}
 		}
 		
 		writeFile := FileOpen(writePath, "w")
+		; this works better than setting the encoding when opening?
+		if (encoding) {
+			writeFile.Encoding := encoding
+		}
+
 		writeFile.Write(newText)
 		writeFile.Close()
 
@@ -854,15 +913,233 @@ class Config {
 	}
 
 	_readXML(text) {
-		; TODO
-		return Map()
+		parseAttribute(attribText) {
+			keyValueArr := StrSplit(attribText, "=",, 2)
+			attribKey := Trim(keyValueArr[1], this.eol . " `t")
+			attribValue := Trim(keyValueArr[2], this.eol . " `t")
+
+			if ((SubStr(attribValue, 1, 1) = '"' && SubStr(attribValue, -1) = '"')
+				|| (SubStr(attribValue, 1, 1) = "'" && SubStr(attribValue, -1) = '"')) {
+
+				attribValue := SubStr(attribValue, 2, StrLen(attribValue) - 2)
+			}
+
+			return Map(
+				"key", attribKey,
+				"value", attribValue
+			)
+		}
+
+		textLength := StrLen(text)
+
+		tags := []
+
+		stringPtr := 1
+		while (stringPtr && stringPtr < textLength) {
+			openTagPtr := stringPtr
+			openTagPos := InStr(text, "<",, openTagPtr)
+			while (openTagPos && openTagPos < textLength) {
+				if (!inQuotes(text, "<", openTagPtr)) {
+					break
+				}
+
+				openTagPtr := openTagPos + 1
+				openTagPos := InStr(text, "<",, openTagPtr)
+			}
+		
+			closeTagPtr := stringPtr
+			closeTagPos := InStr(text, ">",, closeTagPtr)
+			while (closeTagPos && closeTagPos < textLength) {
+				if (!inQuotes(text, ">", closeTagPtr)) {
+					break
+				}
+
+				closeTagPtr := closeTagPos + 1
+				closeTagPos := InStr(text, ">",, closeTagPtr)
+			}
+
+			if (!openTagPos || !closeTagPos) {
+				break
+			}
+			if (openTagPos > closeTagPos) {
+				ErrorMsg("XML Parsing Error: beans (" . closeTagPos . ") over the frank (" . openTagPos . ")")
+				break
+			}
+
+			tags.Push([openTagPos, closeTagPos])
+			stringPtr := closeTagPos + 1
+		}
+		
+		inComment := false
+		inSubLayer := 0
+		retArray := []
+
+		currTag := Map()
+		currTagText := ""
+		currValueText := ""
+		currAttributes := Map()
+		hasChildren := false
+
+		lastCloseTag := 1
+		for tagIndex in tags {
+			currElementText := SubStr(text, lastCloseTag, tagIndex[2] - lastCloseTag + 1)
+			currElement := SubStr(text, tagIndex[1], tagIndex[2] - tagIndex[1] + 1)
+			; skip declaration
+			if (StrLower(SubStr(currElement, 1, 5)) = "<?xml") {
+				continue
+			}
+
+			; set for starting string of comment
+			if (!inComment && SubStr(currElement, 1, 4) = "<!--") {
+				inComment := true
+			}
+			; if in comment, check if comment is closed
+			if (inComment) {
+				inComment := SubStr(currElement, -3) != "-->"
+				continue
+			}
+
+			; check for open tag
+			if (globalRegExMatch(currElement, "^<(?!\/)[^>\s]+", &openTagObj)) {
+				tagClosed := SubStr(currElement, -2) = "/>"
+
+				if (currTag.Count = 0) {
+					currTag := Map(
+						"value", SubStr(currElement, openTagObj.Pos[1] + 1, openTagObj.Len[1] - 1),
+						"text", SubStr(currElement, openTagObj.Pos[1], openTagObj.Len[1])
+					)
+
+					currAttributesText := SubStr(currElement, openTagObj.Pos[1] + openTagObj.Len[1])
+					currAttributesValueStr := Trim(currAttributesText, this.eol . " `t/<>")
+					; parse attributes in tag and add them to currAttributes
+					if (currAttributesValueStr) {
+						currAttributes := Map(
+							"value", Map(),
+							"text", currAttributesText
+						)
+
+						currIndex := 1
+						if (globalRegExMatch(currAttributesValueStr, "\s+", &whitespaceObj)) {
+							loop whitespaceObj.Count {
+								whitespaceStr := SubStr(currAttributesValueStr, whitespaceObj.Pos[A_Index], whitespaceObj.Len[A_Index])
+								if (inQuotes(currAttributesValueStr, whitespaceStr, whitespaceObj.Pos[A_Index])) {
+									continue
+								}
+
+								attribText := SubStr(currAttributesValueStr, currIndex, whitespaceObj.Pos[A_Index] - currIndex + 1)
+								if (Trim(attribText, this.eol . " `t")) {
+									attrib := parseAttribute(attribText)
+									currAttributes["value"][attrib["key"]] := Map(
+										"value", attrib["value"],
+										"text", attribText
+									)
+								}
+								
+								currIndex := whitespaceObj.Pos[A_Index] + whitespaceObj.Len[A_Index]
+							}
+						}
+
+						; add any remaining attributes
+						attribText := SubStr(currAttributesValueStr, currIndex)
+						if (Trim(attribText, this.eol . " `t")) {
+							attrib := parseAttribute(attribText)
+							currAttributes["value"][attrib["key"]] := Map(
+								"value", attrib["value"],
+								"text", attribText
+							)
+						}
+					}
+					; clear currAttributes
+					else {
+						currAttributes := Map("value", "", "text", SubStr(currElement, -2) = "/>" ? "/>" : ">")
+					}
+					
+					; if tag closes right away -> add to retArray
+					if (tagClosed) {
+						retArray.Push(Map(
+							"value", Map(
+								"openTag", currTag,
+								"closeTag", Map("value", "", "text", ""),
+								"attributes", currAttributes,
+								"value", Map("value", "", "text", "")
+							),
+							"text", currElementText
+						))
+
+						currTag := Map()
+						currTagText := ""
+						currValueText := ""
+						currAttributes := Map()
+						hasChildren := false
+						inSubLayer := 0
+					}
+					; else 
+					else {
+						currTagText := currElementText
+					}
+				}
+				else {
+					currValueText .= currElementText
+					hasChildren := true
+				}
+				
+				if (!tagClosed) {
+					inSubLayer += 1
+				}
+			}
+			else if (currTag.Has("value")) {
+				; move up a sub layer
+				if (inSubLayer && SubStr(currElement, 1, 2) = "</") {
+					inSubLayer -= 1
+				}
+
+				; check for closing tag to currTag
+				if (!inSubLayer && (StrLower(SubStr(currElement, 1, StrLen(currTag["value"]) + 2)) = "</" . StrLower(currTag["value"]))) {
+					closeTagIndex := InStr(currElementText, SubStr(currElement, 1, StrLen(currTag["value"]) + 2))
+					currValueText .= SubStr(currElementText, 1, closeTagIndex - 1)
+					closeTag := Map(
+						"value", currTag["value"],
+						"text", SubStr(currElementText, closeTagIndex)
+					)
+
+					retArray.Push(Map(
+						"value", Map(
+							"openTag", currTag,
+							"closeTag", closeTag,
+							"attributes", currAttributes,
+							"value", Map(
+								"value", hasChildren ? this._readXML(currValueText) : currValueText, 
+								"text", currValueText
+							)
+						),
+						"text", currTagText . currValueText . SubStr(currElementText, closeTagIndex)
+					))
+
+					currTag := Map()
+					currTagText := ""
+					currValueText := ""
+					currAttributes := Map()
+					hasChildren := false
+					inSubLayer := 0
+				}
+				; else -> current xml element added to parse for later
+				else {
+					currValueText .= currElementText
+					hasChildren := true
+				}
+			}
+
+			lastCloseTag := tagIndex[2] + 1
+		}
+
+		return retArray
 	}
 
 	_readYAML(text, overrideBaseIndent := -1) {		
 		if ((RegExMatch(text, "^\s*\{") && RegExMatch(text, "\},*\s*$")) 
 			|| (RegExMatch(text, "^\s*\[") && RegExMatch(text, "\],*\s*$"))) {
 
-			return Map("value", this._readJSON(text), "text", text)
+			return this._readJSON(text)
 		}
 
 		retType := ""
@@ -887,7 +1164,7 @@ class Config {
 					"text", currText,
 				))
 			} else if (retType = "string") {
-				retValue .= currValue
+				retValue .= Trim(currValue, this.eol . " `t")
 			}
 		}
 
@@ -1024,12 +1301,11 @@ class Config {
 			nextPos := textLen
 			loop cleanQuotes.Length {
 				currIndex := A_Index
+				currLength := quotePosArr[currIndex].Length
 		
 				if (cleanQuotes[currIndex][1] = cleanQuotes[currIndex][2]) {
 					currPos := InStr(text, cleanQuotes[currIndex][1],, stringPtr)
 					if (currPos > 0) {
-						currLength := quotePosArr[currIndex].Length
-
 						skip := false
 						loop currLength {
 							if (quotePosArr[currIndex][currLength - (A_Index - 1)][1] = currPos 
