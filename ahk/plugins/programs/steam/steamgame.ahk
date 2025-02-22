@@ -126,28 +126,47 @@ class SteamGameProgram extends Program {
                     continue
                 }
 
-                if (WinGetTitle(wndw) = "Steam") {
-                    minSize := WinGetMinSize(wndw)
-                    WinMove(,, minSize[1], minSize[2])
-                    Sleep(100)
+                ; if (WinGetTitle(wndw) = "Steam") {
+                ;     minSize := WinGetMinSize(wndw)
+                ;     WinMove(,, minSize[1], minSize[2])
+                ;     Sleep(100)
                
+                ;     WinActivateForeground(wndw)
+                ;     Sleep(250)
+                    
+                ;     loop 2 {
+                ;         MouseClick("Left"
+                ;             , percentWidthRelativeWndw(0.6, wndw)
+                ;             , percentHeightRelativeWndw(0.83 + ((A_Index - 1) * 0.05), wndw)
+                ;             ,,, "D"
+                ;         )
+                ;         Sleep(75)
+                ;         MouseClick("Left",,,,, "U")
+                ;         Sleep(75)
+                ;     }
+
+                ;     HideMouseCursor()
+                ;     Sleep(250)
+                ;     WinClose(wndw)
+
+                ;     return
+                ; }
+
+                if (StrLower(WinGetTitle(wndw)) = "eula") {               
                     WinActivateForeground(wndw)
                     Sleep(250)
                     
-                    loop 2 {
-                        MouseClick("Left"
-                            , percentWidthRelativeWndw(0.6, wndw)
-                            , percentHeightRelativeWndw(0.83 + ((A_Index - 1) * 0.05), wndw)
-                            ,,, "D"
-                        )
-                        Sleep(75)
-                        MouseClick("Left",,,,, "U")
-                        Sleep(75)
-                    }
+                    MouseClick("Left"
+                        , percentWidthRelativeWndw(0.65, wndw)
+                        , percentHeightRelativeWndw(0.93, wndw)
+                        ,,, "D"
+                    )
+                    Sleep(75)
+                    MouseClick("Left",,,,, "U")
+                    Sleep(75)
 
                     HideMouseCursor()
                     Sleep(250)
-                    WinClose(wndw)
 
                     return
                 }

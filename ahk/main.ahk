@@ -603,7 +603,7 @@ RunBufferedFunction(bufferedFunc) {
 
             try {
                 if (!globalGuis.Has("pause")) {
-                    createInterface("pause",,, (currLoad || currDesktop || currSuspended))
+                    createInterface("pause",,, (WinActive(INTERFACES["loadscreen"]["wndw"]) || currLoad || currDesktop || currSuspended))
                 }
                 else {
                     globalGuis["pause"].Destroy()
