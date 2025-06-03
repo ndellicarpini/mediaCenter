@@ -8,12 +8,13 @@
             "steam://rungameid/271590",
             "steam://rungameid/1546970",
             "steam://rungameid/1546990",
-            "steam://rungameid/1547000"
+            "steam://rungameid/1547000",
+            "steam://rungameid/3240220"
         ],
         "matchType": "partial",
         "multiType": "or"
     },
 
     "className": "RockstarProgram",
-    "ignoreEXE": ["SocialClubHelper.exe", "Launcher.exe", "RockstarService.exe"]
+    "ignoreEXE": ["SocialClubHelper.exe", "Launcher.exe", "RockstarService.exe", "PlayGTAV.exe"]
 }

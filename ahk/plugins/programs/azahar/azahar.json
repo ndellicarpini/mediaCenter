@@ -1,10 +1,10 @@
 {
-    "id": "citra",
-    "name": "Citra",
-    "className": "CitraEmulator",
+    "id": "azahar",
+    "name": "Azahar",
+    "className": "AzaharEmulator",
 
-    "exe": "citra-qt.exe",
-    "dir": "C:\\Emulators\\Citra",
+    "exe": "azahar.exe",
+    "dir": "C:\\Emulators\\Azahar",
 
     "requireFullscreen": true,
     "overlayActivateFix": true,

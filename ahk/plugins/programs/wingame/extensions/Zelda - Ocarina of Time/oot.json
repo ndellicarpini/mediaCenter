@@ -14,9 +14,10 @@
         "6&14": "program.saveState"
     },
     "pauseOptions": {
+        "Toggle Menu": "program.menu",
         "Save State": "program.saveState",
         "Load State": "program.loadState",
         "Reset Game": "program.reset"
     },
-    "pauseOrder": ["Save State", "Load State", "Reset Game"]
+    "pauseOrder": ["Toggle Menu", "Save State", "Load State", "Reset Game"]
 }

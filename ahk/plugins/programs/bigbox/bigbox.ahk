@@ -1,4 +1,8 @@
 class BigBoxProgram extends Program {
+    _restoreVolume := 100
+    _storedVolume := false
+    _waitingVolumeTimer := false
+    
     _launch(args*) {
         global globalStatus
 
@@ -37,14 +41,45 @@ class BigBoxProgram extends Program {
         }
 
         if (startupHWND != 0) {
+            ; mute bigbox when launching game
+            if (!this._storedVolume && !this._waitingVolumeTimer) {
+                SetTimer(MuteTimer, Neg(650))
+                this._waitingVolumeTimer := true
+            }
+
             if (!WinActive(startupHWND)) {
                 WinActivateForeground(startupHWND)
             }
         }
         else if (mainHWND != 0) {
+            ; unmute bigbox after restore
+            if (this._storedVolume) {
+                this.checkVolume()
+
+                if (!this.background && this.volume > -1) {
+                    this.setVolume(this._restoreVolume)
+                    this._storedVolume := false
+                }
+            }
+
             if (!WinActive(mainHWND)) {
                 return WinActivateForeground(mainHWND)
             }
+        }
+
+        return
+
+        MuteTimer() {
+            this.checkVolume()
+
+            if (!this.background && this.volume > -1) {
+                this._restoreVolume := this.volume
+                this._storedVolume := true
+                this.setVolume(0)
+            }
+
+            this._waitingVolumeTimer := false
+            return
         }
     }
 }

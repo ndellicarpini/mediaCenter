@@ -5,6 +5,7 @@
         "matchType": "partial"
     },
 
+    "exe": "ff7.exe",
     "defaultArgs": ["/LAUNCH", "/QUIT"],
     "launcher": {
         "exe": "7th Heaven.exe"

@@ -3,6 +3,5 @@
 	"name": "Windows Game",
 	"className": "EAGameProgram",
 
-	"requireInternet": true,
 	"requireFullscreen": true
 }

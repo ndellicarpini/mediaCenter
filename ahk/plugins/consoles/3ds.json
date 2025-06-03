@@ -3,8 +3,8 @@
     "romDir": "D:\\Roms\\3DS",
     "romNameIndex": 1,
 
-    "emulators": ["citra"],
-    "extensions": [".3ds", ".cxi"],
+    "emulators": ["azahar"],
+    "extensions": [".3ds", ".cxi", ".cci"],
 
     "romVersions": [
         

@@ -882,16 +882,14 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                             }
 
                             if (forceLoadScreen) {
+                                currGui := globalStatus["currGui"]
+
                                 ; activate overrideWNDW if it exists
                                 if (globalStatus["loadscreen"]["overrideWNDW"] != "" && WinShown(globalStatus["loadscreen"]["overrideWNDW"])) {
                                     WinActivateForeground(globalStatus["loadscreen"]["overrideWNDW"])
                                 }
-                                ; activate message if it exists
-                                else if (WinShown(INTERFACES["message"]["wndw"])) {
-                                    WinActivateForeground(INTERFACES["message"]["wndw"])
-                                }
                                 ; activate loadscreen
-                                else {
+                                else if (currGui = "" || !WinShown(INTERFACES[currGui]["wndw"])) {
                                     activateLoadScreen()
                                 }
                             }

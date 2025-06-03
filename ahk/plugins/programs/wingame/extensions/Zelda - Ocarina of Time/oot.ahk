@@ -12,6 +12,10 @@ class HarkinianProgram extends WinGameProgram {
         this.send("{F11}")
     }
 
+    menu() {
+        this.send("{Esc}")
+    }
+
     saveState() {
         this.send("{F5}")
     }

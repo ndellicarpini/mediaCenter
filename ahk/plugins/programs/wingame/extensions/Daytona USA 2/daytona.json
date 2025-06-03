@@ -1,0 +1,12 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "Supermodel.exe",
+        "matchType": "partial"
+    },
+    
+    "ignoreEXE": "cmd.exe",
+    
+    "className": "SuperModelProgram",
+    "defaultArgs": ["dayto2pe.zip", "-borderless", "-wide-screen", "-force-feedback"]
+}

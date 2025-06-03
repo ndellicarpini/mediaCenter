@@ -150,6 +150,24 @@ class Program {
             this.ignoreEXEs := Type(exeConfig["ignoreEXE"]) = "Array" ? exeConfig["ignoreEXE"] : [exeConfig["ignoreEXE"]]
         }
 
+        foundCMD := false
+        foundTerminal := false
+        ; make sure that cmd.exe and WindowsTerminal.exe are considered aliases of each other
+        for exe in this.ignoreEXEs {
+            if (StrLower(exe) = "cmd.exe") {
+                foundCMD := true
+            }
+            else if (StrLower(exe) = "windowsterminal.exe") {
+                foundTerminal := true
+            }
+        }
+
+        if (foundCMD && !foundTerminal) {
+            this.ignoreEXEs.Push("WindowsTerminal.exe")
+        } else if (!foundCMD && foundTerminal) {
+            this.ignoreEXEs.Push("cmd.exe")
+        }
+
         ; parse default args
         if (exeConfig.Has("defaultArgs")) {
             if (Type(exeConfig["defaultArgs"]) = "Array") {
@@ -494,8 +512,14 @@ class Program {
                 return
             }
 
+            this.checkVolume()
             this.checkFullscreen()
             saveScreenshot(this.id, this.monitorNum)
+
+            ; set volume to max on launch
+            if (!this.background && this.volume > -1) {
+                this.setVolume(100)
+            }
 
             return
         }
@@ -513,8 +537,14 @@ class Program {
                 return
             }
 
+            this.checkVolume()
             this.checkFullscreen()
             saveScreenshot(this.id, this.monitorNum)
+
+            ; set volume to max on launch
+            if (!this.background && this.volume > -1) {
+                this.setVolume(100)
+            }
 
             SetTimer(CheckPropertiesTimer, 0)
             return
@@ -1805,6 +1835,12 @@ class Program {
                 }
                 else {
                     for item in WinGetList("ahk_pid " pid) {
+                        winClass := WinGetClass(item)
+                        ; ignore window if its a command prompt, maybe shouldnt be hardcoded?
+                        if (winClass = "ConsoleWindowClass" || winClass = "CASCADIA_HOSTING_WINDOW_CLASS") {
+                            continue
+                        }
+
                         if (WinGetProcessName(item) = exe) {
                             tempWinList.Push(item)
     
@@ -2282,15 +2318,18 @@ createDefaultProgram() {
 
 ; get the most recently opened program if it exists, otherwise return blank
 ;  checkBackground - boolean if to check background apps as well
+;  monitorNum - if > -1 gets the most recent program of the requested monitorNum
 ;
 ; returns either name of recently opened program or empty string
-getMostRecentProgram(checkBackground := false) {
+getMostRecentProgram(checkBackground := false, monitorNum := -1) {
     global globalRunning
 
     prevTime := -1
     prevProgram := ""
+    prevMonitorTime := -1
+    prevMonitorProgram := ""
     for key, value in globalRunning {
-        if (!checkBackground && value.background) {
+        if ((!checkBackground && value.background)) {
             continue
         }
 
@@ -2298,9 +2337,13 @@ getMostRecentProgram(checkBackground := false) {
             prevTime := value.time
             prevProgram := key
         }
+        if (Integer(value.monitorNum) = Integer(monitorNum) && value.time > prevMonitorTime) {
+            prevMonitorTime := value.time
+            prevMonitorProgram := key
+        }
     }
 
-    return prevProgram
+    return (monitorNum >= 0 && prevMonitorProgram != "") ? prevMonitorProgram : prevProgram
 }
 
 ; sets the requested id as the current program if it exists
@@ -2496,12 +2539,17 @@ checkAllPrograms() {
 ; returns null
 updatePrograms() {
     global globalStatus
+    global globalRunning
 
     currProgram := globalStatus["currProgram"]["id"]
+    currProgramMonitor := -1
+    if (globalRunning.Has(currProgram)) {
+        currProgramMonitor := globalRunning[currProgram].monitorNum
+    }
 
     checkAllPrograms()
 
-    mostRecentProgram := getMostRecentProgram()
+    mostRecentProgram := getMostRecentProgram(false, currProgramMonitor)
     if (mostRecentProgram = "") {
         resetCurrentProgram()
     }

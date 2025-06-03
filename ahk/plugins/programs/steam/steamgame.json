@@ -3,7 +3,6 @@
 	"name": "Windows Game",
 	"className": "SteamGameProgram",
 
-	"requireInternet": true,
 	"requireFullscreen": true,
 
 	"pauseOptions": {

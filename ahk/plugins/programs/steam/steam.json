@@ -6,7 +6,6 @@
     "defaultArgs": "-silent",
 
     "background": true,
-    "requireInternet": true,
 
     "allowHungCheck": false
 }

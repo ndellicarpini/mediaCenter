@@ -1,15 +1,14 @@
 #SingleInstance Force
-; #WinActivateForce
 
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include plugins\ahk\boot.ahk
 #Include plugins\ahk\delfinovin.ahk
 #Include plugins\ahk\loadscreen.ahk
 #Include plugins\inputs\xinput\xinput.ahk
+#Include plugins\programs\azahar\azahar.ahk
 #Include plugins\programs\bigbox\bigbox.ahk
 #Include plugins\programs\cemu\cemu.ahk
 #Include plugins\programs\chrome\chrome.ahk
-#Include plugins\programs\citra\citra.ahk
 #Include plugins\programs\desmume\desmume.ahk
 #Include plugins\programs\dolphin\dolphin.ahk
 #Include plugins\programs\eagame\eagame.ahk
@@ -26,6 +25,7 @@
 #Include plugins\programs\steam\extensions\Ubisoft Launcher\ubisoft.ahk
 #Include plugins\programs\steam\extensions\XCOM 2\xcom 2.ahk
 #Include plugins\programs\wingame\wingame.ahk
+#Include plugins\programs\wingame\extensions\Daytona USA 2\daytona.ahk
 #Include plugins\programs\wingame\extensions\Super Mario 64\sm64.ahk
 #Include plugins\programs\wingame\extensions\Zelda - Majora's Mask\mm.ahk
 #Include plugins\programs\wingame\extensions\Zelda - Ocarina of Time\oot.ahk

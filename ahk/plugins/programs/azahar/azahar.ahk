@@ -1,4 +1,4 @@
-class CitraEmulator extends Emulator {
+class AzaharEmulator extends Emulator {
     _fullscreen() {
         this.send("{F11}")
     }
@@ -28,9 +28,18 @@ class CitraEmulator extends Emulator {
     }
 
     _fastForward() {
-        this.send("{Ctrl down}")
-        this.send("z")
-        this.send("{Ctrl up}")
+         if (this.fastForwarding) {
+            loop 40 {
+                this.send("-")
+            }
+        }
+        else {
+            loop 40 {
+                this.send("{Shift down}")
+                this.send("=")
+                this.send("{Shift up}")
+            }
+        }
     }
 
     ; custom function

@@ -389,6 +389,7 @@ class PauseInterface extends Interface {
     _basicPauseOptions() {
         global globalConfig
         global globalStatus
+        global globalRunning
 
         optionsOrder := []
         defaultOptions := Map()
@@ -396,17 +397,26 @@ class PauseInterface extends Interface {
         currKBMMode     := globalStatus["kbmmode"]
         currDesktopMode := globalStatus["desktopmode"]
         currSuspend     := globalStatus["suspendScript"]
+        currProgram     := globalStatus["currProgram"]["id"]
 
-        if (!currSuspend) {
+        if (!currSuspend) {        
             if (!currDesktopMode) {
+                if (currProgram != "" && globalRunning.Has(currProgram) && globalRunning[currProgram].allowExit) {
+                    optionsOrder.Push("ExitProgram")
+                    defaultOptions["ExitProgram"] := {title: "Exit " . globalRunning[currProgram].name, function: "program.exit"}
+                }
+
                 optionsOrder.Push("KBMMode")
                 defaultOptions["KBMMode"] := {
                     title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
                     function: "kbmmode"
                 }
-            } else {
-                optionsOrder.Push("DesktopMode")
-                defaultOptions["DesktopMode"] := {title: "Disable Desktop Mode", function: "desktopmode"}
+            }
+
+            optionsOrder.Push("DesktopMode")
+            defaultOptions["DesktopMode"] := {
+                title: (!currDesktopMode) ? "Enable Desktop Mode" : "Disable Desktop Mode", 
+                function: "desktopmode"
             }
         }
 
