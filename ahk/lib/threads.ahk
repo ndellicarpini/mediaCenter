@@ -31,12 +31,12 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         
         global exitThread := false
 
-        global mainPID            := A_Args[1]
+        global mainPID            := Integer(A_Args[1])
         global inputID            := A_Args[2]
-        global globalConfig       := ObjFromPtr(A_Args[3])
-        global globalStatus       := ObjFromPtr(A_Args[4])
-        global globalInputStatus  := ObjFromPtr(A_Args[5])
-        global globalInputConfigs := ObjFromPtr(A_Args[6])
+        global globalConfig       := ObjFromPtr(Integer(A_Args[3]))
+        global globalStatus       := ObjFromPtr(Integer(A_Args[4]))
+        global globalInputStatus  := ObjFromPtr(Integer(A_Args[5]))
+        global globalInputConfigs := ObjFromPtr(Integer(A_Args[6]))
 
         if (!globalInputStatus.Has(inputID) || !globalInputConfigs.Has(inputID)) {
             return
@@ -607,7 +607,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             return
         }
     )"
-    , " " . mainPID . " " . inputID . " " . globalConfigPtr . " " . globalStatusPtr . " " . globalInputStatusPtr . " " . globalInputConfigsPtr . " "
+    , mainPID . " " . inputID . " " . globalConfigPtr . " " . globalStatusPtr . " " . globalInputStatusPtr . " " . globalInputConfigsPtr . " "
     , "inputThread")
 
     SetWorkingDir(restoreScriptDir)
@@ -635,11 +635,11 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
         ; --- GLOBAL VARIABLES ---
 
         ; variables are global to be accessed in timers
-        global mainPID            := A_Args[1]
-        global globalConfig       := ObjFromPtr(A_Args[2])
-        global globalStatus       := ObjFromPtr(A_Args[3])
-        global globalInputConfigs := ObjFromPtr(A_Args[4])
-        global globalRunning      := ObjFromPtr(A_Args[5])
+        global mainPID            := Integer(A_Args[1])
+        global globalConfig       := ObjFromPtr(Integer(A_Args[2]))
+        global globalStatus       := ObjFromPtr(Integer(A_Args[3]))
+        global globalInputConfigs := ObjFromPtr(Integer(A_Args[4]))
+        global globalRunning      := ObjFromPtr(Integer(A_Args[5]))
 
         ; initialize default hotkeys
         defaultHotkeys      := Map()
@@ -787,7 +787,7 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             }
         }
     )"
-    , " " . mainPID . " " . globalConfigPtr . " " . globalStatusPtr . " " . globalInputConfigsPtr . " " . globalRunningPtr
+    , mainPID . " " . globalConfigPtr . " " . globalStatusPtr . " " . globalInputConfigsPtr . " " . globalRunningPtr
     , "hotkeyThread")
 
     SetWorkingDir(restoreScriptDir)
@@ -834,9 +834,9 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         ; --- GLOBAL VARIABLES ---
 
         ; variables are global to be accessed in timers
-        global mainPID      := A_Args[1]
-        global globalConfig := ObjFromPtr(A_Args[2])
-        global globalStatus := ObjFromPtr(A_Args[3])
+        global mainPID      := Integer(A_Args[1])
+        global globalConfig := ObjFromPtr(Integer(A_Args[2]))
+        global globalStatus := ObjFromPtr(Integer(A_Args[3]))
 
         ; fake globalRunning & globalGuis for loadscreen
         global globalRunning := Map()
@@ -961,7 +961,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
             }
         }
     )"
-    , " " . mainPID . " " . globalConfigPtr . " " . globalStatusPtr
+    , mainPID . " " . globalConfigPtr . " " . globalStatusPtr
     , "miscThread")
 
     SetWorkingDir(restoreScriptDir)

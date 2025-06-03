@@ -34,7 +34,7 @@ statusBackup() {
     for key, value in globalRunning {
         attrMap := Map()
         for name, attr in value.OwnProps() {
-            if (SubStr(name, 1, 8) != "_waiting" && SubStr(name, -5) != "Timer") {
+            if (SubStr(name, 1, 8) != "_waiting") {
                 attrMap[name] := attr
             }
         }
@@ -42,8 +42,8 @@ statusBackup() {
         backup["globalRunning"][key] := attrMap
     }
 
-    backupFile := FileOpen("data\backup.bin", "w -rwd")
-    backupFile.RawWrite(ObjDump(backup))
+    backupFile := FileOpen("data\backup.json", "w")
+    backupFile.Write(JSON.stringify(backup))
     backupFile.Close()
 }
 
@@ -56,11 +56,13 @@ statusRestore() {
     global globalStatus
     global globalPrograms
 
-    if (!FileExist("data\backup.bin")) {
+    if (!FileExist("data\backup.json")) {
         return
     }
 
-    backup := ObjLoad("data\backup.bin")
+    backupFile := FileOpen("data\backup.json", "r -rwd")
+    backup := JSON.parse(backupFile.Read())
+    backupFile.Close()
     
     for key, value in backup {
         if (key = "globalRunning") {
