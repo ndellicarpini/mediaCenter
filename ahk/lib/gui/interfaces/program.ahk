@@ -18,15 +18,15 @@ class ProgramInterface extends Interface {
 
         this.guiObj.BackColor := COLOR1
 
-        marginSize := interfaceHeight(0.01)
+        marginSize := this._calcPercentHeight(0.01)
         this.guiObj.MarginX := marginSize
         this.guiObj.MarginY := marginSize
 
-        this.guiWidth  := interfaceWidth(0.4)
-        this.guiHeight := interfaceHeight(0.75)
+        this.guiWidth  := this._calcPercentWidth(0.4)
+        this.guiHeight := this._calcPercentHeight(0.75)
 
         this.SetFont("bold s24")
-        this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . interfaceHeight(0.05) . " w" . (this.guiWidth - (marginSize * 2)), "Multitasking")
+        this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . this._calcPercentHeight(0.05) . " w" . (this.guiWidth - (marginSize * 2)), "Multitasking")
 
         ; create the list of running programs
         programList := []
@@ -69,25 +69,26 @@ class ProgramInterface extends Interface {
         index := 1
         if (quickAccessList.Length > 0) {
             this.SetFont("norm s24")
-            this.Add("Text", "0x200 xm5 y+" . interfaceHeight(0.01) . " h" . interfaceHeight(0.04) . " w" . (this.guiWidth - (marginSize * 2)), "Quick Access")
-            this.Add("Text", "Section Background" . FONT_COLOR . " xm0 y+" . interfaceHeight(0.002) . " h" . interfaceHeight(0.002) . " w" . (this.guiWidth - (marginSize * 2)), "")
+            this.Add("Text", "0x200 xm5 y+" . this._calcPercentHeight(0.01) . " h" . this._calcPercentHeight(0.04) . " w" . (this.guiWidth - (marginSize * 2)), "Quick Access")
+            this.Add("Text", "Section Background" . FONT_COLOR . " xm0 y+" . this._calcPercentHeight(0.002) . " h" . this._calcPercentHeight(0.002) . " w" . (this.guiWidth - (marginSize * 2)), "")
 
             this.SetFont("bold s24")
             for item in quickAccessList {
-                this.Add("Text", "vQuick" . item . " f(createProgram " . item . ") Center 0x200 xpos1 ypos" . index . " xm0 y+" . interfaceHeight(0.006) . " h" . interfaceHeight(0.05) . " w" . (this.guiWidth - (marginSize * 2)), globalPrograms[item]["name"])
+                this.Add("Text", "vQuick" . item . " f(createProgram " . item . ") Center 0x200 xpos1 ypos" . index . " xm0 y+" . this._calcPercentHeight(0.006) 
+                            . " h" . this._calcPercentHeight(0.05) . " w" . (this.guiWidth - (marginSize * 2)), globalPrograms[item]["name"])
                 index += 1
             }
         }
 
         ; render the list of running programs
         if (programList.Length > 0) {
-            closeButtonSize := interfaceWidth(0.03)
-            thumbnailMaxWidth  := interfaceWidth(0.18)
-            thumbnailMaxHeight := interfaceHeight(0.18)
+            closeButtonSize := this._calcPercentWidth(0.03)
+            thumbnailMaxWidth  := this._calcPercentWidth(0.18)
+            thumbnailMaxHeight := this._calcPercentHeight(0.18)
 
             this.SetFont("norm s24")
-            this.Add("Text", "0x200 xm5 y+" . interfaceHeight(0.015) . " h" . interfaceHeight(0.04) . " w" . (this.guiWidth - interfaceHeight(0.02)), "Running Programs")
-            this.Add("Text", "Section Background" . FONT_COLOR . " xm0 y+" . interfaceHeight(0.002) . " h" . interfaceHeight(0.002) . " w" . (this.guiWidth - (marginSize * 2)), "")
+            this.Add("Text", "0x200 xm5 y+" . this._calcPercentHeight(0.015) . " h" . this._calcPercentHeight(0.04) . " w" . (this.guiWidth - this._calcPercentHeight(0.02)), "Running Programs")
+            this.Add("Text", "Section Background" . FONT_COLOR . " xm0 y+" . this._calcPercentHeight(0.002) . " h" . this._calcPercentHeight(0.002) . " w" . (this.guiWidth - (marginSize * 2)), "")
 
             numMonitors := MonitorGetCount()
 
@@ -97,10 +98,10 @@ class ProgramInterface extends Interface {
 
                 ; program name
                 if (programIndex = 1) {
-                    this.Add("Text", "vRunning" . item . " f(setCurrentProgram " . item . ") Center xpos1 ypos" . index . " xm0 ys+" . interfaceHeight(0.006) . " h" . interfaceHeight(0.19) . " w" . (this.guiWidth - (marginSize * 2)), "")
+                    this.Add("Text", "vRunning" . item . " f(setCurrentProgram " . item . " false) Center xpos1 ypos" . index . " xm0 ys+" . this._calcPercentHeight(0.006) . " h" . this._calcPercentHeight(0.19) . " w" . (this.guiWidth - (marginSize * 2)), "")
                 }
                 else {
-                    this.Add("Text", "vRunning" . item . " f(setCurrentProgram " . item . ") Center xpos1 ypos" . index . " xm0 ys+" . interfaceHeight(0.19) . " h" . interfaceHeight(0.19) . " w" . (this.guiWidth - (marginSize * 2)), "")
+                    this.Add("Text", "vRunning" . item . " f(setCurrentProgram " . item . " false) Center xpos1 ypos" . index . " xm0 ys+" . this._calcPercentHeight(0.19) . " h" . this._calcPercentHeight(0.19) . " w" . (this.guiWidth - (marginSize * 2)), "")
                 }
 
                 thumbnail := getThumbnailPath(item, globalConfig)
@@ -112,8 +113,8 @@ class ProgramInterface extends Interface {
                 }
 
                 ; program picture / selection background
-                this.Add("Picture", "Section xm+" . interfaceWidth(0.0035) . " yp+" . interfaceHeight(0.005) . " " . thumbnailSize, thumbnail)
-                this.Add("Text", "Left BackgroundTrans h" . interfaceHeight(0.105) . " w" . interfaceWidth(0.195) . " yp+" . interfaceHeight(0.075) . " x+" . interfaceWidth(0.0075), globalRunning[item].name)
+                this.Add("Picture", "Section xm+" . this._calcPercentWidth(0.0035) . " yp+" . this._calcPercentHeight(0.005) . " " . thumbnailSize, thumbnail)
+                this.Add("Text", "Left BackgroundTrans h" . this._calcPercentHeight(0.105) . " w" . this._calcPercentWidth(0.195) . " yp+" . this._calcPercentHeight(0.075) . " x+" . this._calcPercentWidth(0.0075), globalRunning[item].name)
 
                 ; program buttons
                 enableExit    := globalRunning[item].allowExit
@@ -127,22 +128,26 @@ class ProgramInterface extends Interface {
                 currXPos := 2
                 if (enableMonitor) {
                     this.SetFont("norm s18")
-                    this.Add("Text", "vSwitchMonitor" . item . " f(switchMonitor " . item . ") Center 0x200 Background" . COLOR2 . " xpos" . currXPos . " ypos" . index . " xm+" . interfaceWidth(monitorOffset) . " ys0 h" . closeButtonSize . " w" . interfaceWidth(0.1), "Change Screen")
+                    this.Add("Text", "vSwitchMonitor" . item . " f(switchMonitor " . item . ") Center 0x200 Background" . COLOR2 . " xpos" . currXPos . " ypos" . index 
+                                . " xm+" . this._calcPercentWidth(monitorOffset) . " ys0 h" . closeButtonSize . " w" . this._calcPercentWidth(0.1), "Change Screen")
                     currXPos += 1
                 }
                 if (enableMin) {
                     ; render minimize/restore buttons if there are multiple running programs
                     if (!globalRunning[item].minimized) {
-                        this.Add("Picture", "vMinMax" . item . " f(minimizeProgram " . item . ") Background" . COLOR2 . " xpos" . currXPos . " ypos" . index . " xm+" . interfaceWidth(minOffset) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\minimize.png", globalConfig))
+                        this.Add("Picture", "vMinMax" . item . " f(minimizeProgram " . item . ") Background" . COLOR2 . " xpos" . currXPos . " ypos" . index 
+                                    . " xm+" . this._calcPercentWidth(minOffset) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\minimize.png", globalConfig))
                     }
                     else {
-                        this.Add("Picture", "vMinMax" . item . " f(setCurrentProgram " . item . ") Background" . COLOR2 . " xpos" . currXPos . " ypos" . index . " xm+" . interfaceWidth(minOffset) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\restore.png", globalConfig))
+                        this.Add("Picture", "vMinMax" . item . " f(setCurrentProgram " . item . ") Background" . COLOR2 . " xpos" . currXPos . " ypos" . index 
+                                    . " xm+" . this._calcPercentWidth(minOffset) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\restore.png", globalConfig))
                     }
 
                     currXPos += 1
                 }
                 if (enableExit) {
-                    this.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos" . currXPos . " ypos" . index . " xm+" . interfaceWidth(exitOffset) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
+                    this.Add("Picture", "vClose" . item . " f(closeProgram " . item . ") BackgroundFF0000 xpos" . currXPos . " ypos" . index 
+                                . " xm+" . this._calcPercentWidth(exitOffset) . " ys0 h" . closeButtonSize . " w" . closeButtonSize, getAssetPath("icons\gui\close.png", globalConfig))
                 }
                 
                 index += 1
@@ -159,8 +164,8 @@ class ProgramInterface extends Interface {
             this._restoreMousePos := [x, y]
         }
 
-        guiX := ((MONITOR_W / 2) - (this.guiWidth / 2))
-        guiY := ((MONITOR_H / 2) - (this.guiHeight / 2))
+        guiX := ((this._calcPercentWidth(1) / 2) - (this.guiWidth / 2))
+        guiY := ((this._calcPercentHeight(1) / 2) - (this.guiHeight / 2))
         super._Show("x" . guiX . " y" . guiY . "  w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
@@ -195,13 +200,24 @@ class ProgramInterface extends Interface {
             globalRunning[funcArr[2]].minimize()
         }
         else if (funcArr[1] = "switchMonitor") {
-            setCurrentProgram(funcArr[2])
-
             numMonitors := MonitorGetCount()
-            if (globalRunning[funcArr[2]].monitorNum >= numMonitors) {
-                globalRunning[funcArr[2]].switchMonitor(1)
-            } else {
-                globalRunning[funcArr[2]].switchMonitor(globalRunning[funcArr[2]].monitorNum + 1)
+            currMonitorNum := globalRunning[funcArr[2]].checkMonitor()
+
+            newMonitor := (currMonitorNum >= numMonitors) ? 1 : currMonitorNum + 1
+            if (globalStatus["currProgram"]["id"] != funcArr[2] && globalStatus["currProgram"]["monitor"] = newMonitor) {
+                setCurrentProgram(funcArr[2])
+            }
+            else {
+                ; set currProgram monitor ahead of time for loadscreen
+                if (globalStatus["currProgram"]["id"] = funcArr[2]) {
+                    globalStatus["currProgram"]["monitor"] = newMonitor
+                }
+
+                ; flash loadscreen so it looks like something was done
+                ; and to hide loadscreen right behind current program
+                setLoadScreen()
+                globalRunning[funcArr[2]].switchMonitor(newMonitor)
+                resetLoadScreen()
             }
         }
         else {

@@ -111,6 +111,7 @@ statusUpdated() {
     static prevCurrProgramID   := globalStatus["currProgram"]["id"]
     static prevCurrProgramEXE  := globalStatus["currProgram"]["exe"]
     static prevCurrProgramHWND := globalStatus["currProgram"]["hwnd"]
+    static prevCurrProgramMon  := globalStatus["currProgram"]["monitor"]
     static prevCurrGui         := globalStatus["currGui"]
     static prevCurrOverlay     := globalStatus["currOverlay"]
     static prevLoadShow        := globalStatus["loadscreen"]["show"]
@@ -124,6 +125,7 @@ statusUpdated() {
     currCurrProgramID   := globalStatus["currProgram"]["id"]
     currCurrProgramEXE  := globalStatus["currProgram"]["exe"]
     currCurrProgramHWND := globalStatus["currProgram"]["hwnd"]
+    currCurrProgramMon  := globalStatus["currProgram"]["monitor"]
     currCurrGui         := globalStatus["currGui"]
     currCurrOverlay     := globalStatus["currOverlay"]
     currLoadShow        := globalStatus["loadscreen"]["show"]
@@ -133,7 +135,7 @@ statusUpdated() {
 
     if (prevSuspendScript != currSuspendScript || prevKbmmode != currKbmmode || prevDesktopmode != currDesktopmode 
         || prevCurrProgramID != currCurrProgramID || prevCurrProgramEXE != currCurrProgramEXE || prevCurrProgramHWND != currCurrProgramHWND
-        || prevLoadShow != currLoadShow || prevLoadText != currLoadText || prevLoadEnable != currLoadEnable 
+        || prevCurrProgramMon != currCurrProgramMon || prevLoadShow != currLoadShow || prevLoadText != currLoadText || prevLoadEnable != currLoadEnable 
         || prevLoadOverride != currLoadOverride || prevCurrGui != currCurrGui || prevCurrOverlay != currCurrOverlay) {
             
         prevSuspendScript   := currSuspendScript
@@ -142,6 +144,7 @@ statusUpdated() {
         prevCurrProgramID   := currCurrProgramID
         prevCurrProgramEXE  := currCurrProgramEXE
         prevCurrProgramHWND := currCurrProgramHWND
+        prevCurrProgramMon  := currCurrProgramMon
         prevLoadShow        := currLoadShow
         prevLoadText        := currLoadText
         prevLoadEnable      := currLoadEnable
@@ -186,7 +189,7 @@ writeLog(text, prefix := "") {
 ;
 ; returns null
 saveScreenshot(name, monitorNum := 0, overridePath := "") {
-    global MONITOR_N
+    global DEFAULT_MONITOR
 
     if (!DirExist("data\thumbnails\")) {
         DirCreate("data\thumbnails\")
@@ -195,7 +198,7 @@ saveScreenshot(name, monitorNum := 0, overridePath := "") {
     imgPath := expandDir(validateDir((overridePath != "") ? overridePath : "data\thumbnails")) . name . ".png"
 
     try {
-        monitorInfo := getMonitorInfo(monitorNum > 0 ? monitorNum : MONITOR_N)
+        monitorInfo := getMonitorInfo(monitorNum > 0 ? monitorNum : DEFAULT_MONITOR)
         monitorX := monitorInfo[1]
         monitorY := monitorInfo[2]
         monitorW := monitorInfo[3]

@@ -5,6 +5,7 @@
 
     "allowQuickAccess": true,
     "requireFullscreen": true,
+    "keyboardMode": "Windows",
 
     "dir": "C:\\Program Files\\Google\\Chrome\\Application\\",
     "exe": "chrome.exe",

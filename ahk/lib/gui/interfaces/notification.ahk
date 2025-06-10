@@ -3,8 +3,8 @@ class NotificationInterface extends Interface {
     title := INTERFACES["notification"]["wndw"]
 
     allowFocus := false
-    marginX := interfaceWidth(0.015)
-    marginY := interfaceHeight(0.015)
+    marginX := this._calcPercentWidth(0.015)
+    marginY := this._calcPercentHeight(0.015)
 
     timeout := 0
 
@@ -39,13 +39,13 @@ class NotificationInterface extends Interface {
         offset := ""
         switch (this.position) {
             case "top-left":
-                offset := "x" . (percentWidth(0.01, false)) . " y" . (percentWidth(0.01, false))
+                offset := "x" . (this._calcPercentWidth(0.01, false, false)) . " y" . (this._calcPercentWidth(0.01, false, false))
             case "top-right":
-                offset := "x" . (percentWidth(0.99, false) - guiWidth) . " y" . (percentWidth(0.01, false))
+                offset := "x" . (this._calcPercentWidth(0.99, false, false) - guiWidth) . " y" . (this._calcPercentWidth(0.01, false, false))
             case "bottom-left":
-                offset := "x" . (percentWidth(0.01, false)) . " y" . (percentHeight(1) - percentWidth(0.01, false) - guiHeight)
+                offset := "x" . (this._calcPercentWidth(0.01, false, false)) . " y" . (this._calcPercentHeight(1) - this._calcPercentWidth(0.01, false, false) - guiHeight)
             case "bottom-right":
-                offset := "x" . (percentWidth(0.99, false) - guiWidth) . " y" . (percentHeight(1) - percentWidth(0.01, false) - guiHeight)
+                offset := "x" . (this._calcPercentWidth(0.99, false, false) - guiWidth) . " y" . (this._calcPercentHeight(1) - this._calcPercentWidth(0.01, false, false) - guiHeight)
         }
     
         super._Show("NoActivate AutoSize " . offset)

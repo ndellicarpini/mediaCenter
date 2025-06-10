@@ -9,17 +9,17 @@ class LoadScreenInterface extends Interface {
         super.__New(GUI_OPTIONS)
 
         this.guiObj.BackColor := COLOR1
-        this.guiObj.marginX := percentWidth(0.01, false)
+        this.guiObj.marginX := this._calcPercentWidth(0.01)
 
         this.SetFont("italic s30")
-        this.Add("Text", "vLoadText Right 0x200 xm0 w" . (percentWidth(1) - percentWidth(0.03, false)), text)
+        this.Add("Text", "vLoadText Right 0x200 xm0 w" . (this._calcPercentWidth(1) - this._calcPercentWidth(0.03, false)), text)
 
         this.guiObj["LoadText"].GetPos(&X, &Y, &W, &H)
-        this.guiObj["LoadText"].Move(X, (percentHeight(1) - percentWidth(0.01, false) - H), W, H)
+        this.guiObj["LoadText"].Move(X, (this._calcPercentHeight(1) - this._calcPercentWidth(0.01, false) - H), W, H)
     }
 
     _Show() {
-        super._Show("x0 y0 NoActivate w" . percentWidth(1) . " h" . percentHeight(1))
+        super._Show("x0 y0 NoActivate w" . this._calcPercentWidth(1) . " h" . this._calcPercentHeight(1))
     }
 
     _select() {

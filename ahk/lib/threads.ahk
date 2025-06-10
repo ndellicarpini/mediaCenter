@@ -845,9 +845,10 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         ; set gui variables from config for loadscreen
         setGUIConstants()
         
-        currLoadText   := globalStatus["loadscreen"]["text"]
-        currLoadShow   := globalStatus["loadscreen"]["show"]
-        currLoadEnable := globalStatus["loadscreen"]["enable"]
+        currLoadText    := globalStatus["loadscreen"]["text"]
+        currLoadShow    := globalStatus["loadscreen"]["show"]
+        currLoadEnable  := globalStatus["loadscreen"]["enable"]
+        currLoadMonitor  := -1
 
         allowLoadScreen := globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]
         forceLoadScreen := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
@@ -855,16 +856,34 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         disableTaskbar  := globalConfig["General"].Has("HideTaskbar") && globalConfig["General"]["HideTaskbar"]
 
         createInterface("loadscreen", false,, globalStatus["loadscreen"]["text"])
+        requestedMonitor := DEFAULT_MONITOR
 
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"] / 1.5)
 
         loop {
-            if (!globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+            currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
+
+            ; get monitor the loadscreen should be on
+            if (currSuspended) {
+                requestedMonitor := DEFAULT_MONITOR
+            }
+            else {
+                requestedMonitor := (globalStatus["currProgram"]["id"] != "" && globalStatus["currProgram"]["monitor"] != -1)
+                    ? globalStatus["currProgram"]["monitor"] : requestedMonitor
+            }
+
+            if (!currSuspended) {
                 ; check status of load screen & update if appropriate
                 if (allowLoadScreen) {
                     loadShown := WinShown(INTERFACES["loadscreen"]["wndw"])
 
                     if (globalStatus["loadscreen"]["enable"]) {
+                        ; re-draw loadscreen on correct monitor
+                        if (requestedMonitor != globalGuis["loadscreen"].monitorNum) {
+                            globalGuis["loadscreen"].Destroy()
+                            createInterface("loadscreen", false,, globalStatus["loadscreen"]["text"])
+                        }
+
                         ; if loadscreen is supposed to be active window
                         if (globalStatus["loadscreen"]["show"]) {
                             if (!globalGuis["loadscreen"].controlsVisible) {

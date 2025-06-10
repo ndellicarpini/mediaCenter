@@ -23,8 +23,8 @@ class ChoiceInterface extends Interface {
 
         this.guiObj.BackColor := COLOR1
 
-        this.guiWidth  := interfaceWidth(0.2)
-        this.guiHeight := interfaceHeight(0.2)
+        this.guiWidth  := this._calcPercentWidth(0.2)
+        this.guiHeight := this._calcPercentHeight(0.2)
 
         marginSize := (this.guiWidth * (2/60))
         this.guiObj.MarginX := marginSize
@@ -39,8 +39,8 @@ class ChoiceInterface extends Interface {
     }
 
     _Show() {
-        guiX := ((MONITOR_W / 2) - (this.guiWidth / 2))
-        guiY := ((MONITOR_H / 2) - (this.guiHeight / 2))
+        guiX := ((this._calcPercentWidth(1) / 2) - (this.guiWidth / 2))
+        guiY := ((this._calcPercentHeight(1) / 2) - (this.guiHeight / 2))
         super._Show("x" . guiX . " y" . guiY . " w" . this.guiWidth . " h" . this.guiHeight)
     }
 

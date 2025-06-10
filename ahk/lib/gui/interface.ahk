@@ -10,6 +10,17 @@ class Interface {
 
     allowPause := false
     allowFocus := true
+    
+    ; used for scaling the interface to different screen ratios
+    designRatio  := 16/9
+    designWidth  := 1920
+    designHeight := 1080
+
+    monitorNum := -1
+    _monitorX  := 0
+    _monitorY  := 0
+    _monitorW  := 0
+    _monitorH  := 0
 
     customDeselect := Map()
 
@@ -56,6 +67,7 @@ class Interface {
         }
 
         this.time := A_TickCount
+        this._setMonitorInfo()
     }
     
 
@@ -66,6 +78,8 @@ class Interface {
     Show(options := "") {
         restoreCritical := A_IsCritical
         Critical("On")
+
+        this._setMonitorInfo()
 
         if (options != "") {
             retVal := this._Show(options)
@@ -79,30 +93,46 @@ class Interface {
     }
     _Show(options := "") {
         optionsArr := StrSplit(options, A_Space)
+        monitorDPI := MonitorGetDPI(this.monitorNum)
+
         for item in optionsArr {
             if (StrLower(SubStr(item, 1, 1)) = "x") {
-                this._guiX := MONITOR_X + Integer(SubStr(item, 2))
+                this._guiX := this._monitorX + Round(Integer(SubStr(item, 2)) * (monitorDPI / A_ScreenDPI))
+                ; if the gui is drawn right on the edge of a monitor -> will use previous monitor as dpi reference
+                ; adjust gui position to use proper dpi
+                if (this._guiX = this._monitorX) {
+                    this._guiX += 1
+                }
+
                 options := StrReplace(options, item, "x" . this._guiX)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "y") {
-                this._guiY := MONITOR_Y + Integer(SubStr(item, 2))
+                this._guiY := this._monitorY + Round(Integer(SubStr(item, 2)) * (monitorDPI / A_ScreenDPI))
+                ; if the gui is drawn right on the edge of a monitor -> will use previous monitor as dpi reference
+                ; adjust gui position to use proper dpi
+                if (this._guiY = this._monitorY) {
+                    this._guiY += 1
+                }
+
                 options := StrReplace(options, item, "y" . this._guiY)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "w") {
                 this._guiW := Integer(SubStr(item, 2))
-
-                if (this._guiW > MONITOR_W) {
-                    this._guiW := MONITOR_W
-                    options := StrReplace(options, item, "w" . MONITOR_W)
+                ; for whatever reason, gui width needs to use values relative to primary screen dpi
+                if (this._guiW > this._monitorW * (A_ScreenDPI / monitorDPI)) {
+                    this._guiW := this._monitorW * (A_ScreenDPI / monitorDPI)
                 }
+
+                options := StrReplace(options, item, "w" . this._guiW - 1)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "h") {
                 this._guiH := Integer(SubStr(item, 2))
-
-                if (this._guiH > MONITOR_H) {
-                    this._guiH := MONITOR_H
-                    options := StrReplace(options, item, "h" . MONITOR_H)
+                ; for whatever reason, gui height needs to use values relative to primary screen dpi
+                if (this._guiH > this._monitorH * (A_ScreenDPI / monitorDPI)) {
+                    this._guiH := this._monitorH * (A_ScreenDPI / monitorDPI)
                 }
+
+                options := StrReplace(options, item, "h" . this._guiH)
             }
         }
 
@@ -128,7 +158,7 @@ class Interface {
         }
 
         if (this.overlayObj != "") {
-            this.overlayObj.Show("x" . MONITOR_X . " y" . MONITOR_Y . " w" . MONITOR_W . " h" . MONITOR_H)
+            this.overlayObj.Show("x" . this._monitorX . " y" . this._monitorY . " w" . this._calcPercentWidth(1) . " h" . this._calcPercentHeight(1))
             WinSetTransparent(200, "AHKOVERLAY")
         }
 
@@ -371,7 +401,7 @@ class Interface {
                         }
                     }
                     
-                    ; put the interacable data in every slot
+                    ; put the interactable data in every slot
                     if (xpos = -1 && ypos = -1) {
                         loop this.control2D.Length {
                             x_index := A_Index
@@ -390,7 +420,7 @@ class Interface {
                         }
                     }
 
-                    ; put the interacable data in every slot at same ypos
+                    ; put the interactable data in every slot at same ypos
                     else if (xpos = -1) {
                         loop this.control2D.Length {
                             if (this.control2D[A_Index][ypos].control = "") {
@@ -403,7 +433,7 @@ class Interface {
                         }
                     }
 
-                    ; put the interacable data in every slot at same xpos
+                    ; put the interactable data in every slot at same xpos
                     else if (ypos = -1) {
                         loop this.control2D[xpos].Length {
                             if (this.control2D[xpos][A_Index].control = "") {
@@ -416,7 +446,7 @@ class Interface {
                         }
                     }
 
-                    ; put the interacable data in the requested slot
+                    ; put the interactable data in the requested slot
                     else {
                         this.control2D[xpos][ypos] := {
                             control: controlName, 
@@ -453,7 +483,58 @@ class Interface {
         return this._SetFont(options, enableSizing)
     }
     _SetFont(options, enableSizing) {
-        return guiSetFont(this.guiObj, options, enableSizing)
+        global FONT
+        global FONT_COLOR
+        global SIZE
+
+        if (!MonitorGetValid(this.monitorNum)) {
+            this._setMonitorInfo()
+        }
+
+        optionsMap := Map()
+        optionsMap["c"] := FONT_COLOR
+
+        ; set options from parameter
+        if (options != "") {
+            if (Type(options) != "String") {
+                ErrorMsg("gui.SetFont options must be a string")
+                return
+            }
+
+            optionsArr := StrSplit(options, A_Space)
+            for item in optionsArr {
+                key := SubStr(item, 1, 1)
+                value := SubStr(item, 2)
+
+                if (StrLower(key) = "c" && SubStr(value, 1, 1) = "#") {
+                    optionsMap[key] := SubStr(value, 2)
+                }
+                else {
+                    optionsMap[key] := value
+                }
+            }
+        }
+
+        ; update the font size if the size multiplier is enabled
+        ; the font size is scaled based on the 96 / screen's dpi (96 = default windows dpi)
+        ; its also scaled by the monitor height compared to design 
+        if (enableSizing) {
+            optionsMap["s"] := toString(this._calcFontSize(optionsMap["s"]))
+        }
+
+        ; convert optionMap into properly formatted options string
+        optionString := ""
+        for key, value in optionsMap {
+            optionString .= key . value . A_Space
+        }
+
+        optionString := RTrim(optionString, A_Space)
+        if (FONT != "") {
+            this.guiObj.SetFont(optionString, FONT)
+        }
+        else {
+            this.guiObj.SetFont(optionString)
+        }
     }
 
     ; runs the select function defined in the selected control's interactable data
@@ -771,17 +852,18 @@ class Interface {
         ControlGetPos(, &y,, &h, selectedControl)
         y += this._guiY
 
+        scaledGuiH := this._guiH * (MonitorGetDPI(this.monitorNum) / A_ScreenDPI)
         if (this.currentY = 1) {
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", (-1 * this._scrollVOffset), "Ptr", 0, "Ptr", 0)
             this._scrollVOffset := 0
         }
-        else if (y < 0) {
-            diff := -1 * (y - percentHeight(0.005))
+        else if (y < this._monitorY) {
+            diff := -1 * (y - this._calcPercentHeight(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
             this._scrollVOffset += diff
         }
-        else if ((y + h) > (this._guiY + this._guiH)) {
-            diff := -1 * (Abs((y + h) - (this._guiY + this._guiH)) + percentHeight(0.005))
+        else if ((y + h) > (this._guiY + scaledGuiH)) {
+            diff := -1 * (Abs((y + h) - (this._guiY + scaledGuiH)) + this._calcPercentHeight(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", 0, "Int", diff, "Ptr", 0, "Ptr", 0)
             this._scrollVOffset += diff
         }
@@ -795,20 +877,88 @@ class Interface {
         ControlGetPos(&x,, &w,, selectedControl)
         x += this._guiX
 
+        scaledGuiW := this._guiW * (MonitorGetDPI(this.monitorNum) / A_ScreenDPI)
         if (this.currentX = 1) {
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", (-1 * this._scrollHOffset), "Int", 0, "Ptr", 0, "Ptr", 0)
             this._scrollHOffset := 0
         }
-        else if (x < 0) {
-            diff := -1 * (x - percentWidth(0.005))
+        else if (x < this._monitorX) {
+            diff := -1 * (x - this._calcPercentWidth(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
             this._scrollHOffset += diff
         }
-        else if ((x + w) > (this._guiX + this._guiW)) {
-            diff := -1 * (Abs((x + w) - (this._guiX + this._guiW)) + percentWidth(0.005))
+        else if ((x + w) > (this._guiX + scaledGuiW)) {
+            diff := -1 * (Abs((x + w) - (this._guiX + scaledGuiW)) + this._calcPercentWidth(0.005))
             DllCall("ScrollWindow", "Ptr", this.guiObj.Hwnd, "Int", diff, "Int", 0, "Ptr", 0, "Ptr", 0)
             this._scrollHOffset += diff
         }
+    }
+
+    ; sets the appropriate monitor variables based on globalStatus
+    _setMonitorInfo() {
+        global globalStatus
+        global DEFAULT_MONITOR
+        
+        this.monitorNum := DEFAULT_MONITOR
+        if (!globalStatus["suspendScript"] && !globalStatus["desktopmode"] 
+            && globalStatus["currProgram"]["id"] != "" && globalStatus["currProgram"]["monitor"] != -1) {
+            
+            this.monitorNum := globalStatus["currProgram"]["monitor"]
+        }
+
+        monitorInfo := getMonitorInfo(this.monitorNum)
+        this._monitorX := monitorInfo[1]
+        this._monitorY := monitorInfo[2]
+        this._monitorW := monitorInfo[3]
+        this._monitorH := monitorInfo[4]
+    }
+
+    ; calculates the percent width of the current monitor
+    ; keeps the aspect ratio relative to the original design aspect ratio of 16/9
+    ;  percent - percent width of monitor (0-1)
+    ;  useSize - whether to apply the size multiplier from global.cfg
+    ;  fixAspectRatio - whether to correct the value based on the different between screen & design ratios
+    ;
+    ; returns percent width of monitor
+    _calcPercentWidth(percent, useSize := true, fixAspectRatio := true) {
+        global SIZE
+
+        if (!MonitorGetValid(this.monitorNum)) {
+            this._setMonitorInfo()
+        }
+
+        aspectRatioMult := this.designRatio / (this._monitorW / this._monitorH)
+        retVal := percent * this._monitorW * (fixAspectRatio ? aspectRatioMult : 1) * (useSize ? SIZE : 1)
+        
+        return Min(retVal, this._monitorW) * (A_ScreenDPI / MonitorGetDPI(this.monitorNum))
+    }
+
+    ; calculates the percent height of the current monitor
+    ; keeps the aspect ratio relative to the original design aspect ratio of 16/9
+    ;  percent - percent height of monitor (0-1)
+    ;  useSize - whether to apply the size multiplier from global.cfg
+    ;  fixAspectRatio - whether to correct the value based on the different between screen & design ratios
+    ;
+    ; returns percent height of monitor
+    _calcPercentHeight(percent, useSize := true, fixAspectRatio := true) {
+        global SIZE
+
+        if (!MonitorGetValid(this.monitorNum)) {
+            this._setMonitorInfo()
+        }
+
+        aspectRatioMult := 1
+        retVal := percent * this._monitorH * (fixAspectRatio ? (1 / aspectRatioMult) : 1) * (useSize ? SIZE : 1)
+        
+        return Min(retVal, this._monitorH) * (A_ScreenDPI / MonitorGetDPI(this.monitorNum))
+    }
+
+    ; calculates the font size relative to the original design
+    ;  fontSize - original requested font size
+    ;
+    ; returns adjusted font size for design
+    _calcFontSize(fontSize) {
+        return Round((96 / MonitorGetDPI(this.monitorNum)) * Float(fontSize) * SIZE * (this._monitorH / this.designHeight))
     }
 }
 
@@ -822,8 +972,6 @@ createInterface(interfaceKey, setCurrent := true, customTime := "", args*) {
     global globalConfig
     global globalStatus
     global globalGuis
-
-    setMonitorInfo()
 
     if (!INTERFACES.Has(interfaceKey)) {
         ErrorMsg("Invalid Interface Key `n" . interfaceKey)

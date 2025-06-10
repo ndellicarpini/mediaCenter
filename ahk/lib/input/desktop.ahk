@@ -7,7 +7,7 @@ global GUIDESKTOPTITLE := "AHKDESKTOPMODE"
 ; returns null
 enableKBMMode(showDialog := true) {
     global globalStatus
-    global globalRunning
+    global DEFAULT_MONITOR
 
     if (globalStatus["desktopmode"]) {
         return
@@ -15,9 +15,9 @@ enableKBMMode(showDialog := true) {
 
     currProgram := globalStatus["currProgram"]["id"] 
 
-    monitorNum := MONITOR_N
-    if (currProgram != "" && globalRunning.Has(currProgram)) {
-        monitorNum := globalRunning[currProgram].monitorNum
+    monitorNum := DEFAULT_MONITOR
+    if (currProgram != "" && globalStatus["currProgram"]["monitor"] != -1) {
+        monitorNum := globalStatus["currProgram"]["monitor"]
     }
 
     globalStatus["kbmmode"] := true
@@ -59,6 +59,7 @@ enableDesktopMode(minimizePrograms := false, showDialog := false) {
     global globalConfig
     global globalStatus
     global globalRunning
+    global DEFAULT_MONITOR
 
     if (globalStatus["kbmmode"]) {
         disableKBMMode()
@@ -76,7 +77,7 @@ enableDesktopMode(minimizePrograms := false, showDialog := false) {
     }
 
     globalStatus["desktopmode"] := true
-    MouseMovePercent(0.5, 0.5, MONITOR_N)
+    MouseMovePercent(0.5, 0.5, DEFAULT_MONITOR)
 
     ; create basic gui dialog showing kb & mouse mode on
     ; TODO - add tooltip for keyboard button
@@ -112,16 +113,51 @@ disableDesktopMode() {
     resetLoadScreen()
 }
 
+; reads the selected keyboard mode from the config, 
+; or from the currProgram if it overrides it
+;
+; returns the keyboard mode
+keyboardMode() {
+    global globalConfig
+    global globalStatus
+    global globalRunning
+
+    if (globalStatus["currGui"] != "") {
+        return "interface"
+    }
+
+    defaultKeyboardMode := "windows"
+    if (globalConfig["GUI"].Has("KeyboardMode") && globalConfig["GUI"]["KeyboardMode"] != "") {
+        defaultKeyboardMode := StrLower(globalConfig["GUI"]["KeyboardMode"])
+    }
+
+    currProgram := globalStatus["currProgram"]["id"]
+    currKeyboardMode := defaultKeyboardMode
+    if (!globalStatus["suspendScript"] && !globalStatus["desktopmode"] && !globalStatus["loadscreen"]["show"]
+        && currProgram != "" && globalRunning.Has(currProgram) && globalRunning[currProgram].keyboardMode != "") {
+        
+        currKeyboardMode := StrLower(globalRunning[currProgram].keyboardMode)
+    }
+
+    return currKeyboardMode
+}
+
 ; checks whether the keyboard is open
 ;
 ; returns true if the keyboard is visible
-keyboardExists() {
-    ; global globalGuis
+keyboardExists(mode := "") {
+    global globalGuis
 
-    ; return globalGuis.Has("keyboard")
+    ; first check for gui keyboard
+    if (globalGuis.Has("keyboard")) {
+        return true
+    }
+    ; then try for legacy keyboard
+    if (ProcessExist("osk.exe")) {
+        return true
+    }
 
-    ; return ProcessExist("osk.exe")
-
+    ; fallback to windows keyboard
     if (!ProcessExist("TabTip.exe")) {
         return false
     }
@@ -146,32 +182,41 @@ keyboardExists() {
 ;
 ; returns null
 openKeyboard() {
-    ; global globalGuis
+    mode := keyboardMode()
 
-    ; if (!globalGuis.Has("keyboard")) {
-    ;     createInterface("keyboard")
-    ; }
+    ; open gui keyboard
+    if (mode = "interface") {
+        global globalGuis
+        if (!globalGuis.Has("keyboard")) {
+            createInterface("keyboard")
+        }
 
-    ; Run "osk.exe"
+        return
+    }
 
     restoreWNDW := 0
     if (WinExist("A")) {
         restoreWNDW := WinGetID("A")
     }
 
-    if (!ProcessExist("TabTip.exe")) {
-        Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
-        Sleep(50)
-    }
-
-    CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
-    IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
-
     try {
-        invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
-        ; ITipInvocation -> Toggle
-        ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
-    
+        if (mode = "legacy") {
+            Run("osk.exe")
+        }
+        else {
+            if (!ProcessExist("TabTip.exe")) {
+                Run "C:\Program Files\Common Files\microsoft shared\ink\TabTip.exe"
+                Sleep(250)
+            }
+
+            CLSID_UIHostNoLaunch := "{4CE576FA-83DC-4F88-951C-9D0782B4E376}"
+            IID_ITipInvocation   := "{37C994E7-432B-4834-A2F7-DCE1F13B834B}"
+
+            invocationCOM := ComObject(CLSID_UIHostNoLaunch, IID_ITipInvocation)
+            ; ITipInvocation -> Toggle
+            ComCall(3, invocationCOM, "Ptr", DllCall("GetDesktopWindow"))
+        }
+        
         if (restoreWNDW != 0 && WinShown(restoreWNDW)) {
             WinActivateForeground(restoreWNDW)
         }
@@ -184,14 +229,25 @@ openKeyboard() {
 ;
 ; returns null
 closeKeyboard() {
-    ; global globalGuis
+    global globalGuis
 
-    ; if (globalGuis.Has("keyboard")) {
-    ;     globalGuis["keyboard"].Destroy()
-    ; }
+    ; first try to close gui keyboard if it exists
+    if (globalGuis.Has("keyboard")) {
+        try globalGuis["keyboard"].Destroy()
+        return
+    }
+    
+    ; then try for legacy keyboard
+    if (ProcessExist("osk.exe")) {
+        try {
+            ProcessClose("osk.exe")
+            Hotkey("Enter", "Off")
+        }
 
-    ; ProcessClose("osk.exe")
-
+        return
+    }
+    
+    ; fallback to windows keyboard
     if (!ProcessExist("TabTip.exe")) {
         return
     }

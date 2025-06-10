@@ -1,11 +1,6 @@
 global GUI_OPTIONS := "-DPIScale -Resize -Caption"
 
-global MONITOR_N := 0
-global MONITOR_H := 0
-global MONITOR_W := 0
-global MONITOR_X := 0
-global MONITOR_Y := 0
-
+global DEFAULT_MONITOR := 0
 global SIZE := ""
 global FONT := ""
 global FONT_COLOR := ""

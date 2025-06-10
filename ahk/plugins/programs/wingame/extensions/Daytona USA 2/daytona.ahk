@@ -1,10 +1,10 @@
 class SuperModelProgram extends WinGameProgram {
     _launch(game, args*) {
-        global MONITOR_W
-        global MONITOR_H
+        global DEFAULT_MONITOR
+        monitorInfo := getMonitorInfo(DEFAULT_MONITOR)
 
         newArgs := ObjDeepClone(args)
-        newArgs.Push("-res=" . MONITOR_W . "," . MONITOR_H)
+        newArgs.Push("-res=" . monitorInfo[3] . "," . monitorInfo[4])
         super._launch(game, newArgs*)
     }
 }

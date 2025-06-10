@@ -33,6 +33,7 @@ class Program {
     requireInternet    := false
     requireFullscreen  := false
     overlayActivateFix := false
+    keyboardMode       := ""
 
     pauseOrder    := []
     pauseOptions  := Map()
@@ -70,7 +71,8 @@ class Program {
     _overrideFullscreenDelay := 0
 
     ; controls win position on screen
-    monitorNum := MONITOR_N
+    monitorNum := -1
+    requestedMonitorNum := -1
     _monitorX := 0
     _monitorY := 0
     _monitorW := 0
@@ -109,6 +111,7 @@ class Program {
         this.requireInternet      := (exeConfig.Has("requireInternet"))      ? exeConfig["requireInternet"]      : this.requireInternet
         this.requireFullscreen    := (exeConfig.Has("requireFullscreen"))    ? exeConfig["requireFullscreen"]    : this.requireFullscreen
         this.overlayActivateFix   := (exeConfig.Has("overlayActivateFix"))   ? exeConfig["overlayActivateFix"]   : this.overlayActivateFix
+        this.keyboardMode         := (exeConfig.Has("keyboardMode"))         ? exeConfig["keyboardMode"]         : this.keyboardMode
         this.postLaunchSend       := (exeConfig.Has("postLaunchSend"))       ? exeConfig["postLaunchSend"]       : this.postLaunchSend
         this.fullscreenSend       := (exeConfig.Has("fullscreenSend"))       ? exeConfig["fullscreenSend"]       : this.fullscreenSend
         this.postLaunchDelay      := (exeConfig.Has("postLaunchDelay"))      ? exeConfig["postLaunchDelay"]      : this.postLaunchDelay
@@ -235,13 +238,6 @@ class Program {
                 try this.%key% := value
             }
         }
-
-        ; parse monitor info
-        monitorInfo := getMonitorInfo(this.monitorNum)
-        this._monitorX := monitorInfo[1]
-        this._monitorY := monitorInfo[2]
-        this._monitorW := monitorInfo[3]
-        this._monitorH := monitorInfo[4]
     }
 
     ; runs the program
@@ -250,14 +246,10 @@ class Program {
     ; returns null
     launch(args*) {
         global globalStatus
+        global DEFAULT_MONITOR
         
         this.time := A_TickCount
-
-        monitorInfo := getMonitorInfo(this.monitorNum)
-        this._monitorX := monitorInfo[1]
-        this._monitorY := monitorInfo[2]
-        this._monitorW := monitorInfo[3]
-        this._monitorH := monitorInfo[4]
+        this.requestedMonitorNum := DEFAULT_MONITOR
 
         restoreCritical := A_IsCritical
         Critical("Off")
@@ -513,6 +505,7 @@ class Program {
             }
 
             this.checkVolume()
+            this.checkMonitor()
             this.checkFullscreen()
             saveScreenshot(this.id, this.monitorNum)
 
@@ -538,6 +531,7 @@ class Program {
             }
 
             this.checkVolume()
+            this.checkMonitor()
             this.checkFullscreen()
             saveScreenshot(this.id, this.monitorNum)
 
@@ -743,15 +737,26 @@ class Program {
 
         ; after first restore -> perform post launch action
         if (!this._waitingPostLaunchTimer) {
-            SetTimer(DelayPostLaunch, Neg(this.postLaunchDelay))
+            if (this.postLaunchDelay != 0) {
+                SetTimer(DelayPostLaunch, Neg(this.postLaunchDelay))
+            }
+            else {
+                DelayPostLaunch()
+            }
+
             this._waitingPostLaunchTimer := true
         }
 
         ; after first restore -> fullscreen window if required
         if (!this._waitingFullscreenTimer) {
-            SetTimer(DelayFullscreen, 
-                Neg(this._overrideFullscreenDelay != 0 ? this._overrideFullscreenDelay : this.fullscreenDelay)
-            )
+            timer := Neg(this._overrideFullscreenDelay != 0 ? this._overrideFullscreenDelay : this.fullscreenDelay)
+            if (timer != 0) {
+                SetTimer(DelayFullscreen, timer)
+            }
+            else {
+                DelayFullscreen()
+            }
+
             this._waitingFullscreenTimer  := true
             this._overrideFullscreenDelay := 0
         }
@@ -800,14 +805,22 @@ class Program {
             }
 
             if (this._currShownEXE = "" || !WinActive("ahk_exe " this._currShownEXE) || this.shouldExit || globalStatus["currProgram"]["id"] != this.id) {
-                this._waitingFullscreenTimer  := false
+                this._waitingFullscreenTimer := false
                 return
             }
 
             hwnd := this.getHWND()
 
             ; don't interact if window is a TOOLWINDOW (for launchers)
-            if (hwnd && WinShown(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {               
+            if (hwnd && WinShown(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {
+                this.checkMonitor()
+                ; set program to requested monitor num if launched from consolizer
+                if (this.requestedMonitorNum != -1 && this.requestedMonitorNum != this.monitorNum) {
+                    this.switchMonitor(this.requestedMonitorNum)
+                }
+
+                this._launchSetDefaultMonitor := true
+
                 WinGetPos(&X, &Y, &W, &H, hwnd)
                 if ((X + (W * 0.05)) < this._monitorX || X >= ((this._monitorX + this._monitorW) * 0.95)
                     || (Y + (H * 0.05)) < this._monitorY || Y >= ((this._monitorY + this._monitorH) * 0.95)) {
@@ -842,6 +855,11 @@ class Program {
             if (this._currShownEXE = "" || !WinActive("ahk_exe " this._currShownEXE) || globalStatus["currProgram"]["id"] != this.id) {
                 this._waitingMouseMoveTimer := false
                 return
+            }
+            
+            ; make sure there's valid monitor data before moving mouse
+            if (!MonitorGetValid(this.monitorNum)) {
+                this.checkMonitor()
             }
             
             MouseMovePercent(x, y, this.monitorNum)
@@ -943,54 +961,148 @@ class Program {
         }
     }
 
+    ; moves the program window to the requested window
     switchMonitor(newMonitor) {
+        global globalConfig
         global globalStatus
 
-        hwnd := this.getHWND()
-        if (!hwnd || this.background || !IsInteger(newMonitor) || Integer(newMonitor) < 0) {
-            return
-        } 
+        if (!IsInteger(newMonitor) || Integer(newMonitor) < 0) {
+            message := "Requested invalid Monitor " . newMonitor . " for program " . this.id
+            writeLog(message, "PROGRAM")
+            ErrorMsg(message)
+        }
 
-        this.monitorNum := Integer(newMonitor)
+        restoreCritical := A_IsCritical
+        Critical("On")
+
+        hwnd := this.getHWND()
+        if (this.background || this.hungCount > 0 || !hwnd || !WinShown(hwnd)) {
+            return
+        }
         
+        this.requestedMonitorNum := Integer(newMonitor)
+        if (this.monitorNum = this.requestedMonitorNum) {
+            return
+        }
+
+        allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
+        ; restore before window to fix any minimized windows
+        if (!WinActive(hwnd) && allowActivate) {
+            this._restore()
+            Sleep(100)
+        }
+
+        this._switchMonitor(this.requestedMonitorNum)
+        
+        ; restore after to fix some buggy behavior with some windows
+        if (!WinActive(hwnd) && allowActivate) {
+            Sleep(100)
+            this._restore()
+        }
+
+        Sleep(250)
+        this.checkMonitor()
+
+        this._restoreMousePos := []
+        ; re-fullscreen after switching monitors
+        if (this.requireFullscreen && !this.checkFullscreen()) {
+            try this.fullscreen()
+            this._waitingFullscreenTimer  := false
+            this._overrideFullscreenDelay := 1000
+        }
+
+        ; fix mouse position if switching the monitor of the current program
+        if (this.id = globalStatus["currProgram"]["id"]) {
+            if (this.mouse.Has("initialPos")) {
+                MouseMovePercent(this.mouse["initialPos"][1], this.mouse["initialPos"][2], this.monitorNum)
+            } else {
+                HideMouseCursor()
+            }
+        }
+
+        ; get new thumbnail
+        saveScreenshot(this.id, this.monitorNum)
+
+        Critical(restoreCritical)
+        writeLog(this.id . " changed to monitor " . this.monitorNum)
+    }
+    _switchMonitor(newMonitor) {
+        global globalConfig
+
+        hwnd := this.getHWND()
+
+        try {
+            if (WinGetExStyle(hwnd) & 0x00000080) {
+                return
+            }
+
+            monitorInfo := getMonitorInfo(newMonitor)
+            monitorX := monitorInfo[1]
+            monitorY := monitorInfo[2]
+            monitorW := monitorInfo[3]
+            monitorH := monitorInfo[4]
+
+            WinGetPos(&X, &Y, &W, &H, hwnd)
+
+            ; check that window is showing within proper monitor bounds, move to correct monitor if not
+            ; (custom fullscreen functions usually cause the window to get fullscreened on currently showing monitor)
+            if ((X + (W * 0.05)) < monitorX || X >= ((monitorX + monitorW) * 0.95) 
+                || (Y + (H * 0.05)) < monitorY || Y >= ((monitorY + monitorH) * 0.95)) {
+                
+                WinMove(monitorX, monitorY,,, hwnd)
+            }
+        }
+    }
+
+    ; returns the monitor num the program is showing in update the monitorNum value of the program
+    checkMonitor() {
+        if (this.hungCount > 0) {
+            return
+        }
+
+        this.monitorNum := this._checkMonitor()
+
         monitorInfo := getMonitorInfo(this.monitorNum)
         this._monitorX := monitorInfo[1]
         this._monitorY := monitorInfo[2]
         this._monitorW := monitorInfo[3]
         this._monitorH := monitorInfo[4]
+        
+        ; update monitor num in global status (for loadscreen)
+        if (this.id = globalStatus["currProgram"]["id"]) {
+            globalStatus["currProgram"]["monitor"] := this.monitorNum
+        }
+        ; update "requested monitor" if program was not launched by consolizer
+        if (this.requestedMonitorNum = -1) {
+            this.requestedMonitorNum := this.monitorNum
+        }
 
-        if (this.id = globalStatus["currProgram"]["id"] && WinShown(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {
-            WinGetPos(&X, &Y, &W, &H, hwnd)
+        return this.monitorNum
+    }
+    _checkMonitor() {
+        global DEFAULT_MONITOR
 
-            ; check that window is showing within proper monitor bounds, move to correct monitor if not
-            ; (custom fullscreen functions usually cause the window to get fullscreened on currently showing monitor)
-            if ((X + (W * 0.05)) < this._monitorX || X >= ((this._monitorX + this._monitorW) * 0.95) 
-                || (Y + (H * 0.05)) < this._monitorY || Y >= ((this._monitorY + this._monitorH) * 0.95)) {
-                
-                try WinRestoreMessage(hwnd)
-                Sleep(75)
-                try WinMove(this._monitorX, this._monitorY,,, hwnd)
-                Sleep(75)
+        hwnd := this.getHWND()
 
-                this._restoreMousePos := []
-                if (this.requireFullscreen && !this.checkFullscreen()) {
-                    try this.fullscreen()
-                }
+        try {
+            WinGetPos(&X, &Y, &W, &H, hwnd) 
 
-                if (this.mouse.Has("initialPos")) {
-                    MouseMovePercent(this.mouse["initialPos"][1], this.mouse["initialPos"][2], this.monitorNum)
-                } else {
-                    HideMouseCursor()
+            ; create test target about ~10% from top left of window
+            ; don't want to use center because window can be bigger than monitor
+            hwndTarget := [
+                X + (W * 0.1),
+                Y + (H * 0.1)
+            ]
+
+            loop MonitorGetCount() {
+                MonitorGet(A_Index, &ML, &MT, &MR, &MB)
+                if (hwndTarget[1] >= ML && hwndTarget[1] <= MR && hwndTarget[2] >= MT && hwndTarget[2] <= MB) {
+                    return A_Index
                 }
             }
         }
 
-        ; reset fullscreen status on switching monitors
-        this.fullscreened := false
-        this._waitingFullscreenTimer  := false
-        this._overrideFullscreenDelay := 1000
-
-        Sleep(250)
+        return DEFAULT_MONITOR
     }
 
     ; fullscreen window if not fullscreened
@@ -1012,6 +1124,11 @@ class Program {
         if (!WinActive(hwnd) && allowActivate) {
             this._restore()
             Sleep(100)
+        }
+
+        ; make sure there's valid monitor data before fullscreening
+        if (!MonitorGetValid(this.monitorNum)) {
+            this.checkMonitor()
         }
 
         WinGetPos(&X, &Y, &W, &H, hwnd)
@@ -1044,8 +1161,11 @@ class Program {
                         loop 5 {
                             Sleep(sleepTime)
 
-                            if (!this.exists() || this._currShownEXE = "" || !WinActive("ahk_exe " this._currShownEXE) 
-                                || this.shouldExit || globalStatus["currProgram"]["id"] != this.id) {
+                            if (!this.exists() 
+                                || this._currShownEXE = "" 
+                                || !WinActive("ahk_exe " this._currShownEXE) 
+                                || this.shouldExit) {
+
                                 return
                             }
                         }
@@ -1053,7 +1173,7 @@ class Program {
                 }
             }
             else {
-                this.send(this.postLaunchSend)
+                this.send(this.fullscreenSend)
             }
 
             return
@@ -1111,6 +1231,11 @@ class Program {
     checkFullscreen() {
         if (this.hungCount > 0) {
             return
+        }
+
+        ; make sure there's valid monitor data before checking fullscreen status
+        if (!MonitorGetValid(this.monitorNum)) {
+            this.checkMonitor()
         }
 
         oldFullscreened := this.fullscreened
@@ -1443,6 +1568,11 @@ class Program {
         try {
             if (this.id = globalStatus["currProgram"]["id"] && this.hungCount = 0 
                 && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+
+                ; make sure there's valid monitor data before screenshot
+                if (!MonitorGetValid(this.monitorNum)) {
+                    this.checkMonitor()
+                }
                     
                 allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
                 ; activate window for _function()
@@ -1487,6 +1617,11 @@ class Program {
         try {
             if (this.id = globalStatus["currProgram"]["id"] && this.hungCount = 0 
                 && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+
+                ; make sure there's valid monitor data before screenshot
+                if (!MonitorGetValid(this.monitorNum)) {
+                    this.checkMonitor()
+                }
                 
                 allowActivate := globalConfig["General"].Has("ForceActivateWindow") && globalConfig["General"]["ForceActivateWindow"]
                 ; activate window for _function()
@@ -1755,6 +1890,7 @@ class Program {
             if (oldHWND != this._currHWND) {
                 writeLog(this.id . " updated hwnd", "PROGRAM")
                 this.checkFullscreen()
+                this.checkMonitor()
             }
         }
 
@@ -2308,7 +2444,7 @@ createDefaultProgram() {
         defaultProgram := globalConfig["Plugins"]["DefaultProgram"]
 
         if (globalRunning.Has(defaultProgram)) {
-            setCurrentProgram(defaultProgram)
+            setCurrentProgram(defaultProgram, false)
         }
         else {
             createProgram(defaultProgram)
@@ -2343,14 +2479,15 @@ getMostRecentProgram(checkBackground := false, monitorNum := -1) {
         }
     }
 
-    return (monitorNum >= 0 && prevMonitorProgram != "") ? prevMonitorProgram : prevProgram
+    return (monitorNum != -1 && prevMonitorProgram != "") ? prevMonitorProgram : prevProgram
 }
 
 ; sets the requested id as the current program if it exists
 ;  id - id of program to set as current
+;  moveToMonitor - if true, switches the requested program to the currProgram's monitor
 ;
 ; returns null
-setCurrentProgram(id) {
+setCurrentProgram(id, moveToMonitor := true) {
     global globalStatus
     global globalRunning
 
@@ -2359,30 +2496,46 @@ setCurrentProgram(id) {
         return
     }
 
-    currProgram   := globalStatus["currProgram"]["id"]
-    currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
+    currProgram := globalStatus["currProgram"]["id"]
+    if (currProgram = id) {
+        return
+    }
     
-    if (currProgram != id) {
-        if (globalStatus["kbmmode"]) {
-            disableKBMMode()
+    currSuspended := globalStatus["suspendScript"] || globalStatus["desktopmode"]
+    if (globalStatus["kbmmode"]) {
+        disableKBMMode()
+    }
+    else if (keyboardExists()) {
+        closeKeyboard()
+    }
+
+    ; get new thumbnail
+    currProgramValid := currProgram != "" && globalRunning.Has(currProgram)
+    if (currProgramValid && WinActive(globalRunning[currProgram].getHWND())) {
+        saveScreenshot(currProgram, globalRunning[currProgram].checkMonitor())
+    }
+
+    writeLog(id . " set as current program", "PROGRAM")
+
+    resetCurrentProgram()
+    globalStatus["currProgram"]["id"] := id
+    globalRunning[id].time := A_TickCount
+
+    if (!currSuspended && globalRunning[id].exists(true)) {
+        switched := false
+        ; if new current is on different monitor
+        if (currProgramValid && globalRunning[id].monitorNum != globalRunning[currProgram].monitorNum) {
+            ; move to old current program's monitor
+            if (moveToMonitor && MonitorGetValid(globalRunning[currProgram].monitorNum)) {
+                globalRunning[id].switchMonitor(globalRunning[currProgram].monitorNum)
+                switched := true
+            }
+            ; update current program monitor to new current
+            else if (MonitorGetValid(globalRunning[id].monitorNum)) {
+                globalStatus["currProgram"]["monitor"] := globalRunning[id].monitorNum
+            }
         }
-        else if (keyboardExists()) {
-            closeKeyboard()
-        }
-
-        ; get new thumbnail
-        if (currProgram != "" && globalRunning.Has(currProgram) && WinActive(globalRunning[currProgram].getHWND())) {
-            saveScreenshot(currProgram, globalRunning[currProgram].monitorNum)
-        }
-
-        writeLog(id . " set as current program", "PROGRAM")
-
-        globalStatus["currProgram"]["id"] := id
-        globalStatus["currProgram"]["exe"] := ""
-        globalStatus["currProgram"]["hwnd"] := 0
-        globalRunning[id].time := A_TickCount
-
-        if (!currSuspended) {
+        else {
             setLoadScreen()
             activateLoadScreen()
             HideMouseCursor()
@@ -2390,13 +2543,14 @@ setCurrentProgram(id) {
             Sleep(200)
             resetLoadScreen()
         }
-    }
-
-    if (globalRunning[id].exists(true) && !currSuspended) {
-        globalRunning[id].fullscreened := false
-        globalRunning[id]._waitingFullscreenTimer := false
-        globalRunning[id]._overrideFullscreenDelay := 1000
-        globalRunning[id].restore()
+            
+        ; re-fullscreen the program if not already done so by switchMonitor
+        if (!switched) {
+            globalRunning[id].fullscreened := false
+            globalRunning[id]._waitingFullscreenTimer := false
+            globalRunning[id]._overrideFullscreenDelay := 1000
+            globalRunning[id].restore()
+        }
     }
 }
 
@@ -2409,6 +2563,7 @@ resetCurrentProgram() {
     globalStatus["currProgram"]["id"] := ""
     globalStatus["currProgram"]["exe"] := ""
     globalStatus["currProgram"]["hwnd"] := 0
+    globalStatus["currProgram"]["monitor"] := -1
 }
 
 ; checks that the program exists
@@ -2543,7 +2698,7 @@ updatePrograms() {
 
     currProgram := globalStatus["currProgram"]["id"]
     currProgramMonitor := -1
-    if (globalRunning.Has(currProgram)) {
+    if (globalRunning.Has(currProgram) && globalRunning[currProgram].monitorNum != -1) {
         currProgramMonitor := globalRunning[currProgram].monitorNum
     }
 

@@ -27,9 +27,9 @@ class PauseInterface extends Interface {
         this.selectColor := COLOR3
 
         if (this.basicMode) {
-            this.guiWidth  := interfaceWidth(0.2)
-            this.guiHeight := interfaceHeight(0.075)
-            maxHeight := interfaceHeight(1)
+            this.guiWidth  := this._calcPercentWidth(0.2)
+            this.guiHeight := this._calcPercentHeight(0.075)
+            maxHeight := this._calcPercentHeight(1)
 
             marginSize := (this.guiWidth * (2/60))
             this.guiObj.MarginX := marginSize
@@ -38,13 +38,13 @@ class PauseInterface extends Interface {
             itemWidth := this.guiWidth - (marginSize * 2)
 
             this.SetFont("bold s24")
-            this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . interfaceHeight(0.05) . " w" . itemWidth, "Control Menu")
+            this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . this._calcPercentHeight(0.05) . " w" . itemWidth, "Control Menu")
                 
             ; --- ADD PAUSE OPTIONS ---
             basicOptions := this._basicPauseOptions()
 
-            optionHeight := interfaceHeight(0.045)
-            optionSpacing := interfaceHeight(0.007)
+            optionHeight := this._calcPercentHeight(0.045)
+            optionSpacing := this._calcPercentHeight(0.007)
 
             y_index := 1
 
@@ -67,11 +67,11 @@ class PauseInterface extends Interface {
             }
         }
         else {
-            this.guiObj.MarginX := interfaceWidth(0.0095)
-            this.guiObj.MarginY := interfaceHeight(0.01)
+            this.guiObj.MarginX := this._calcPercentWidth(0.0095)
+            this.guiObj.MarginY := this._calcPercentHeight(0.01)
 
-            this.guiWidth := interfaceWidth(0.25)
-            this.guiHeight := interfaceHeight(1)
+            this.guiWidth := this._calcPercentWidth(0.25)
+            this.guiHeight := this._calcPercentHeight(1)
 
             ; add static elements
             currentTimeArr := StrSplit(FormatTime(, "h:mm tt`ndddd, MMM d yyy"), "`n")
@@ -81,46 +81,46 @@ class PauseInterface extends Interface {
             this.Add("Text", "vTime Section Center xm0 ym0 w" . (this.guiWidth * 0.46), currentTimeArr[1])
 
             this.SetFont("s13")
-            this.Add("Text", "vDate Center wp0 xm0 y+" . interfaceHeight(0.008), currentTimeArr[2])
+            this.Add("Text", "vDate Center wp0 xm0 y+" . this._calcPercentHeight(0.008), currentTimeArr[2])
 
             ; --- ADD MONITORS ---
             this.SetFont()
 
             if (globalConfig["GUI"].Has("EnablePauseGPUMonitor") && globalConfig["GUI"]["EnablePauseGPUMonitor"]) {
-                monitorSpacing := interfaceHeight(0.008)
+                monitorSpacing := this._calcPercentHeight(0.008)
 
-                this.Add("Text", "vInfoText Section x+" . interfaceWidth(0.010) . " ys+5", "CPU")
+                this.Add("Text", "vInfoText Section x+" . this._calcPercentWidth(0.010) . " ys+5", "CPU")
                 this.Add("Text", "xs0 y+" . monitorSpacing, "RAM")
                 this.Add("Text", "xs0 y+" . monitorSpacing, "GPU")
 
-                this.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . interfaceWidth(0.078) . " ys0 x+" . interfaceWidth(0.006), 0)
+                this.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . this._calcPercentWidth(0.078) . " ys0 x+" . this._calcPercentWidth(0.006), 0)
                 this.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
                 this.Add("Progress", "vGPU Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
             }
             else {
-                monitorSpacing := interfaceHeight(0.038)
+                monitorSpacing := this._calcPercentHeight(0.038)
 
-                this.Add("Text", "vInfoText Section x+" . interfaceWidth(0.010) . " ys+5", "CPU")
+                this.Add("Text", "vInfoText Section x+" . this._calcPercentWidth(0.010) . " ys+5", "CPU")
                 this.Add("Text", "xs0 y+" . monitorSpacing, "RAM")
 
-                this.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . interfaceWidth(0.078) " ys0 x+" . interfaceWidth(0.006), 0)
+                this.Add("Progress", "vCPU Background" . COLOR2 . " c" . COLOR3 . " hp0 w" . this._calcPercentWidth(0.078) " ys0 x+" . this._calcPercentWidth(0.006), 0)
                 this.Add("Progress", "vRAM Background" . COLOR2 . " c" . COLOR3 . " hp0 wp0 xp0 y+" . monitorSpacing, 0)
             }
 
             ; --- ADD TOP ROW BUTTONS ---
             if (globalConfig["Plugins"].Has("DefaultProgram") && globalConfig["Plugins"]["DefaultProgram"] != "") {
-                buttonSpacing := interfaceWidth(0.0097)
+                buttonSpacing := this._calcPercentWidth(0.0097)
 
-                this.Add("Picture", "vHome Section f(createDefaultProgram) xpos1 ypos1 xm0 y+" . interfaceHeight(0.02) . " w" . interfaceWidth(0.039) . " h" . interfaceWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
+                this.Add("Picture", "vHome Section f(createDefaultProgram) xpos1 ypos1 xm0 y+" . this._calcPercentHeight(0.02) . " w" . this._calcPercentWidth(0.039) . " h" . this._calcPercentWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
                 this.Add("Picture", "vVolume f(createInterface volume) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
                 this.Add("Picture", "vControllers f(createInterface input) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
                 this.Add("Picture", "vMulti f(createInterface program) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
                 this.Add("Picture", "vPower f(createInterface power) xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
             }
             else {
-                buttonSpacing := interfaceWidth(0.0257)
+                buttonSpacing := this._calcPercentWidth(0.0257)
 
-                this.Add("Picture", "vVolume Section f(createInterface volume) xpos1 ypos1 xm0 y+" . interfaceHeight(0.02) . " w" . interfaceWidth(0.039) . " h" . interfaceWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
+                this.Add("Picture", "vVolume Section f(createInterface volume) xpos1 ypos1 xm0 y+" . this._calcPercentHeight(0.02) . " w" . this._calcPercentWidth(0.039) . " h" . this._calcPercentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
                 this.Add("Picture", "vControllers f(createInterface input) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
                 this.Add("Picture", "vMulti f(createInterface program) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
                 this.Add("Picture", "vPower f(createInterface power) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
@@ -130,21 +130,21 @@ class PauseInterface extends Interface {
             defaultOptions := this._defaultPauseOptions()
             programOptions := this._programPauseOptions((currProgram != "") ? globalRunning[currProgram] : "")
 
-            optionWidth := this.guiWidth - (2 * interfaceWidth(0.0095))
-            optionHeight := interfaceHeight(0.045)
+            optionWidth := this.guiWidth - (2 * this._calcPercentWidth(0.0095))
+            optionHeight := this._calcPercentHeight(0.045)
 
             y_index := 1
 
             ; program options
             if (!globalStatus["desktopmode"] && !globalStatus["suspendScript"] && programOptions.items.Count > 0) {
                 this.SetFont("bold s24")
-                this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . interfaceHeight(0.02) . " h" . interfaceHeight(0.05) . " w" . optionWidth, globalRunning[currProgram].name)
+                this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . this._calcPercentHeight(0.02) . " h" . this._calcPercentHeight(0.05) . " w" . optionWidth, globalRunning[currProgram].name)
             
                 this.SetFont("norm s20")
                 
                 for item in programOptions.order {
                     if (programOptions.items.Has(item)) {
-                        this.Add("Text", "v" . item . " f(" . programOptions.items[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . interfaceHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . programOptions.items[item].title)
+                        this.Add("Text", "v" . item . " f(" . programOptions.items[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . this._calcPercentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . programOptions.items[item].title)
                         y_index += 1
                     }
                 }
@@ -153,13 +153,13 @@ class PauseInterface extends Interface {
             ; global options
             if (defaultOptions.items.Count > 0) {
                 this.SetFont("bold s23")
-                this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . interfaceHeight(0.02) . " h" . interfaceHeight(0.05) . " w" . optionWidth, "Options")
+                this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 y+" . this._calcPercentHeight(0.02) . " h" . this._calcPercentHeight(0.05) . " w" . optionWidth, "Options")
             
                 this.SetFont("norm s19")
 
                 for item in defaultOptions.order {
                     if (defaultOptions.items.Has(item)) {
-                        this.Add("Text", "v" . item . " f(" . defaultOptions.items[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . interfaceHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . defaultOptions.items[item].title)
+                        this.Add("Text", "v" . item . " f(" . defaultOptions.items[item].function . ") 0x200 ypos" . toString(y_index + 1) . " xm0 y+" . this._calcPercentHeight(0.007) . " h" . optionHeight . " w" . optionWidth, "  " . defaultOptions.items[item].title)
                         y_index += 1
                     }
                 }
@@ -189,8 +189,8 @@ class PauseInterface extends Interface {
         HideMouseCursor()
 
         if (this.basicMode) {
-            guiX := ((MONITOR_W / 2) - (this.guiWidth / 2))
-            guiY := ((MONITOR_H / 2) - (this.guiHeight / 2))
+            guiX := ((this._calcPercentWidth(1) / 2) - (this.guiWidth / 2))
+            guiY := ((this._calcPercentHeight(1) / 2) - (this.guiHeight / 2))
             super._Show("x" . guiX . " y" . guiY . " w" . this.guiWidth . " h" . this.guiHeight)
         }
         else {

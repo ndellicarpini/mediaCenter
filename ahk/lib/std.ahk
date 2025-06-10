@@ -337,44 +337,6 @@ WinActivatable(window) {
 	return !(style & 0x08000000) && !(exStyle & 0x08000000)	&& !((style & 0x80000000) && (exStyle & 0x00000008))
 }
 
-; ; returns if window is on top
-; ;  window - window to check based on WinTitle
-; ;
-; ; returns boolean topmost
-; WinIsTop(window) {
-; 	winList := WinGetList(window)
-; 	if (winList.Length = 0) {
-; 		return false
-; 	}
-
-
-; 	nextWNDW := DllCall("GetTopWindow", "Ptr", 0)
-; 	while (1) {
-; 			nextWNDW := DllCall("GetWindow", "Ptr", nextWNDW, "UInt", 2)
-
-; 		if (DllCall("IsWindowVisible", "Ptr", nextWNDW)) {
-; 			MsgBox(nextWNDW . " " . WinGetTitle(nextWNDW) . " " . WinGetProcessPath(nextWNDW) . " " . WinGetProcessName(nextWNDW))
-; 			WinGetPos(&X, &Y, &W, &H, nextWNDW)
-; 			MsgBox(X . " " . Y . " " . W . " " . H)
-; 		}
-; 	}
-
-; 	; MsgBox(WinGetTitle(nextWNDW))
-; 	; winNext := DllCall("GetWindow", "Ptr", winTop, "UInt", 2)
-; 	; winNooo := DllCall("GetWindow", "Ptr", winNext, "UInt", 2)
-
-; 	; nameArr := []
-; 	; for win in winList {
-; 	; 	nameArr.Push(WinGetTitle(win))
-; 	; }
-
-; 	; MsgBox(toString(nameArr))
-; 	; MsgBox(winTop . " " . WinGetTitle(winTop))
-; 	; MsgBox(winNext . " " . WinGetTitle(winNext))
-; 	; MsgBox(winNooo . " " . WinGetTitle(winNooo))
-; 	return inArray(nextWNDW, winList)
-; }
-
 ; maximizes the window by posting a message to the window, the same message as the maximize button
 ;  window - window to maximize based on WinTitle
 ;
@@ -482,6 +444,42 @@ WinResponsive(window) {
 	}
 
 	return !DllCall("IsHungAppWindow", "UInt", id)
+}
+
+; checks if the monitor number requested is valid
+;  monitorNum - monitor number to check
+;
+; returns true if monitor exists
+MonitorGetValid(monitorNum) {
+	return Integer(monitorNum) >= 0 && MonitorGetCount() >= Integer(monitorNum)
+}
+
+; gets the dpi of the requested monitor (100% = 96), follows the same rules as A_ScreenDPI
+;  monitorNum - monitor number to check
+;
+; returns dpi value
+MonitorGetDPI(monitorNum) {
+    if (monitorNum <= 0) {
+        return A_ScreenDPI
+    }
+
+    index := 1
+    dpi := A_ScreenDPI
+    monitorEnumParse(hMon, hdc, lpRect, lParam) {
+        dpiX := 0
+        dpiY := 0
+
+        DllCall("GetDpiForMonitorInternal", "Ptr", hMon, "UInt", 0, "Ptr*", &dpiX, "Ptr*", &dpiY)
+        if (index = monitorNum) {
+            dpi := Round((dpiX + dpiY) / 2)
+        }
+
+        index += 1
+        return true
+    }
+
+    DllCall("EnumDisplayMonitors", "Ptr", 0, "Ptr", 0, "Ptr", CallbackCreate(monitorEnumParse), "Ptr", 0)
+    return dpi
 }
 
 ; sets the current script's window title to the string in name
@@ -1518,7 +1516,21 @@ runFunction(args, params := "") {
 					stringType := "'"
 				}
 				else {
-					funcArr.Push(item)
+					if (IsInteger(item)) {
+						funcArr.Push(Integer(item))
+					}
+					else if (IsFloat(item)) {
+						funcArr.Push(Float(item))
+					}
+					else if (StrLower(item) = "true") {
+						funcArr.Push(true)
+					}
+					else if (StrLower(item) = "false") {
+						funcArr.Push(false)
+					}
+					else {
+						funcArr.Push(item)
+					}
 				}
 			}
 			else {

@@ -204,6 +204,7 @@ globalStatus["currProgram"] := Map()
 globalStatus["currProgram"]["id"] := ""
 globalStatus["currProgram"]["exe"] := ""
 globalStatus["currProgram"]["hwnd"] := 0
+globalStatus["currProgram"]["monitor"] := -1
 
 ; load screen info
 globalStatus["loadscreen"] := Map()
@@ -346,9 +347,6 @@ for item in globalConfig["StartArgs"] {
         resetLoadScreen(0)
     }
 }
-
-; set the GUI constants
-setMonitorInfo()
 
 ; create loadscreen if appropriate
 if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("EnableLoadScreen") && globalConfig["GUI"]["EnableLoadScreen"]) {
@@ -769,6 +767,7 @@ HandleShellMessage(wParam, lParam, *) {
 }
 
 ; clean shutdown of script
+; this function should NOT be called before a statusBackup
 ShutdownScript(restoreTaskbar := true) {
     global globalThreads
 
@@ -778,6 +777,11 @@ ShutdownScript(restoreTaskbar := true) {
     ; disable message listeners
     OnMessage(MESSAGE_VAL, HandleMessage, 0)
     OnMessage(SHELL_MESSAGE_VAL, HandleShellMessage, 0)
+
+    ; reset some settings to default values for loadscreen
+    globalStatus["suspendScript"] := false
+    globalStatus["desktopmode"] := false
+    globalStatus["currProgram"]["monitor"] := DEFAULT_MONITOR
 
     setLoadScreen("Please Wait...")
     activateLoadScreen()
@@ -807,17 +811,19 @@ ShutdownScript(restoreTaskbar := true) {
     for key, value in globalThreads {
         value.ExitApp()
     }
+
+    Thread("Terminate", all := true)
     
     Sleep(500)
 
-    ObjRelease(ObjPtr(globalConfig))
-    ObjRelease(ObjPtr(globalStatus))
-    ObjRelease(ObjPtr(globalConsoles))
-    ObjRelease(ObjPtr(globalPrograms))
-    ObjRelease(ObjPtr(globalRunning))
-    ObjRelease(ObjPtr(globalGuis))
-    ObjRelease(ObjPtr(globalInputStatus))
-    ObjRelease(ObjPtr(globalInputConfigs))
+    ; ObjRelease(ObjPtr(globalConfig))
+    ; ObjRelease(ObjPtr(globalStatus))
+    ; ObjRelease(ObjPtr(globalConsoles))
+    ; ObjRelease(ObjPtr(globalPrograms))
+    ; ObjRelease(ObjPtr(globalRunning))
+    ; ObjRelease(ObjPtr(globalGuis))
+    ; ObjRelease(ObjPtr(globalInputStatus))
+    ; ObjRelease(ObjPtr(globalInputConfigs))
 }
 
 ; exits the script entirely, including maintainer
@@ -850,12 +856,6 @@ ResetScript() {
     Critical("On")
 
     try statusBackup()
-
-    restoreSuspendScript := globalStatus["suspendScript"]
-    globalStatus["suspendScript"] := false
-    
-    restoreDesktopMode := globalStatus["desktopmode"]
-    globalStatus["desktopmode"] := false
 
     if (!globalConfig["General"].Has("ForceMaintainMain") 
         || (globalConfig["General"].Has("ForceMaintainMain") && !globalConfig["General"]["ForceMaintainMain"])) {

@@ -89,7 +89,6 @@ class Config {
 			retMap := Map()
 			for key, value in item {
 				if (!originalItem.Has(key)) {
-					MsgBox("not have" . key)
 					return true
 				}
 
