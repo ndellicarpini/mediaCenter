@@ -28,6 +28,8 @@ enableKBMMode(showDialog := true) {
     if (showDialog) {
         createInterface("notification", false,, "KB && Mouse Mode")
     }
+
+    writeLog("Enabled KB & Mouse Mode", "DESKTOP")
 }
 
 ; disables kbbmode & destroys info splash
@@ -48,6 +50,8 @@ disableKBMMode() {
     if (globalGuis.Has("notification")) {
         globalGuis["notification"].Destroy()
     }
+    
+    writeLog("Disabled KB & Mouse Mode", "DESKTOP")
 }
 
 ; enables desktop & displays info splash
@@ -86,6 +90,7 @@ enableDesktopMode(minimizePrograms := false, showDialog := false) {
     }
 
     globalStatus["loadscreen"]["enable"] := false
+    writeLog("Enabled Desktop Mode", "DESKTOP")
 }
 
 ; disables desktop & destroys info splash
@@ -100,7 +105,7 @@ disableDesktopMode() {
         closeKeyboard()
     }
     
-    globalStatus["desktopmode"]   := false
+    globalStatus["desktopmode"] := false
     HideMouseCursor()
 
     if (globalGuis.Has("notification")) {
@@ -111,6 +116,8 @@ disableDesktopMode() {
     setLoadScreen()
     Sleep(500)
     resetLoadScreen()
+
+    writeLog("Disabled Desktop Mode", "DESKTOP")
 }
 
 ; reads the selected keyboard mode from the config, 

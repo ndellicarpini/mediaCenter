@@ -14,9 +14,10 @@ class Emulator extends Program {
     resetSupport  := false
 
     romDir  := ""
-    romNameIndex := 0
-    emulators    := []
-    extensions   := []
+    romNameIndex  := 0
+    emulators     := []
+    emulatorIndex := 1
+    extensions    := []
 
     rewinding := false
     fastForwarding := false
@@ -233,13 +234,16 @@ createConsole(params, launchProgram := true, setCurrent := true, customAttribute
         }
         
         ; TODO - PARSE ROM & GET SPECIFIC EMULATOR
-
+        
+        configData := getExtendedRomConfig(Map(), value, rom)
         emuProgram := ""
-        if (value.Has("emulators")) {
-            emuProgram := IsObject(value["emulators"]) ? value["emulators"][1] : value["emulators"]
-        }
-        else if (value.Has("emulator")) {
-            emuProgram := IsObject(value["emulator"]) ? value["emulator"][1] : value["emulator"]
+        if (configData["console"].Has("emulators")) {
+            emulatorIndex := 1
+            if (configData["console"].Has("emulatorIndex")) {
+                emulatorIndex := Integer(configData["console"]["emulatorIndex"])
+            }
+
+            emuProgram := configData["console"]["emulators"][emulatorIndex]
         }
 
         for key2, value2 in globalPrograms {
@@ -267,16 +271,20 @@ createConsole(params, launchProgram := true, setCurrent := true, customAttribute
                 }
             }
 
-            programConfig := getExtendedProgramConfig(value2, console . " " . rom) 
+            configData := getExtendedRomConfig(
+                getExtendedProgramConfig(value2, console . " " . rom),
+                value,
+                rom
+            )
 
             ; create program class if has custom class
-            if (programConfig.Has("className")) {
-                globalRunning[emuProgram] := %programConfig["className"]%(console, programConfig, value)
-                writeLog(emuProgram . " created (class: " . programConfig["className"] . ")", "PROGRAM")
+            if (configData["program"].Has("className")) {
+                globalRunning[emuProgram] := %configData["program"]["className"]%(console, configData["program"], configData["console"])
+                writeLog(emuProgram . " created (class: " . configData["program"]["className"] . ")", "PROGRAM")
             }
             ; create generic program
             else {
-                globalRunning[emuProgram] := Emulator(console, programConfig, value)   
+                globalRunning[emuProgram] := Emulator(console, configData["program"], configData["console"])   
                 writeLog(emuProgram . " created (class: Program)", "PROGRAM")
             }
 
@@ -306,4 +314,112 @@ createConsole(params, launchProgram := true, setCurrent := true, customAttribute
 
     ErrorMsg("Console " . console . " was not found")
     return
+}
+
+; merges rom override data with the main config of the program if rom matches
+;  programConfig - base config of the program
+;  consoleConfig - base config of the console
+;  rom - rom path that the console is running
+;
+; returns appropriate config for program
+getExtendedRomConfig(programConfig, consoleConfig, rom) {
+    internalProgramConfig := ObjDeepClone(programConfig)
+    internalConsoleConfig := ObjDeepClone(consoleConfig)
+
+    consoleOverride := ""
+    if (internalConsoleConfig.Has("consoleOverride")) {
+        consoleOverride := internalConsoleConfig["consoleOverride"]
+    }
+    else if (internalConsoleConfig.Has("consoleOverrides")) {
+        consoleOverride := internalConsoleConfig["consoleOverrides"]
+    }
+
+    if (consoleOverride != "") {
+        for key, value in consoleOverride {
+            internalProgramConfig[key] := value
+        }
+    }
+
+    romOverride := ""
+    if (internalConsoleConfig.Has("romOverride")) {
+        romOverride := internalConsoleConfig["romOverride"]
+    }
+    else if (internalConsoleConfig.Has("romOverrides")) {
+        romOverride := internalConsoleConfig["romOverrides"]
+    }
+
+    if (romOverride = "") {
+        return Map("program", internalProgramConfig, "console", internalConsoleConfig)
+    }
+
+    for item in romOverride {
+        if(!item.Has("romMatch")) {
+            continue
+        }
+
+        argCheck := ""
+        if (item["romMatch"].Has("arg")) {
+            argCheck := item["romMatch"]["arg"]
+        }
+        else if (item["romMatch"].Has("args")) {
+            argCheck := item["romMatch"]["args"]
+        }
+
+        if (argCheck = "") {
+            continue
+        }
+        
+        matchType := (item["romMatch"].Has("matchType")) ? StrLower(Trim(item["romMatch"]["matchType"])) : "full"
+        matchResult := false
+        if (!IsObject(argCheck)) {
+            switch (matchType) {
+                case "full":
+                    matchResult := (StrLower(Trim(rom)) = StrLower(argCheck))
+                case "partial":
+                    matchResult := InStr(StrLower(rom), StrLower(argCheck))
+                case "start":
+                    matchResult := SubStr(StrLower(Trim(rom)), 1, StrLen(argCheck)) = StrLower(argCheck)
+                case "end":
+                    matchResult := SubStr(StrLower(Trim(rom)), -StrLen(argCheck)) = StrLower(argCheck)
+            }
+        } else {
+            multiType := (item["romMatch"].Has("multiType")) ? StrLower(Trim(item["romMatch"]["multiType"])) : "and"
+            multiResult := (multiType = "and") ? true : false
+            for arg in argCheck {
+                currSolution := false
+                switch (matchType) {
+                    case "full":
+                        currSolution := (StrLower(Trim(rom)) = StrLower(arg))
+                    case "partial":
+                        currSolution := InStr(StrLower(rom), StrLower(arg))
+                    case "start":
+                        currSolution := SubStr(StrLower(Trim(rom)), 1, StrLen(arg)) = StrLower(arg)
+                    case "end":
+                        currSolution := SubStr(StrLower(Trim(rom)), -StrLen(arg)) = StrLower(arg)
+                }
+
+                if (multiType = "and") {
+                    multiResult := multiResult && currSolution
+                }
+                else if (multiType = "or") {
+                    multiResult := multiResult || currSolution
+                }
+            }
+
+            matchResult := multiResult
+        }
+
+        if (matchResult) {
+            for key, value in item {
+                if (key = "romMatch") {
+                    continue
+                }
+
+                internalProgramConfig[key] := value
+                internalConsoleConfig[key] := value
+            }
+        }
+    }
+
+    return Map("program", internalProgramConfig, "console", internalConsoleConfig)
 }

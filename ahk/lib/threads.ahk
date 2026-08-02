@@ -21,9 +21,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
     ref := Worker(includeString . "
     (
         #Include lib\std.ahk
+        #Include lib\console.ahk
         #Include lib\input\hotkeys.ahk
         #Include lib\input\input.ahk
         #Include lib\input\devices.ahk
+        #Include lib\log.ahk
 
         prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
         CoordMode "Mouse", "Screen"
@@ -78,7 +80,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             global thisInput
             
             for key, value in thisInput[index].OwnProps() {
-                if (key = "vibrating") {
+                if (key = "vibrating" || (thisInput[index].batteryCheckBlocking && key = "batteryLevel")) {
                     continue
                 }
 
@@ -174,7 +176,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         inputInit   := %globalInputConfigs[inputID]["className"]%.initialize()
         ; intialize input type & devices
         loop maxConnected {
-            thisInput.Push(%globalInputConfigs[inputID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[inputID]))
+            thisInput.Push(%globalInputConfigs[inputID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[inputID], globalInputStatus[inputID][A_Index]))
             currConnected.Push(thisInput[A_Index].connected)
             
             updateGlobalStatus(A_Index)
@@ -295,10 +297,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 }
 
                 ; check pressed hotkeys if any have been held long enough
+                toDeleteHotkeys := []
                 for key, value in currHotkeyInput[currIndex] {
                     ; hotkey is no longer supported by current state
                     if (!thisHotkeys.Has(key)) {
-                        ; removeHotkey(key, currIndex)
+                        toDeleteHotkeys.Push(key)
                         continue
                     }
 
@@ -378,16 +381,28 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                         else {
                             winList := WinGetList()
                             loop winList.Length {
-                                currPath := WinGetProcessPath(winList[A_Index])
-                                currProcess := WinGetProcessName(winList[A_Index])
-        
-                                if (!WinActive(winList[A_Index]) || currProcess = "explorer.exe" || currPath = A_AhkPath) {
-                                    continue
+                                try {
+                                    currPath := WinGetProcessPath(winList[A_Index])
+                                    currProcess := WinGetProcessName(winList[A_Index])
+            
+                                    if (!WinActive(winList[A_Index]) || currProcess = "explorer.exe" || currPath = A_AhkPath) {
+                                        continue
+                                    }
+                                    
+                                    ProcessKill(WinGetPID(winList[A_Index]))
+                                    break
                                 }
-                                
-                                try ProcessKill(WinGetPID(winList[A_Index]))
-                                break
                             }
+                        }
+                    }
+                }
+
+                ; clear out any hotkeys that were being held after they were removed from hotkey dict
+                ; this should fix the pause button not working
+                if (toDeleteHotkeys.Length > 0) {
+                    for key in toDeleteHotkeys {
+                        if (currHotkeyInput[currIndex].Has(key)) {
+                            try currHotkeyInput[currIndex].Delete(key)
                         }
                     }
                 }
@@ -402,11 +417,21 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                     MouseGetPos(&xpos, &ypos)
 
+                    monitorL := 0
+                    monitorT := 0
+                    monitorR := 0
+                    monitorB := 0
                     monitorMult := 0
 
                     ; get width of monitor mouse is in to keep motion smooth between monitors
                     loop MonitorGetCount() {
                         MonitorGet(A_Index, &ML, &MT, &MR, &MB)
+                        if (globalStatus["currProgram"]["monitor"] = A_Index) {
+                            monitorL := ML
+                            monitorT := MT
+                            monitorR := MR
+                            monitorB := MB
+                        }
 
                         if (xpos >= ML && xpos <= MR && ypos >= MT && ypos <= MB) {
                             monitorW := Floor(Abs(MR - ML))
@@ -537,6 +562,27 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     ; move the mouse
                     xvel := Round((adjustAxis(xvel, deadzone) * monitorMult))
                     yvel := Round((adjustAxis(yvel, deadzone) * monitorMult))
+
+                    xabs := 0
+                    yabs := 0
+
+                    validMonitor := (monitorL != 0 || monitorR != 0 || monitorT != 0 || monitorB != 0)
+                    validCurrPos := (validMonitor && monitorL <= xpos && monitorR >= xpos && monitorT <= ypos && monitorB >= ypos)
+                    if (!globalStatus["desktopmode"] && validCurrPos && globalStatus["currProgram"]["id"] != "") {
+                        monitorBuf := Round((monitorR - monitorL) * 0.0025)
+                        if (xpos + xvel <= (monitorL + monitorBuf)) {
+                            xvel := (monitorL - xpos) + monitorBuf
+                        }
+                        else if (xpos + xvel >= (monitorR - monitorBuf)) {
+                            xvel := (monitorR - xpos) - monitorBuf
+                        }
+                        if (ypos + yvel <= (monitorT + monitorBuf)) {
+                            yvel := (monitorT - ypos) + monitorBuf
+                        }
+                        else if (ypos + yvel >= (monitorB - monitorBuf)) {
+                            yvel := (monitorB - ypos) - monitorBuf
+                        }
+                    }
 
                     if (xvel != 0 || yvel != 0) {
                         MouseMove(xvel, yvel,, "R")
@@ -943,9 +989,11 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                     }
                 }
 
-                ; check that sound driver hasn't crashed
-                if (SoundGetMute()) {
-                    SoundSetMute(false)
+                try {
+                    ; check that sound driver hasn't crashed
+                    if (SoundGetMute()) {
+                        SoundSetMute(false)
+                    }
                 }
             
                 ; automatically accept firewall
@@ -959,9 +1007,12 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                 if (disableTaskbar && taskbarExists()) {
                     hideTaskbar()
                 }
+                else if (!disableTaskbar && !taskbarExists()) {
+                    showTaskbar()
+                }
             }
             else {
-                if (disableTaskbar && !taskbarExists()) {
+                if (!taskbarExists()) {
                     showTaskbar()
                 }
 

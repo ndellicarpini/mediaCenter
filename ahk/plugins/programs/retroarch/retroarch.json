@@ -25,15 +25,13 @@
     },
 
     "pauseOptions": {
-        "Toggle MAME Menu": "program.mameMenu",
         "Toggle Menu": "program.menu"
     },
 
     "pauseOrder": [
         "Save State", 
         "Load State", 
-        "Toggle Menu", 
-        "Toggle MAME Menu", 
-        "Reset Game"
+        "Reset Game",
+        "Toggle Menu"
     ]
 }

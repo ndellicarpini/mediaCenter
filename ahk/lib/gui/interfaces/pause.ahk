@@ -186,7 +186,7 @@ class PauseInterface extends Interface {
             closeKeyboard()
         }
 
-        HideMouseCursor()
+        HideMouseCursor(true)
 
         if (this.basicMode) {
             guiX := ((this._calcPercentWidth(1) / 2) - (this.guiWidth / 2))
@@ -284,9 +284,11 @@ class PauseInterface extends Interface {
                     if (!globalStatus["suspendScript"]) {
                         globalStatus["loadscreen"]["enable"] := false
                         globalStatus["suspendScript"] := true
+                        writeLog("Suspended Consolizer", "PAUSEMENU")
                     }
                     else {
                         globalStatus["suspendScript"] := false
+                        writeLog("Resumed Consolizer", "PAUSEMENU")
                     }
                 }
                 else {
@@ -353,7 +355,9 @@ class PauseInterface extends Interface {
 
         if (currProgram != "") {
             for key, value in currProgram.pauseOptions {
-                programOptions[RegExReplace(value, "[^a-zA-Z\d]*", "")] := {title: key, function: value}
+                if (inArray(key, currProgram.pauseOrder)) {
+                    programOptions[RegExReplace(value, "[^a-zA-Z\d]*", "")] := {title: key, function: value}
+                }
             }    
         }
 

@@ -8,7 +8,7 @@ class SteamUbisoftProgram extends SteamGameProgram {
         restoreTMM := A_TitleMatchMode
         SetTitleMatchMode(2)
         
-        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe EALauncher.exe"
+        globalStatus["loadscreen"]["overrideWNDW"] := "ahk_exe upc.exe"
         restoreAllowExit := this.allowExit
         this.allowExit := true
 
@@ -19,7 +19,7 @@ class SteamUbisoftProgram extends SteamGameProgram {
         RunAsUser(ubisoftEXE,, ubisoftPath)
 
         count := 0
-        maxCount := 10
+        maxCount := 30
         ; wait for base Ubisoft Launcher exe
         while (!ProcessExist("upc.exe") && count < maxCount) {
             if (this.shouldExit) {
@@ -31,7 +31,7 @@ class SteamUbisoftProgram extends SteamGameProgram {
         }
     
         count := 0
-        maxCount := 10
+        maxCount := 30
         ; wait for base Ubisoft Web Core (which is needed to launch games?)
         while (!ProcessExist("UbisoftWebCore.exe") && !ProcessExist("UplayWebCore.exe") && count < maxCount) {
             if (this.shouldExit) {
@@ -77,7 +77,7 @@ class SteamUbisoftProgram extends SteamGameProgram {
         count := 0
         maxCount := 20
         ; try to close ubisoft while open
-        while (ProcessExist("ahk_exe upc.exe") && count < maxCount) {
+        while (ProcessExist("upc.exe") && count < maxCount) {
             count += 1
             Sleep(500)
         }

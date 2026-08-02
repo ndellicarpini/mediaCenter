@@ -1,0 +1,56 @@
+{
+    "id": "melonds",
+    "name": "MelonDS",
+    "className": "MelonDSEmulator",
+
+    "exe": "melonDS.exe",
+    "dir": "C:\\Emulators\\MelonDS",
+
+    "requireFullscreen": true,
+
+    "mouseMoveDelay": 500,
+    "fullscreenDelay": 500,
+
+    "numStates": 1,
+    "fastForward": true,
+    "reset": true,
+
+    "controls": ["Xbox Controller"],
+
+    "mouse": {
+        "initialPos": [0.875, 0.5],
+        "x": 3,
+        "y": -4,
+        "lclick": 10,
+        "deadzone": 0.15
+    },
+
+    "hotkeys": {
+        "buttonTime": 0,
+        "15&8": {
+            "down": "program.saveState",
+            "time": 70
+        },
+        "15&7": {
+            "down": "program.loadState",
+            "time": 70
+        },
+        "15&6>0.3": {
+            "down": "program.fastForward",
+            "time": 70
+        }
+    },
+
+    "pauseOptions": {
+        "Swap Screen Position": "program.swapScreenPos",
+        "Swap Screen Size": "program.swapScreenSize"
+    },
+
+    "pauseOrder": [
+        "Save State", 
+        "Load State", 
+        "Swap Screen Position", 
+        "Swap Screen Size", 
+        "Reset Game"
+    ]
+}

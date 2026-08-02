@@ -8,7 +8,8 @@ SetCurrentWinTitle(SENDNAME)
 ; check that mediacenter is actually running
 DetectHiddenWindows(true)
 if (!WinExist(MAINNAME)) {
-    MsgBox(MAINNAME . " is not running")
+    Run(A_ScriptDir . "\" . "startMain.cmd -quiet -backup", A_ScriptDir, "Hide")
+    Sleep(500)
 }
 
 sendListToMain(A_Args)

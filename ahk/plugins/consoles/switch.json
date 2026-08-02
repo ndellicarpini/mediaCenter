@@ -3,10 +3,21 @@
     "romDir": "D:\\Roms\\Switch",
     "romNameIndex": 0,
 
-    "emulators": ["ryujinx"],
+    "emulators": ["ryujinx", "eden"],
     "extensions": [".nca"],
 
     "romVersions": [
         
+    ],
+
+    "romOverrides": [
+        {
+            "romMatch": {
+                "args": ["legends z-a", "metroid prime 4", "rhythm heaven", "super smash bros"],
+                "matchType": "partial",
+                "multiType": "or"
+            },
+            "emulatorIndex": 2
+        }
     ]
 }

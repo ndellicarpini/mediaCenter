@@ -7,5 +7,5 @@
     },
 
     "postLaunchSend": "{Enter}",
-    "postLaunchDelay": 3500
+    "postLaunchDelay": 5000
 }

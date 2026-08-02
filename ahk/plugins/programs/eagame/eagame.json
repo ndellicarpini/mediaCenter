@@ -3,5 +3,12 @@
 	"name": "Windows Game",
 	"className": "EAGameProgram",
 
+	"ignoreEXE": [
+		"EADesktop.exe",
+		"EALauncher.exe",
+		"EALaunchHelper.exe",
+		"EABackgroundService.exe"
+	],
+
 	"requireFullscreen": true
 }

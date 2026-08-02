@@ -6,7 +6,7 @@
     "emulators": ["retroarch"],
     "extensions": [".sfc", ".smc"],
 
-    "core": "bsnes",
+    "core": "snes9x",
 
     "romVersions": [
         

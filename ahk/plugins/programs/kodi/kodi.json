@@ -7,7 +7,21 @@
     "exe": "kodi.exe",
     "defaultArgs": "-fs -p",
 
+    "enableVPN": "expressVPNConnect",
+    "disableVPN": "expressVPNDisconnect",
+    "checkVPN": "expressVPNConnected",
+
     "requireFullscreen": true,
     "allowQuickAccess": true,
-    "allowExit": false
+    "allowExit": false,
+
+    "pauseOptions": {
+        "Toggle VPN": "program.toggleVPN",
+        "Reload": "program.reload"
+    },
+
+    "pauseOrder": [
+        "Toggle VPN",
+        "Reload"
+    ]
 }

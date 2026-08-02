@@ -9,6 +9,7 @@ class Input {
     productID := 0
     revisionID := 0
 
+    connectedTime := -1
     connected := false
     vibrating := false
 
@@ -16,10 +17,13 @@ class Input {
     ;  -1 -> unknown
     ;   0 -> wired
     ;   1 -> battery
+    ;   2 -> bluetooth
     connectionType := -1
 
     ; valid range 0 -> 1
     batteryLevel := 0
+    ; if true -> checks battery percentage in main rather than in inputThread
+    batteryCheckBlocking := false
 
     ; map object to use for whatever ptrs are created in the initialization
     ; of the device type / individual device
@@ -32,8 +36,15 @@ class Input {
     buttNames := []
     axisNames := []
 
-    __New(initResults, pluginPort, inputConfigRef) {
+    __New(initResults, pluginPort, inputConfigRef, restoreAttributes := "") {
         inputConfig := ObjDeepClone(inputConfigRef)
+
+        ; restore controller details from backup
+        if (restoreAttributes != "") {                
+            for key, value in restoreAttributes {
+                this.%key% := value
+            }
+        }
         
         this.pluginID := inputConfig["id"]
         this.pluginPort := pluginPort
@@ -55,6 +66,12 @@ class Input {
     ; this should only run once to de-attach the driver (end of script)
     static destroy() {
 
+    }
+    
+    ; this runs in main rather than in inputThread - relies on globalInputStatus
+    ; should return map of pluginPorts to battery levels
+    static checkBlockingBatteryLevels() {
+        return Map()
     }
 
     ; this should only run once to intialize the controller port instance (after initialize)

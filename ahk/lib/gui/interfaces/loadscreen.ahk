@@ -31,6 +31,10 @@ class LoadScreenInterface extends Interface {
     }
 
     updateText(text) {
+        if (this._guiH != this._calcPercentHeight(1) || this._guiW != this._calcPercentWidth(1)) {
+            this.Show()
+        }
+
         this.guiObj["LoadText"].Text := text
         this.guiObj["LoadText"].Redraw()
     }
@@ -73,7 +77,7 @@ class LoadScreenInterface extends Interface {
 ; retuns null
 activateLoadScreen() {
 	if (WinShown(INTERFACES["loadscreen"]["wndw"])) {
-		try WinActivateForeground(INTERFACES["loadscreen"]["wndw"])
+		WinActivateForeground(INTERFACES["loadscreen"]["wndw"])
 	}
 }
 

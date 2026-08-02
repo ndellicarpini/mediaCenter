@@ -4,7 +4,7 @@
     "className": "XeniaEmulator",
 
     "exe": "xenia_canary.exe",
-    "dir": "C:\\Emulators\\Xenia\\Emulators\\Xenia Canary",
+    "dir": "C:\\Emulators\\Xenia\\",
 
     "requireFullscreen": true,
     "priority": "H",

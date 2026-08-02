@@ -1,0 +1,9 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "Blur.exe",
+        "matchType": "partial"
+    },
+
+    "fullscreenDelay": 5000
+}

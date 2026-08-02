@@ -20,13 +20,20 @@ SCREENSHOT
 - https://www.autohotkey.com/board/topic/91585-screen-capture-using-only-ahk-no-3rd-party-software-required/
 
 WINDOWS
-- replace shell REGEDIT: HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
+- replace shell REGEDIT: HKEY_CURRENT_USER\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon\Shell
 - tabtip https://superuser.com/questions/1720607/open-touch-keyboard-via-command
 - taskbar unhide not working https://learn.microsoft.com/en-us/answers/questions/1230347/hidden-taskbar-function-is-out-of-work-by-using-sh
 - change audio device? https://www.autohotkey.com/boards/viewtopic.php?f=76&t=49980&p=387886#p387886
+- skip lock screen on wakeup https://www.elevenforum.com/t/i-want-to-disable-the-sign-in-screen-on-screen-wakeup.24568/
+- skip sign in button on wakeup https://www.reddit.com/r/techsupport/comments/1dkafq2/comment/l9ik3uu/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button
+- skip sign in button on wakeup https://www.elevenforum.com/t/enable-or-disable-require-sign-in-on-wakeup-in-windows-11.864/
+- disable "select far left corner of taskbar to show desktop", as thats where the mouse goes to hide
+- set program dpi compatibility https://www.autohotkey.com/boards/viewtopic.php?t=108671
+- disable "Xbox Mode" in settings, otherwise home button opens task view
 
 STEAM
 - launch configs: Steam\userdata\${userid}\config\localconfig.vdf
+- disable xbox button https://steamcommunity.com/discussions/forum/1/3802778829236587738/#c3802778829237759472
 
 KODI 
 - fix twitch thumbnails -> in converter.py

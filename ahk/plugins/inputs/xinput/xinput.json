@@ -86,7 +86,20 @@
             }
         },
         "keyboard": {
-            "7": "gui.Destroy"
+            "3": "gui.keyboard space",
+            "4": "gui.keyboard caps",
+            "5": "gui.cursorLeft",
+            "6": "gui.cursorRight",
+            "7": "gui.Destroy",
+            "8": "gui.sendText",
+            "5>0.1": {
+                "down": "gui.keyboard ctrl",
+                "up": "gui.keyboard ctrl"
+            },
+            "6>0.1": {
+                "down": "gui.keyboard shift",
+                "up": "gui.keyboard shift"
+            }
         }
     }
 }

@@ -10,5 +10,13 @@
     "overlayActivateFix": true,
     "priority": "H",
     
-    "controls": ["Xbox Controller"]
+    "controls": ["Xbox Controller"],
+
+    "pauseOptions": {
+        "Show Menu": "program.menu"
+    },
+
+    "pauseOrder": [
+        "Show Menu"
+    ]
 }

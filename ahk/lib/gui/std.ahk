@@ -150,9 +150,15 @@ getThumbnailPath(asset, globalConfig) {
 }
 
 ; hides the mouse cursor
+;  ignoreStatus - hides the mouse regardless of current status
 ;
 ; returns null
-HideMouseCursor() {
+HideMouseCursor(ignoreStatus := false) {
+    global globalStatus
+    if (!ignoreStatus && (globalStatus["suspendScript"] || globalStatus["desktopmode"] || globalStatus["kbmmode"])) {
+        return
+    }
+
     global DEFAULT_MONITOR
     MouseMovePercent(1, 1, DEFAULT_MONITOR)
 }

@@ -5,8 +5,10 @@
         "matchType": "partial"
     },
 
-    "exe": "ff7.exe",
+    "exe": "ff7_en.exe",
     "defaultArgs": ["/LAUNCH", "/QUIT"],
+    "aspectRatio": "screen",
+    "fullscreenDelay": 6000,
     "launcher": {
         "exe": "7th Heaven.exe"
     }

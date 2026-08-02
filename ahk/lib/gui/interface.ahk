@@ -98,23 +98,17 @@ class Interface {
         for item in optionsArr {
             if (StrLower(SubStr(item, 1, 1)) = "x") {
                 this._guiX := this._monitorX + Round(Integer(SubStr(item, 2)) * (monitorDPI / A_ScreenDPI))
+
                 ; if the gui is drawn right on the edge of a monitor -> will use previous monitor as dpi reference
                 ; adjust gui position to use proper dpi
-                if (this._guiX = this._monitorX) {
-                    this._guiX += 1
-                }
-
-                options := StrReplace(options, item, "x" . this._guiX)
+                options := StrReplace(options, item, "x" . ((this._guiX = this._monitorX) ? this._guiX + 1 : this._guiX))
             }
             else if (StrLower(SubStr(item, 1, 1)) = "y") {
                 this._guiY := this._monitorY + Round(Integer(SubStr(item, 2)) * (monitorDPI / A_ScreenDPI))
+
                 ; if the gui is drawn right on the edge of a monitor -> will use previous monitor as dpi reference
                 ; adjust gui position to use proper dpi
-                if (this._guiY = this._monitorY) {
-                    this._guiY += 1
-                }
-
-                options := StrReplace(options, item, "y" . this._guiY)
+                options := StrReplace(options, item, "y" . ((this._guiY = this._monitorY) ? this._guiY + 1 : this._guiY))
             }
             else if (StrLower(SubStr(item, 1, 1)) = "w") {
                 this._guiW := Integer(SubStr(item, 2))
@@ -123,7 +117,7 @@ class Interface {
                     this._guiW := this._monitorW * (A_ScreenDPI / monitorDPI)
                 }
 
-                options := StrReplace(options, item, "w" . this._guiW - 1)
+                options := StrReplace(options, item, "w" . this._guiW)
             }
             else if (StrLower(SubStr(item, 1, 1)) = "h") {
                 this._guiH := Integer(SubStr(item, 2))
@@ -162,7 +156,11 @@ class Interface {
             WinSetTransparent(200, "AHKOVERLAY")
         }
 
-        return this.guiObj.Show(options)
+        retObj := this.guiObj.Show(options)
+
+        ; because the gui position needs to be adjusted when drawn on edge of monitor, adjust it back
+        try WinMove(this._guiX, this._guiY,,, this.guiObj.Hwnd)
+        return retObj
     }
 
     ; exactly like gui.Hide

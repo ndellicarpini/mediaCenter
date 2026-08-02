@@ -3,6 +3,7 @@
 ; ----- DO NOT EDIT: DYNAMIC INCLUDE START -----
 #Include plugins\ahk\boot.ahk
 #Include plugins\ahk\delfinovin.ahk
+#Include plugins\ahk\expressvpn.ahk
 #Include plugins\ahk\loadscreen.ahk
 #Include plugins\inputs\xinput\xinput.ahk
 #Include plugins\programs\azahar\azahar.ahk
@@ -12,7 +13,9 @@
 #Include plugins\programs\desmume\desmume.ahk
 #Include plugins\programs\dolphin\dolphin.ahk
 #Include plugins\programs\eagame\eagame.ahk
+#Include plugins\programs\eden\eden.ahk
 #Include plugins\programs\kodi\kodi.ahk
+#Include plugins\programs\melonds\melonds.ahk
 #Include plugins\programs\pcsx2\pcsx2.ahk
 #Include plugins\programs\ppsspp\ppsspp.ahk
 #Include plugins\programs\retroarch\retroarch.ahk
@@ -26,9 +29,9 @@
 #Include plugins\programs\steam\extensions\XCOM 2\xcom 2.ahk
 #Include plugins\programs\wingame\wingame.ahk
 #Include plugins\programs\wingame\extensions\Daytona USA 2\daytona.ahk
+#Include plugins\programs\wingame\extensions\Harbor Masters\harbormaster.ahk
+#Include plugins\programs\wingame\extensions\Minecraft\minecraft.ahk
 #Include plugins\programs\wingame\extensions\Super Mario 64\sm64.ahk
-#Include plugins\programs\wingame\extensions\Zelda - Majora's Mask\mm.ahk
-#Include plugins\programs\wingame\extensions\Zelda - Ocarina of Time\oot.ahk
 #Include plugins\programs\xemu\xemu.ahk
 #Include plugins\programs\xenia\xenia.ahk
 ; -----  DO NOT EDIT: DYNAMIC INCLUDE END  -----
@@ -39,6 +42,8 @@
 #Include lib\program\program.ahk
 #Include lib\program\emulator.ahk
 #Include lib\data.ahk
+#Include lib\log.ahk
+#Include lib\console.ahk
 #Include lib\input\hotkeys.ahk
 #Include lib\input\desktop.ahk
 #Include lib\input\devices.ahk
@@ -58,6 +63,9 @@
 #Include lib\gui\interfaces\program.ahk
 #Include lib\gui\interfaces\volume.ahk
 #Include lib\gui\interfaces\keyboard.ahk
+
+; error handler
+OnError(writeErrorLog)
 
 ; SetKeyDelay 50, 100
 CoordMode "Mouse", "Screen"
@@ -96,7 +104,7 @@ globalGuis.CaseSense     := "Off"
 ; ----- INITIALIZE GLOBALCONFIG -----
 globalConfig["StartArgs"] := A_Args
 
-writeLog("Starting...", "MAIN")
+writeLog("---------- STARTING CONSOLIZER ----------", "MAIN")
 
 ; read from global.cfg
 for key, value in GlobalCfg().data {
@@ -163,11 +171,8 @@ for value in requiredFolders {
     }
 }
 
-global wmiCOM := ComObjGet("winmgmts:")
-
 ; load process monitoring library for checking process lists
 processLib := DllLoadLib("psapi.dll")
-
 ; load gdi library for screenshot thumbnails
 gdiLib := DllLoadLib("GdiPlus.dll")
 
@@ -220,6 +225,9 @@ globalStatus["input"]["hotkeys"]    := Map()
 globalStatus["input"]["mouse"]      := Map()
 globalStatus["input"]["buttonTime"] := 70
 globalStatus["input"]["buffer"]     := []
+
+; last error to keep track if there's issues
+globalStatus["lastError"] := ""
 
 ; ----- INITIALIZE PROGRAM/CONSOLE/INPUT CONFIGS -----
 ; read program configs from ConfigDir
@@ -288,6 +296,7 @@ if (globalConfig["Plugins"].Has("ConsolePluginDir") && globalConfig["Plugins"]["
     }
 }
 
+inputThreadsToStart := []
 ; read input configs from plugins & start a unique inputThread for each individual config
 if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["InputPluginDir"] != "") {
     loop files validateDir(globalConfig["Plugins"]["InputPluginDir"]) . "*.json", "FR" {
@@ -306,13 +315,7 @@ if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["In
                 globalInputStatus[controlID].Push(Map())
             }
 
-            globalThreads["input-" . controlID] := inputThread(
-                controlID,
-                ObjPtrAddRef(globalConfig), 
-                ObjPtrAddRef(globalStatus), 
-                ObjPtrAddRef(globalInputStatus),
-                ObjPtrAddRef(globalInputConfigs)
-            )
+            inputThreadsToStart.Push(controlID)
         }
         else {
             ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
@@ -355,6 +358,16 @@ if (!inArray("-quiet", globalConfig["StartArgs"]) && globalConfig["GUI"].Has("En
 
 writeLog("Starting Threads...", "MAIN")
 
+for controlID in inputThreadsToStart {
+    globalThreads["input-" . controlID] := inputThread(
+        controlID,
+        ObjPtrAddRef(globalConfig), 
+        ObjPtrAddRef(globalStatus), 
+        ObjPtrAddRef(globalInputStatus),
+        ObjPtrAddRef(globalInputConfigs)
+    )
+}
+
 ; start non-input threads
 globalThreads["hotkey"] := hotkeyThread(
     ObjPtrAddRef(globalConfig), 
@@ -371,7 +384,13 @@ Sleep(250)
 
 ; ----- BOOT -----
 if (globalConfig.Has("Overrides") && globalConfig["Overrides"].Has("boot") && globalConfig["Overrides"]["boot"] != "") {
-    try %globalConfig["Overrides"]["boot"]%(globalConfig["StartArgs"]*)
+    try {
+        %globalConfig["Overrides"]["boot"]%(globalConfig["StartArgs"]*)
+    }
+    catch as e {
+        writeLog("Failed to run 'Boot' Function", "ERROR")
+        writeErrorLog(e)
+    }
 }
 
 ; initial backup of status
@@ -399,10 +418,11 @@ loopSleep     := Round(globalConfig["General"]["AvgLoopSleep"] * 2)
 writeLog("Starting input timer...", "MAIN")
 
 ; set timer to check the input buffer
-SetTimer(InputBufferTimer, 35)
+SetTimer(InputBufferTimer, 15)
 
 delayCount := 0
 maxDelayCount := 15
+baseRamUsage := 0
 
 writeLog("Starting main loop...", "MAIN")
 
@@ -529,6 +549,16 @@ loop {
 
     ; every maxDelayCount loops -> check threads & maintainer
     if (delayCount > maxDelayCount) {
+        restoreTMM := A_TitleMatchMode
+        SetTitleMatchMode(3)
+
+        ; set desktop mode if update popup is showing
+        if (!currDesktopMode && WinShown("We've got an update for you")) {
+            enableDesktopMode()
+        }
+        
+        SetTitleMatchMode(restoreTMM)
+
         for key, value in globalThreads {
             ; if thread crashed, reset main
             try {
@@ -555,6 +585,16 @@ loop {
                     ProcessClose(WinGetPID(hwnd))
                 }
             }
+        }
+
+        ; check that current main isnt using too much ram
+        ; memory leak who
+        if (baseRamUsage = 0) {
+            baseRamUsage := getMainRamUsage()
+        }
+        else if ((getMainRamUsage() > (baseRamUsage * 5)) && !currDesktopMode && !globalStatus["loadscreen"]["show"] && globalGuis.Count = 0) {
+            writeLog("KILLED MAIN - Curr Ram: " . getMainRamUsage() . " | Base Ram: " . baseRamUsage, "MAIN")
+            ProcessClose(mainPID)
         }
 
         DetectHiddenWindows(restoreDHW)
@@ -607,8 +647,9 @@ RunBufferedFunction(bufferedFunc) {
                     globalGuis["pause"].Destroy()
                 }
             }
-            catch {
-                writeLog("Failed to create pausemenu??")
+            catch as e {
+                writeLog("Failed to create pausemenu", "ERROR")
+                writeErrorLog(e)
             }
         }
     }
@@ -674,9 +715,22 @@ InputBufferTimer() {
         }
 
         RunBufferedFunction(globalStatus["input"]["buffer"][1])
-        globalStatus["input"]["buffer"].RemoveAt(1)
+
+        ; I don't know how this could possibly break, but all sorts of fuckery results
+        ; death is the answer
+        try {
+            if (globalStatus["input"]["buffer"].Length > 0) {
+                globalStatus["input"]["buffer"].RemoveAt(1)
+            }
+        }
+        catch as e {
+            writeErrorLog(e, "ExitApp")
+            globalStatus["input"]["buffer"] := []
+            ProcessClose(mainPID)
+        }
     }
-    catch {
+    catch as e {
+        writeErrorLog(e, "Return")
         globalStatus["input"]["buffer"] := []
     }
 
@@ -788,8 +842,9 @@ ShutdownScript(restoreTaskbar := true) {
 
     writeLog("Exiting...", "MAIN")
 
+    ; free process checking lib
     DllFreeLib(processLib)
-    
+    ; free GDI
     DllCall("GdiPlus\GdiplusShutdown", "Ptr", gdiToken)
     DllFreeLib(gdiLib)
     
@@ -810,20 +865,21 @@ ShutdownScript(restoreTaskbar := true) {
     ; tell the threads to close
     for key, value in globalThreads {
         value.ExitApp()
+        value.Wait()
     }
 
-    Thread("Terminate", all := true)
-    
-    Sleep(500)
+    Sleep(250)
 
-    ; ObjRelease(ObjPtr(globalConfig))
-    ; ObjRelease(ObjPtr(globalStatus))
-    ; ObjRelease(ObjPtr(globalConsoles))
-    ; ObjRelease(ObjPtr(globalPrograms))
-    ; ObjRelease(ObjPtr(globalRunning))
-    ; ObjRelease(ObjPtr(globalGuis))
-    ; ObjRelease(ObjPtr(globalInputStatus))
-    ; ObjRelease(ObjPtr(globalInputConfigs))
+    ; try {
+    ;     ObjRelease(ObjPtr(globalConfig))
+    ;     ObjRelease(ObjPtr(globalStatus))
+    ;     ObjRelease(ObjPtr(globalConsoles))
+    ;     ObjRelease(ObjPtr(globalPrograms))
+    ;     ObjRelease(ObjPtr(globalRunning))
+    ;     ObjRelease(ObjPtr(globalGuis))
+    ;     ObjRelease(ObjPtr(globalInputStatus))
+    ;     ObjRelease(ObjPtr(globalInputConfigs))
+    ; }
 }
 
 ; exits the script entirely, including maintainer
@@ -842,9 +898,6 @@ ExitScript() {
     }
 
     ShutdownScript()
-    Sleep(500)
-
-    ; ProcessClose(mainPID)
     ExitApp()
 }
 
@@ -867,9 +920,6 @@ ResetScript() {
     }
 
     ShutdownScript()
-    Sleep(500)
-
-    ; ProcessClose(mainPID)
     ExitApp()
 }
 
@@ -899,10 +949,11 @@ PowerOff() {
     Sleep(500)
     
     ShutdownScript()
-    Sleep(500)
+    while (true) {
+        Shutdown(1)
+        Sleep(5000)
+    }
 
-    Shutdown 1
-    ; ProcessClose(mainPID)
     ExitApp()
 }
 
@@ -931,10 +982,11 @@ Restart() {
     Sleep(500)
 
     ShutdownScript()
-    Sleep(500)
+    while (true) {
+        Shutdown(2)
+        Sleep(5000)
+    }
 
-    Shutdown 2
-    ; ProcessClose(mainPID)
     ExitApp()
 }
 
@@ -970,13 +1022,20 @@ Standby() {
 
     ProcessClose("explorer.exe")
     
-    DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
-    Sleep(5000)
+    suspendTime := A_TickCount
+    while (true) {
+        if ((A_TickCount - suspendTime) > 10000) {
+            break
+        }
+        
+        suspendTime := A_TickCount
+        DllCall("powrprof\SetSuspendState", "Int", 0, "Int", 0, "Int", 0)
+        Sleep(7500)
+    }
 
+    Sleep(2500)
     ShutdownScript()
-    Sleep(500)
+    Run(A_AhkPath . A_Space . "maintainer.ahk -clean", A_ScriptDir, "Hide")
 
-    Run A_AhkPath . A_Space . "maintainer.ahk -clean", A_ScriptDir, "Hide"
-    ; ProcessClose(mainPID)
     ExitApp()
 }

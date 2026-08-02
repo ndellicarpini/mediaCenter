@@ -65,7 +65,7 @@ class EAGameProgram extends WinGameProgram {
 
     _postExit() {
         count := 0
-        maxCount := 100
+        maxCount := 10
         ; wait for ea to show
         while (!WinShown("ahk_exe EADesktop.exe") && count < maxCount) {
             count += 1
@@ -73,17 +73,15 @@ class EAGameProgram extends WinGameProgram {
         }
     
         count := 0
-        maxCount := 20
+        maxCount := 10
         ; try to close ea while open
         while (WinShown("ahk_exe EADesktop.exe") && count < maxCount) {
             WinActivateForeground("ahk_exe EADesktop.exe")
-            Sleep(100)
+            Sleep(500)
     
             SendSafe("{Alt}")
-            Sleep(50)
-            SendSafe("{Up}")
-            Sleep(50)
-            SendSafe("{Enter}")
+            Sleep(500)
+            SendSafe("X")
     
             count += 1
             Sleep(500)
@@ -94,6 +92,7 @@ class EAGameProgram extends WinGameProgram {
             ProcessClose("EADesktop.exe")
         }
 
+        Sleep(500)
         ProcessClose("EABackgroundService.exe")
     }
 }

@@ -1,0 +1,15 @@
+{
+    "id": "eden",
+    "name": "Eden",
+    "className": "EdenEmulator",
+
+    "exe": "eden.exe",
+    "dir": "C:\\Emulators\\Eden",
+
+    "requireFullscreen": true,
+    "priority": "H",
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {}
+}

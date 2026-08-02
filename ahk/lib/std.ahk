@@ -174,8 +174,9 @@ ProcessSuspended(process) {
 		PID := WinGetPID(WinHidden(process))
 	}
 
-	wmi := ComObjGet("winmgmts:")
-	for thread in wmi.ExecQuery("Select * from Win32_Thread WHERE ProcessHandle = " PID) {
+	wmi := ComObjGet("winmgmts:{impersonationLevel=impersonate}!\\.\root\CIMV2")
+	results :=  wmi.ExecQuery("Select * from Win32_Thread WHERE ProcessHandle = " PID)
+	for thread in results {
 		if (thread.ThreadWaitReason != 5) {
 			return false
 		}
@@ -664,6 +665,25 @@ MouseMovePercent(x, y, monitorNum) {
     monitorW := Floor(Abs(MR - ML))
 
 	MouseMove(monitorX + (x * monitorW), monitorY + (y * monitorH))
+}
+
+; gets the current unix timestep in seconds (locale aware)
+;  time - input time in YYYYMMDDHH24MISS format (defaults to now)
+;
+; returns seconds since epoch
+GetLocaleUnixTimestep(time := -1) {
+	if (time = -1) {
+		time := A_Now
+	}
+
+	return DateDiff(time, "19700101000000", "Seconds")
+}
+
+; gets the current locale unix offset in seconds
+;
+; returns offset seconds
+GetUTCOffset() {
+	return DateDiff(A_Now, A_NowUTC, "Seconds")
 }
 
 ; deep clones an object, supporting Maps & Arrays
@@ -1566,6 +1586,27 @@ runFunction(args, params := "") {
 	}
 }
 
+; sets the dpi scaling for all .exes in the directory to "Application"
+;  directory - directory to recursively find exes in
+;
+; return null
+setDirectoryApplicationDPI(dir) {
+	dpiKey := "HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers"
+
+	existingExes := []
+	loop reg dpiKey {
+		existingExes.Push(A_LoopRegName)
+	}
+	
+	loop files validateDir(dir) . "*.exe", "R" {
+		if (inArray(A_LoopFileFullPath, existingExes)) {
+			continue
+		}
+
+		RegWrite("~ HIGHDPIAWARE", "REG_SZ", dpiKey, A_LoopFileFullPath)
+	}
+}
+
 ; returns the string containing the dynamic includes if it exists
 ;  toRead - string/file to check for dynamic include section
 ;
@@ -1615,6 +1656,42 @@ getImageDimensions(path) {
 
 	dims := StrSplit(StrLower(fileObj.extendedProperty("Dimensions")), "x", " ?" chr(8234) chr(8236), 2)
 	return [Integer(Trim(dims[1])), Integer(Trim(dims[2]))]
+}
+
+; gets the memory usage of main in kb
+; https://www.autohotkey.com/board/topic/44824-finding-a-process-ram-memory-usage/
+; 
+; returns ram usage
+getMainRamUsage() {
+	restoreTMM := A_TitleMatchMode
+	SetTitleMatchMode(3)
+	restoreDHW := A_DetectHiddenWindows
+	DetectHiddenWindows(true)
+
+	if (!WinExist(MAINNAME)) {
+		return 0
+	}
+
+    pid := WinGetPID(MAINNAME)
+	if (!pid) {
+		return 0
+	}
+
+    ; get process handle
+    processHandle := DllCall("OpenProcess", "UInt", 0x0010 | 0x0400, "Int", 0, "UInt", pid)
+
+    ; get memory info
+	bufSize := 80
+    processInfoBuff := Buffer(bufSize, 0)
+    DllCall("psapi.dll\GetProcessMemoryInfo", "UInt", processHandle, "UInt", processInfoBuff.Ptr, "UInt", bufSize)
+	DllCall("CloseHandle", "UInt", processHandle)
+
+	; divide to kb
+    retVal := NumGet(processInfoBuff, 72, "UInt")
+	
+	SetTitleMatchMode(restoreTMM)
+	DetectHiddenWindows(restoreDHW)
+	return retVal / 1024
 }
 
 ; gets the cpu load as a float percentage

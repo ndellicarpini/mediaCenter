@@ -1,0 +1,16 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "prismlauncher.exe",
+        "matchType": "partial"
+    },
+    
+    "exe":"javaw.exe",
+    "className": "MinecraftProgram",
+    "multiInstance": [
+        "Player1",
+        "Player2",
+        "Player3",
+        "Player4"
+    ]
+}

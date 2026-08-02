@@ -1,0 +1,3 @@
+- create a "headless" mode that just sends each key directly rather than appending them to a string
+- in "headless" mode -> right stick moves window
+- maybe radio button at bottom to facilitate switch?

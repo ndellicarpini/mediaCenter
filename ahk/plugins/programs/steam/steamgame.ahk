@@ -126,31 +126,31 @@ class SteamGameProgram extends Program {
                     continue
                 }
 
-                ; if (WinGetTitle(wndw) = "Steam") {
-                ;     minSize := WinGetMinSize(wndw)
-                ;     WinMove(,, minSize[1], minSize[2])
-                ;     Sleep(100)
+                if (WinGetTitle(wndw) = "Steam") {
+                    minSize := WinGetMinSize(wndw)
+                    WinMove(,, minSize[1], minSize[2])
+                    Sleep(100)
                
-                ;     WinActivateForeground(wndw)
-                ;     Sleep(250)
+                    WinActivateForeground(wndw)
+                    Sleep(250)
                     
-                ;     loop 2 {
-                ;         MouseClick("Left"
-                ;             , percentWidthRelativeWndw(0.6, wndw)
-                ;             , percentHeightRelativeWndw(0.83 + ((A_Index - 1) * 0.05), wndw)
-                ;             ,,, "D"
-                ;         )
-                ;         Sleep(75)
-                ;         MouseClick("Left",,,,, "U")
-                ;         Sleep(75)
-                ;     }
+                    loop 2 {
+                        MouseClick("Left"
+                            , percentWidthRelativeWndw(0.6, wndw)
+                            , percentHeightRelativeWndw(0.83 + ((A_Index - 1) * 0.05), wndw)
+                            ,,, "D"
+                        )
+                        Sleep(75)
+                        MouseClick("Left",,,,, "U")
+                        Sleep(75)
+                    }
 
-                ;     HideMouseCursor()
-                ;     Sleep(250)
-                ;     WinClose(wndw)
+                    HideMouseCursor()
+                    Sleep(250)
+                    WinClose(wndw)
 
-                ;     return
-                ; }
+                    return
+                }
 
                 if (StrLower(WinGetTitle(wndw)) = "eula") {               
                     WinActivateForeground(wndw)
@@ -171,7 +171,7 @@ class SteamGameProgram extends Program {
                     return
                 }
 
-                if (StrLower(WinGetTitle(wndw)) = "steam dialog") {               
+                if (StrLower(WinGetTitle(wndw)) = "steam dialog") {
                     WinActivateForeground(wndw)
                     Sleep(250)
                     
@@ -201,45 +201,16 @@ class SteamGameProgram extends Program {
             restoreLoadText  := globalStatus["loadscreen"]["text"]
 
             runWithArgs := true
-        
-            ; launch steam if it doesn't exist
-            ; if (!globalRunning.Has("steam") || !globalRunning["steam"].exists()) {
-            ;     if (!globalRunning.Has("steam")) {
-            ;         createProgram("steam", true, false)
-            ;     }
-            ;     else if (!globalRunning["steam"].exists()) {
-            ;         globalRunning["steam"].launch()
-            ;     }
-            
-            ;     ; has carriage return to avoid getting overwritten by previous resetLoadscreen
-            ;     ; (resetLoadscreen does a simple check if old text = new text before delayed overwrite)
-            ;     setLoadScreen("Waiting for Steam...`r")
-        
-            ;     this.allowExit := true
-                
-            ;     count := 0
-            ;     maxCount := 150
-            ;     ; buffer wait for steam so that the URI works
-            ;     while (count < maxCount) {
-            ;         if (this.shouldExit) {    
-            ;             return false
-            ;         }
-        
-            ;         count += 1
-            ;         Sleep(100)
-            ;     }
-        
-            ;     this.allowExit := false
-            ; }
             
             setLoadScreen("Waiting for Steam...")
 
             try {
+                uriArr := StrSplit(Trim(URI, "/"), "/")
+                gameID := uriArr[uriArr.Length]
+
                 ; write args to default args of game in steam config file because
                 ; I HATE VALVE I HATE VALVE I HATE VALVE I HATE VALVE I HATE VALVE
                 if (cleanArgs.Length > 0) {
-                    uriArr := StrSplit(Trim(URI, "/"), "/")
-                    gameID := uriArr[uriArr.Length]
                     argString := joinArray(cleanArgs)
                     argString := StrReplace(argString, '\', '\\')
                     argString := StrReplace(argString, '"', '\"')
@@ -308,8 +279,43 @@ class SteamGameProgram extends Program {
                         }
                     }
                 }
+
+                dpiDirs := []
+                manifestPath := ""
+                for dir in this.dir {
+                    dirArr := StrSplit(RTrim(dir, "\"), "\")
+                    if (StrLower(dirArr[dirArr.Length]) = "common") {
+                        dirArr.Pop()
+                        testPath := validateDir(joinArray(dirArr, "\")) . "appmanifest_" . gameID . ".acf"
+                        if (FileExist(testPath)) {
+                            manifestPath := testPath
+                        }
+                    }
+                    else {
+                        dpiDirs.Push(dir)
+                    }
+                }
+
+                if (manifestPath != "") {
+                    manifestStr := fileToString(manifestPath)
+                    if (RegExMatch(manifestStr, "i)`"installdir`".*", &manifestMatch)) {
+                        installName := Trim(StrReplace(
+                            SubStr(manifestStr, manifestMatch.Pos[0], manifestMatch.Len[0])
+                            , "`"installdir`"", "", true,, 1), " `t`"")
+
+                        installDir := validateDir(StrReplace(manifestPath, "appmanifest_" . gameID . ".acf", "common\" . installName))
+                        if (FileExist(installDir)) {
+                            dpiDirs.Push(installDir)
+                        }
+                    }
+                }
+
+                for dir in dpiDirs {
+                    setDirectoryApplicationDPI(dir)
+                }
             }
-            catch {
+            catch as e {
+                writeErrorLog(e, "Return")
                 return false
             }
 
@@ -395,6 +401,11 @@ class SteamGameProgram extends Program {
                     break
                 }
 
+                if (globalStatus["suspendScript"] || globalStatus["desktopmode"]) {
+                    Sleep(500)
+                    continue
+                }
+
                 if (!steamOpen && count < maxCount) {
                     count += 1
 
@@ -452,7 +463,7 @@ class SteamGameProgram extends Program {
                     }
                 }
 
-                checkDialogs()
+                try checkDialogs()
                 Sleep(100)
             }
         

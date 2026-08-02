@@ -6,7 +6,7 @@
     },
 
     "launcher": {
-        "exe": "FalloutLauncherSteam.exe",
+        "exe": "Fallout3Launcher.exe",
         "mouseClick": [0.922, 0.278]
     }
 }

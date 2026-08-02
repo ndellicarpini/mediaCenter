@@ -28,13 +28,18 @@ class ProgramInterface extends Interface {
         this.SetFont("bold s24")
         this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . this._calcPercentHeight(0.05) . " w" . (this.guiWidth - (marginSize * 2)), "Multitasking")
 
+        currProgram := globalStatus["currProgram"]["id"]
+
         ; create the list of running programs
         programList := []
         for key, value in globalRunning {
             if (value.background) {
                 continue
             }
-
+            if (key = currProgram) {
+                programList.InsertAt(1, key)
+                continue
+            }
             if (programList.Length = 0) {
                 programList.Push(key)
                 continue
@@ -42,7 +47,9 @@ class ProgramInterface extends Interface {
 
             ; sort program list by descending launch time
             loop programList.Length {
-                if (globalRunning[programList[A_Index]].time <= globalRunning[key].time) {
+                if (currProgram != programList[A_Index] 
+                    && globalRunning[programList[A_Index]].time <= globalRunning[key].time) {
+                    
                     programList.InsertAt(A_Index, key)
                     break
                 }
@@ -169,7 +176,7 @@ class ProgramInterface extends Interface {
         super._Show("x" . guiX . " y" . guiY . "  w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
-        HideMouseCursor()
+        HideMouseCursor(true)
     }
 
     _Destroy() {

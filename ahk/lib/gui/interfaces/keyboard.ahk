@@ -34,7 +34,20 @@ class KeyboardInterface extends Interface {
     alt   := false
     func  := false
 
-    currText := ""
+    textColor  := FONT_COLOR
+    capsColor  := FONT_COLOR
+    shiftColor := FONT_COLOR
+    ctrlColor  := "FF0000"
+    altColor   := "0000FF"
+    funcColor  := FONT_COLOR
+
+    ; nice hack loser
+    _shiftFromKeyboard := false
+    _ctrlFromKeyboard  := false
+    _altFromKeyboard   := false
+    _funcFromKeyboard  := false
+
+    currTextArr := []
 
     restoreWNDW := -1
     restoreMousePos := []
@@ -44,29 +57,34 @@ class KeyboardInterface extends Interface {
     guiWidth := 0
     guiHeight := 0
 
+    _maxCol := 0
+    _keySize := 0
+    _keySpacing := 0
+
     __New() {
-        super.__New(GUI_OPTIONS . " +AlwaysOnTop +ToolWindow +E0x08000088")
+        super.__New(GUI_OPTIONS . " +AlwaysOnTop +Overlay000000 +ToolWindow +E0x08000088")
 
         this.layout := qwerty
 
         this.selectColor := COLOR3
         this.guiObj.BackColor := COLOR1
 
-        this.guiWidth := interfaceWidth(0.39)
-        this.guiHeight := (this.guiWidth / 21) * 7
-        this.SetFont("bold s18")
+        this.guiWidth := this._calcPercentWidth(0.38)
+        this.guiHeight := (this.guiWidth / 21) * 8.78
+
+        this._keySize := Round(this.guiWidth * 0.0588)
+        this._keySpacing := this._calcPercentWidth(0.002)
 
         this._createKeyboard()
 
-        keySize := Round(this.guiWidth * 0.0588)
-        keySpacing := interfaceWidth(0.002) * 2
+        ypos := this.layout["default"].Length
+        xpos := this._maxCol + 1
 
-        xpos := this.control2D.Length
-        ypos := this.control2D[xpos].Length
-
+        this.SetFont("bold s18 c" . this.textColor)
         this.Add("Text", "Center 0x200 vDEATH f(death) BackgroundFF0000 x" 
-            . (this.guiWidth - keySize - keySpacing) " y" . (this.guiHeight - keySize - keySpacing)
-            . " xpos" . xpos . " ypos" . ypos . " w" . keySize . " h" . keySize, "X")
+            . (this.guiWidth - this._keySize - (2.25 * this._keySpacing)) 
+            . " y" . (this.guiHeight - this._keySize - (2 * this._keySpacing))
+            . " xpos" . xpos . " ypos" . ypos . " w" . this._keySize . " h" . this._keySize, "X")
     }
 
     _Show() {
@@ -78,7 +96,8 @@ class KeyboardInterface extends Interface {
         this.restoreMousePos := [x, y]
         HideMouseCursor()
 
-        super._Show("NoActivate x" . (percentWidth(0.5, false) - (this.guiWidth / 2)) . " y" . percentHeight(0.5, false) . " w" . this.guiWidth . " h" . this.guiHeight)
+        super._Show("NoActivate x" . (this._calcPercentWidth(0.5, false) - (this.guiWidth / 2)) 
+                    . " y" . this._calcPercentHeight(0.4, false) . " w" . this.guiWidth . " h" . this.guiHeight)
     }
 
     _Destroy() {
@@ -96,55 +115,36 @@ class KeyboardInterface extends Interface {
 
     _select() {
         key := this.control2D[this.currentX][this.currentY].select
+        this.keyboard(key)
 
-        switch (key) {
-            case "death":
-                this.Destroy()
-            case "Shift":
-                this.shift := !this.shift
-                this._createKeyboard("update")
-            case "Fn":
-                this.func := !this.func
-                this._createKeyboard("update")
-            case "Caps":
-                this.caps := !this.caps
-                this._createKeyboard("update")
-            case "Enter":
-                if (this.shift) {
-                    this.currText .= "`n"
-                }
-                else if (this.currText != "") {
-                    try {
-                        this.Destroy()
-                        
-                        if (this.currText != "") {
-                            Send(this.currText)
-                            this.currText := ""
-                        }
-                    }
-                }
-            default:
-                this.currText .= key
-
-                if (this.shift) {
-                    this.shift := false
-                    this._createKeyboard("update")
-                }
-
+        keyLower := StrLower(key)
+        if (keyLower = "shift") {
+            this._shiftFromKeyboard := !this._shiftFromKeyboard
+        } 
+        else if (keyLower = "ctrl") {
+            this._ctrlFromKeyboard := !this._ctrlFromKeyboard
+        } 
+        else if (keyLower = "alt") {
+            this._altFromKeyboard := !this._altFromKeyboard
+        } 
+        else if (keyLower = "func") {
+            this._funcFromKeyboard := !this._funcFromKeyboard
         }
     }
 
     _back() {
-        if (this.currText = "") {
+        if (this.currTextArr.Length = 0) {
             return
         }
 
-        this.currText := SubStr(this.currText, 1, -1)
+        this.keyboard("back")
+        this._buildTextDisplay()
     }
 
-    _createKeyboard(mode := "create") {
-        buttonFunc := "_" . mode . "KBButton"
+    _createKeyboard(mode := "create") {        
+        this._buildTextDisplay()
 
+        buttonFunc := "_" . mode . "KBButton"
         loop this.layout["default"].Length {
             row := A_Index
 
@@ -160,32 +160,51 @@ class KeyboardInterface extends Interface {
                     currKey := qwerty["func"][row][A_Index]
                 }
 
-                switch (currKey) {
-                    case "":
+                switch (row . "-" . A_Index) {
+                    ; Space
+                    case "5-4":
                         this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 5, row, 5.88)
                         colOffset += 5
-                    case "Esc":
+                    ; Esc
+                    case "1-1":
                         this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1)
                         colOffset += 1
-                    case "Back":
+                    ; Back
+                    case "1-15":
                         this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1.48)
                         colOffset += 1
-                    case "Tab":
+                    ;Tab
+                    case "2-1":
                         this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1.48)
                         colOffset += 1
-                    case "Enter":
+                    ; Enter
+                    case "3-13":
                         this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 2, row, 2.75)
                         colOffset += 2
-                    case "Shift":
+                    ; LShift
+                    case "4-1":
                         this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 2.325)
                         colOffset += 1
-                    case "Caps":
+                    ; RShift
+                    case "4-13":
+                        this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 2.325)
+                        colOffset += 1
+                    ; Caps
+                    case "3-1":
                         this.%buttonFunc%(currKey, COLOR2, col . "-" . col + 1, row, 1.9)
                         colOffset += 1
-                    case "Ctrl":
+                    ; LCtrl
+                    case "5-2":
+                        this.%buttonFunc%(currKey, COLOR2, col, row, 1.4)
+                    ; RCtrl
+                    case "5-6":
                         this.%buttonFunc%(currKey, COLOR2, col, row, 1.4)
                     default:
                         this.%buttonFunc%(currKey, COLOR2, col, row, 1)
+                }
+
+                if (col > this._maxCol) {
+                    this._maxCol := col
                 }
             }
         }
@@ -195,21 +214,162 @@ class KeyboardInterface extends Interface {
         }
     }
 
-    _createKBButton(text, color, xpos, ypos, widthScale) {   
-        keySize := Round(this.guiWidth * 0.0588)
-        keySpacing := interfaceWidth(0.002)
-
-        offset := "x+" . keySpacing
+    _createKBButton(text, color, xpos, ypos, widthScale) {
+        offset := "x+" . this._keySpacing
         if (xpos = 1 || Type(xpos) = "String" && StrSplit(xpos, "-")[1] = 1) {
-            offset := "x" . (2 * keySpacing) . ((ypos = 1) ? " y" . (2 * keySpacing) : " y+" . keySpacing)
+            offset := "x" . (2 * this._keySpacing) . " y+" . ((ypos = 1 ? 2 : 1) * this._keySpacing)
         }
+
+        width := Round(this._keySize * widthScale)
         
-        ; add 1 for the close button
+        textLower := StrLower(text)
+        if (textLower = "home" || textLower = "end" || textLower = "pgup" || textLower = "pgdn") {
+            this.SetFont("bold s11 c" . this.textColor)
+        }
+        else {
+            this.SetFont("bold s18 c" . this.textColor)
+        }
+
         this.Add("Text", "Center 0x200 v" . xpos . ypos . " f(" . text . ") Background" . color . " xpos" . xpos 
-            . " ypos" . ypos . " " . offset . " w" . Round(keySize * widthScale) . " h" . keySize, text)
+            . " ypos" . ypos . " " . offset . " w" . width . " h" . this._keySize, text)
+
+        if (textLower = "caps") {
+            this._addToggle(this.caps, xpos, ypos, width, this.capsColor, this._keySize)
+        }
+        else if (textLower = "shift") {
+            this._addToggle(this.shift, xpos, ypos, width, this.shiftColor, this._keySize)
+        }
+        else if (textLower = "ctrl") {
+            this._addToggle(this.ctrl, xpos, ypos, width, this.ctrlColor, this._keySize)
+        }
+        else if (textLower = "alt") {
+            this._addToggle(this.alt, xpos, ypos, width, this.altColor, this._keySize)
+        }
+        else if (textLower = "fn") {
+            this._addToggle(this.func, xpos, ypos, width, this.funcColor, this._keySize)
+        }
     }
 
     _updateKBButton(text, color, xpos, ypos, widthScale) {   
+        currTextLower := StrLower(this.guiObj[xpos . ypos].Text)
         this.guiObj[xpos . ypos].Text := text
+        textLower := StrLower(text)
+
+        if (textLower = "home" || textLower = "end" || textLower = "pgup" || textLower = "pgdn") {
+            this.guiObj[xpos . ypos].SetFont("s" . this._calcFontSize(11))
+        }
+        else if (currTextLower = "home" || currTextLower = "end" || currTextLower = "pgup" || currTextLower = "pgdn") {
+            this.guiObj[xpos . ypos].SetFont("s" . this._calcFontSize(18))
+        }
+        else if (textLower = "caps") {
+            this._updateToggle(this.caps, xpos, ypos, this.capsColor)
+        }
+        else if (textLower = "shift") {
+            this._updateToggle(this.shift, xpos, ypos, this.shiftColor)
+        }
+        else if (textLower = "ctrl") {
+            this._updateToggle(this.ctrl, xpos, ypos, this.ctrlColor)
+        }
+        else if (textLower = "alt") {
+            this._updateToggle(this.alt, xpos, ypos, this.altColor)
+        }
+        else if (textLower = "fn") {
+            this._updateToggle(this.func, xpos, ypos, this.funcColor)
+        }
+    }
+
+    _addToggle(state, xpos, ypos, width, color, keySize) {
+        this.SetFont("bold s8 c" . (state ? color : COLOR1))
+        this.Add("Text", "Right BackgroundTrans v" . xpos . ypos . "Toggle x+-" . width . " y+-" . keySize
+            . " w" . width . " h" . keySize, Chr(0x25CF) . " ")
+    }
+
+    _updateToggle(state, xpos, ypos, color) {
+        this.guiObj[xpos . ypos . "Toggle"].SetFont("c" . (state ? color : COLOR1))
+    }
+
+    _buildTextDisplay() {
+        
+        this.Add("Text", "Left 0x200 vTEXT Background" . COLOR2 . " x" . (2 * this._keySpacing) . " y" . (2 * this._keySpacing)
+            . " w" . (this.guiWidth - (4 * this._keySpacing)) . " h" . (this._keySize * 1.25), " " . this.currText)
+
+            this.SetFont("bold s18 c" . this.textColor)
+            this.Add("Text", "Left 0x200 vTEXT Background" . COLOR2 . " x" . (2 * this._keySpacing) . " y" . (2 * this._keySpacing)
+                . " w" . (this.guiWidth - (4 * this._keySpacing)) . " h" . (this._keySize * 1.25), " " . this.currText)
+    }
+
+    ; function used to actually add a keystroke to the state
+    ; can be used with hotkeys
+    ; key - key to send
+    ;
+    ; returns null
+    keyboard(key := "") {
+        keyLower := StrLower(key)
+        switch (keyLower) {
+            case "death":
+                this.Destroy()
+                return
+            ; TODO - MOVE THIS LOGIC TO A SEND KEY HANDLER OR SOMETHING
+            case "back":
+                this.shift := !this.shift
+            case "enter":
+                ; CHECK MODE INSTEAD
+                if (this.shift) {
+                    this.currTextArr.Push("enter")
+                }
+                else {
+                    this.sendText()
+                }
+                return
+            case "shift":
+                this.shift := !this.shift
+            case "ctrl":
+                this.ctrl := !this.ctrl
+            case "alt":
+                this.alt := !this.alt
+            case "fn":
+                this.func := !this.func
+            case "caps":
+                this.caps := !this.caps
+        }
+
+        if (keyLower = "" || keyLower = "space") {
+            this.currTextArr.Push(" ")
+        }
+        else {
+            this.currTextArr.Push(keyLower)
+        }
+
+        ; disable modifier if enabled from the keyboard rather than hotkey
+        if (this.shift && this._shiftFromKeyboard) {
+            this.shift := false
+            this._shiftFromKeyboard := false
+        }
+        if (this.ctrl && this._ctrlFromKeyboard) {
+            this.ctrl := false
+            this._ctrlFromKeyboard := false
+        }
+        if (this.alt && this._altFromKeyboard) {
+            this.alt := false
+            this._altFromKeyboard := false
+        }
+        if (this.func && this._funcFromKeyboard) {
+            this.func := false
+            this._funcFromKeyboard := false
+        }
+
+        this._createKeyboard("update")
+    }
+
+    sendText() {
+        try {
+            this.Destroy()
+            
+            ; TODO - probably context dependent Send right?
+            ; sending inputs to guis
+            ; sending inputs to programs
+            ; sending inputs generic
+            MsgBox('ooo la la')
+        }
     }
 }

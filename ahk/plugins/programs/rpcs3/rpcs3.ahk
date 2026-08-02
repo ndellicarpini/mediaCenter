@@ -14,4 +14,12 @@ class RPCS3Emulator extends Emulator {
     _resume() {
         this._pause()
     }
+
+    ; custom function
+    menu() {
+        Sleep(50)
+        this.send("{Shift down}")
+        this.send("{F10}", 150)
+        this.send("{Shift up}")
+    }
 }

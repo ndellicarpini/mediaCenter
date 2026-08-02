@@ -36,6 +36,14 @@ class InputInterface extends Interface {
             if (!globalInputStatus.Has(key) || (value.Has("hideInMenu") && value["hideInMenu"])) {
                 continue
             }
+            ; get blocking battery levels 
+            ; TODO - render a loading spinner while blocking
+            blockingBatteryLevels := %value["className"]%.checkBlockingBatteryLevels()
+            for item in globalInputStatus[key] {
+                if blockingBatteryLevels.Has(String(item["pluginPort"])) {
+                    item["batteryLevel"] := blockingBatteryLevels[String(item["pluginPort"])]
+                }
+            }
 
             ; add input device config name
             this.Add("Text", "0x200 xm0 y" . ypos . " w" . (this.guiWidth - this._calcPercentHeight(0.02)) . " h" . this._calcPercentHeight(0.03)
@@ -75,23 +83,26 @@ class InputInterface extends Interface {
         
                 ; add disconnected text
                 this.Add("Text", "v" . controlName . "Text Center 0x200 hp0 x" . this._calcPercentWidth(0.075) . " y" . ypos 
-                    . " w" . this._calcPercentWidth(0.085) . ((connectionType = 1) ? " Hidden" : ""), connectionText)
+                    . " w" . this._calcPercentWidth(0.085) . ((connectionType > 0) ? " Hidden" : ""), connectionText)
                 
                 batteryLevel := device["batteryLevel"] * 100
                 batteryColor := "00FF00"
-                if (batteryLevel < 50) {
+                if (batteryLevel <= 25) {
                     batteryColor := "FF0000"
+                }
+                else if (batteryLevel < 50) {
+                    batteryColor := "FFFF00"
                 }
         
                 borderWidth := this._calcPercentHeight(0.005)
 
                 ; add battery level display
                 this.Add("Text", "v" . controlName . "Outline Background" . FONT_COLOR . " hp0 x" . this._calcPercentWidth(0.079) 
-                    . " y" . ypos . " w" . this._calcPercentWidth(0.075) . ((connectionType != 1) ? " Hidden" : ""), "")
+                    . " y" . ypos . " w" . this._calcPercentWidth(0.075) . ((connectionType < 1) ? " Hidden" : ""), "")
                 this.Add("Progress", "v" . controlName . "Progress Background" . COLOR1 . " c" . batteryColor . " yp+" . (borderWidth / 2) 
-                    . " xp+" . (borderWidth / 2) . " wp-" . borderWidth . " hp-" . borderWidth . ((connectionType != 1) ? " Hidden" : ""), batteryLevel)
+                    . " xp+" . (borderWidth / 2) . " wp-" . borderWidth . " hp-" . borderWidth . ((connectionType < 1) ? " Hidden" : ""), batteryLevel)
                 this.Add("Text", "v" . controlName . "Nub Background" . FONT_COLOR . " x+" . (borderWidth - this._calcPercentWidth(0.002)) 
-                    . " y" . (ypos + this._calcPercentHeight((0.03 - 0.01) / 2)) . " w" . this._calcPercentWidth(0.004) . " h" . this._calcPercentHeight(0.01) . ((connectionType != 1) ? " Hidden" : ""), "")
+                    . " y" . (ypos + this._calcPercentHeight((0.03 - 0.01) / 2)) . " w" . this._calcPercentWidth(0.004) . " h" . this._calcPercentHeight(0.01) . ((connectionType < 1) ? " Hidden" : ""), "")
 
                 ; add vibe button
                 this.Add("Text", "v" . controlName . "Vibe f(vibe " . controlName . ") u(unvibe) Center 0x200 Background" 
@@ -105,7 +116,7 @@ class InputInterface extends Interface {
 
     _Show() {
         super._Show("y0 x" . this._calcPercentWidth(0.25) . " w" . this.guiWidth . " h" . this.guiHeight)
-        SetTimer(InputSecondTimer, -1000)
+        SetTimer(InputSecondTimer, Neg(5000))
 
         return 
 
@@ -123,6 +134,14 @@ class InputInterface extends Interface {
                 for key, value in globalInputConfigs {
                     if (!globalInputStatus.Has(key) || (value.Has("hideInMenu") && value["hideInMenu"])) {
                         continue
+                    }
+                    
+                    ; get blocking battery levels 
+                    blockingBatteryLevels := %value["className"]%.checkBlockingBatteryLevels()
+                    for item in globalInputStatus[key] {
+                        if blockingBatteryLevels.Has(String(item["pluginPort"])) {
+                            item["batteryLevel"] := blockingBatteryLevels[String(item["pluginPort"])]
+                        }
                     }
     
                     loop globalInputStatus[key].length {
@@ -151,18 +170,21 @@ class InputInterface extends Interface {
     
                         batteryLevel := device["batteryLevel"] * 100
                         batteryColor := "00FF00"
-                        if (batteryLevel < 50) {
+                        if (batteryLevel <= 25) {
                             batteryColor := "FF0000"
+                        }
+                        else if (batteryLevel < 50) {
+                            batteryColor := "FFFF00"
                         }
     
                         this.guiObj[controlName . "Progress"].Value := batteryLevel
                         this.guiObj[controlName . "Progress"].Opt("c" . batteryColor)
     
                         ; update visibility status
-                        this.guiObj[controlName . "Text"].Visible := connectionType != 1 || !connected
-                        this.guiObj[controlName . "Outline"].Visible := connectionType = 1 && connected
-                        this.guiObj[controlName . "Progress"].Visible := connectionType = 1 && connected
-                        this.guiObj[controlName . "Nub"].Visible := connectionType = 1 && connected
+                        this.guiObj[controlName . "Text"].Visible := connectionType < 1 || !connected
+                        this.guiObj[controlName . "Outline"].Visible := connectionType > 0 && connected
+                        this.guiObj[controlName . "Progress"].Visible := connectionType > 0 && connected
+                        this.guiObj[controlName . "Nub"].Visible := connectionType > 0 && connected
                         this.guiObj[controlName . "Vibe"].Visible := connected
                     }
                 }

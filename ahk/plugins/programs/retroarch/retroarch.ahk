@@ -1,29 +1,5 @@
 class RetroArchEmulator extends Emulator {
-    __New(args*) {
-        super.__New(args*)
-
-        ; remove mame menu from pause options if not mame
-        if (this.core != "mame") {
-            loop this.pauseOrder.Length {
-                item := this.pauseOrder[A_Index]
-
-                if (this.pauseOptions.Has(item) && this.pauseOptions[item] = "program.mameMenu") {
-                    this.pauseOrder.RemoveAt(A_Index)
-                    break
-                }
-            }
-        }
-    }
-
     _launch(args*) {
-        ; cheater cheater pumpkin eater
-        for arg in args {
-            if (Type(arg) = "String" && InStr(StrLower(arg), "neo turf masters")) {
-                this.core := "neocd"
-                break
-            }
-        }
-
         retArgs := []
         if (this.HasOwnProp("core") && this.core != "") {
             retArgs.Push("-L", "cores\" . this.core . "_libretro.dll")
@@ -33,7 +9,16 @@ class RetroArchEmulator extends Emulator {
             retArgs.Push(args*)
         }
 
+        ; TODO - come up with way to start/stopdelfinovin in config
+        if (StrLower(this.console) = "n64") {
+            startDelfinovin()
+        }
+
         super._launch(retArgs*)
+    }
+    
+    _postExit() {
+        stopDelfinovin()
     }
 
     _fullscreen() {

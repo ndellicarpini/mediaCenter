@@ -25,6 +25,118 @@ class XInputDevice extends Input {
         }
     }
 
+    static checkBlockingBatteryLevels() {
+        ; loop through and find Bluetooth controllers
+        allDeviceText := RunPowershell("(Get-PnpDevice -Class 'Bluetooth' -FriendlyName '*xbox*' | Get-PnpDeviceProperty | Select InstanceId,KeyName,Data)")
+        allDeviceProperties := StrSplit(allDeviceText, "`n") 
+
+        allDevices := Map()
+        propPosArr := []
+        for (item in allDeviceProperties) {
+            if (Trim(item, " `t`r`n") = "") {
+                continue
+            }
+
+            if (propPosArr.Length = 0) {
+                propArr := StrSplit(item, "     ").Map(val => Trim(val, " `t`r`n")).Filter(val => val != "")
+                for prop in propArr {
+                    propPosArr.Push(InStr(item, prop))
+                }
+                continue
+            }
+
+            propArr := [
+                SubStr(item, propPosArr[1], propPosArr[2] - 1),
+                SubStr(item, propPosArr[2], propPosArr[3] - propPosArr[2]),
+                SubStr(item, propPosArr[3]),
+            ]
+
+            if (!allDevices.Has(propArr[1])) {
+                allDevices[propArr[1]] := Map()
+            }
+
+            cleanValue := Trim(propArr[3], " `t`r`n")
+            if (cleanValue = "") {
+                continue
+            }
+
+            key := Trim(StrLower(propArr[2]))
+            if (key = "devpkey_name") {
+                allDevices[propArr[1]]["name"] := cleanValue
+            }
+            else if (key = "devpkey_devicecontainer_category") {
+                allDevices[propArr[1]]["gamepad"] := (StrLower(cleanValue) = "{input.gaming.gamepad}")
+            }
+            else if (key = "devpkey_bluetooth_lastconnectedtime") {
+                timeStr := cleanValue
+
+                formattedStr := ""
+                allComponents := StrSplit(timeStr, " ")
+                isPM := (StrLower(Trim(allComponents[3])) = "pm")
+                dateComponents := StrSplit(allComponents[1], "/")
+                timeComponents := StrSplit(allComponents[2], ":")
+
+                formattedStr .= dateComponents[3]
+                formattedStr .= Format("{:02}", Integer(dateComponents[1]))
+                formattedStr .= Format("{:02}", Integer(dateComponents[2]))
+
+                hours := Integer(timeComponents[1])
+                if (hours = 12) {
+                    hours := isPM ? 12 : 0
+                }
+                else if (isPM) {
+                    hours += 12
+                }
+
+                formattedStr .= Format("{:02}", hours)
+                formattedStr .= Format("{:02}", Integer(timeComponents[2]))
+                formattedStr .= Format("{:02}", Integer(timeComponents[3]))
+
+                ; the offset is in the wrong direction for connected time?
+                allDevices[propArr[1]]["time"] := GetLocaleUnixTimestep(formattedStr) - GetUTCOffset()
+            }
+            else if (key = "{83da6326-97a6-4088-9453-a1923f573b29} 15") {
+                allDevices[propArr[1]]["connected"] := (StrLower(cleanValue) = "true")
+            }
+            else if (key = "{104ea319-6ee2-4701-bd47-8ddbf425bbe5} 2") {
+                allDevices[propArr[1]]["battery"] := cleanValue
+            }
+        }
+
+        currBTGamepads := globalInputStatus["xinput"]
+            .Filter((val) => val["connected"] && val["connectionType"] == 2)
+            .Sort((a, b) => a["pluginPort"] - b["pluginPort"])
+
+        portBatteries := Map()
+        bruh := Map()
+        for _, gamepad in allDevices {
+            if (!gamepad.Has("gamepad") || !gamepad["gamepad"] 
+                || !gamepad.Has("connected") || !gamepad["connected"] 
+                || !gamepad.Has("name") || !InStr(StrLower(gamepad["name"]), "xbox")) {
+
+                continue
+            }
+
+            minDiff := 2147483640
+            minPort := -1
+            for device in currBTGamepads {
+                if portBatteries.Has(String(device["pluginPort"])){
+                    continue
+                }
+
+                currDiff := Abs(device["connectedTime"] - gamepad["time"])
+                if (currDiff < minDiff) {
+                    minDiff := currDiff
+                    minPort := device["pluginPort"]
+                }
+            }
+
+            portBatteries[String(minPort)] := Integer(gamepad["battery"]) / 100
+        }
+
+        return portBatteries
+    }
+
     initDevice() {
         this.getStatus()
 
@@ -44,11 +156,18 @@ class XInputDevice extends Input {
 
         if (xResult = 1167) {
             this.connected := false
+            this.connectedTime := -1
 
             return Map("buttons", this.buttons, "axis", this.axis)
         }
+        else {
+            if (!this.connected) {
+                this.connectedTime := GetLocaleUnixTimestep()
+            }
+
+            this.connected := true
+        }
         
-        this.connected := true
 
         ; CHECK BUTTONS
         buttonBuf := NumGet(xBuf.Ptr, 4, "UShort")
@@ -150,30 +269,39 @@ class XInputDevice extends Input {
 
         connection := NumGet(xBuf.Ptr, 0, "UChar")  
 
+        ; wired
         if (connection = 1) {
             this.connectionType := 0
         }
+        ; bluetooth
+        else if (connection = 0) {
+            this.connectionType := 2
+        }
+        ; wireless / "on-battery"
         else if (connection = 2 || connection = 3) {
             this.connectionType := 1
         }
+        ; unknown
         else {
             this.connectionType := -1
         }
-             
+
+        this.batteryCheckBlocking := this.connectionType = 2 
         return this.connectionType
     }
 
     checkBatteryLevel() {
+        global globalInputStatus
+
         xBuf := Buffer(2, 0)
         xResult := DllCall(this.initResults["getBatteryPtr"], "UInt", this.pluginPort, "UChar", 0, "UInt", xBuf.Ptr)
 
-        if (xResult = 1167) {
+        if (this.batteryCheckBlocking || xResult = 1167) {
             this.batteryLevel := 0
             return this.batteryLevel
         }
 
-        battery := NumGet(xBuf.Ptr, 1, "UChar")  
-
+        battery := NumGet(xBuf.Ptr, 1, "UChar")
         switch (battery) {
             case 0:
                 this.batteryLevel := 0.05

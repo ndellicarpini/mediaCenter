@@ -8,7 +8,43 @@
 
     "core": "mame",
 
+    "consoleOverride": {
+        "pauseOptions": {
+            "Toggle MAME Menu": "program.mameMenu",
+            "Toggle Menu": "program.menu"
+        },
+
+        "pauseOrder": [
+            "Save State", 
+            "Load State", 
+            "Reset Game",
+            "Toggle Menu", 
+            "Toggle MAME Menu"
+        ]
+    },
+
     "romVersions": [
         
+    ],
+
+    "romOverrides": [
+        {
+            "romMatch": {
+                "args": "neo turf masters",
+                "matchType": "partial"
+            },
+            "core": "neocd",
+
+            "pauseOptions": {
+                "Toggle Menu": "program.menu"
+            },
+
+            "pauseOrder": [
+                "Save State", 
+                "Load State", 
+                "Reset Game",
+                "Toggle Menu"
+            ]
+        }
     ]
 }

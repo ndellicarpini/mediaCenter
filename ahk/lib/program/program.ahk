@@ -17,6 +17,7 @@ class Program {
     volume := 0
     time   := 0
 
+    launching          := false
     muted              := false
     background         := false
     minimized          := false
@@ -42,6 +43,7 @@ class Program {
     hotkeys  := Map()
     mouse    := Map()
 
+    aspectRatio := "auto"
     hotkeyButtonTime := 70
 
     ; TODO - create a config obj that gives details how to update the program config before launch
@@ -98,8 +100,6 @@ class Program {
         ; set basic attributes
         this.name                 := (exeConfig.Has("name"))                 ? exeConfig["name"]                 : this.name
         this.className            := (exeConfig.Has("className"))            ? exeConfig["className"]            : this.className
-        this.exe                  := (exeConfig.Has("exe"))                  ? exeConfig["exe"]                  : this.exe
-        this.wndw                 := (exeConfig.Has("wndw"))                 ? exeConfig["wndw"]                 : this.wndw
         this.overlay              := (exeConfig.Has("overlay"))              ? exeConfig["overlay"]              : this.overlay
         this.priority             := (exeConfig.Has("priority"))             ? exeConfig["priority"]             : this.priority
         this.background           := (exeConfig.Has("background"))           ? exeConfig["background"]           : this.background
@@ -118,6 +118,57 @@ class Program {
         this.fullscreenDelay      := (exeConfig.Has("fullscreenDelay"))      ? exeConfig["fullscreenDelay"]      : this.fullscreenDelay
         this.mouseMoveDelay       := (exeConfig.Has("mouseMoveDelay"))       ? exeConfig["mouseMoveDelay"]       : this.mouseMoveDelay
         this.checkPropertiesDelay := (exeConfig.Has("checkPropertiesDelay")) ? exeConfig["checkPropertiesDelay"] : this.checkPropertiesDelay
+        this.aspectRatio := (exeConfig.Has("aspectRatio")) ? exeConfig["aspectRatio"] : this.aspectRatio
+
+        ; parse exe
+        tempEXE := ""
+        if (exeConfig.Has("exe")) {
+            tempEXE := exeConfig["exe"]
+        }
+        else if (exeConfig.Has("exes")) {
+            tempEXE := exeConfig["exes"]
+        }
+        if (tempEXE != "") {
+            if (Type(tempEXE) = "Array") {
+                if (tempEXE.Length > 1) {
+                    this.exe := Map()
+                    for exe in tempEXE {
+                        this.exe[exe] := ""
+                    }
+                }
+                else if (tempEXE.Length = 1) {
+                    this.exe := tempEXE[1]
+                }
+            }
+            else {
+                this.exe := tempEXE
+            }
+        }
+
+        ; parse wndw
+        tempWNDW := ""
+        if (exeConfig.Has("wndw")) {
+            tempWNDW := exeConfig["wndw"]
+        }
+        else if (exeConfig.Has("wndws")) {
+            tempWNDW := exeConfig["wndws"]
+        }
+        if (tempWNDW != "") {
+            if (Type(tempWNDW) = "Array") {
+                if (tempWNDW.Length > 1) {
+                    this.wndw := Map()
+                    for wndw in tempWNDW {
+                        this.wndw[wndw] := ""
+                    }
+                }
+                else if (tempWNDW.Length = 1) {
+                    this.wndw := tempWNDW[1]
+                }
+            }
+            else {
+                this.wndw := tempWNDW
+            }
+        }
 
         ; parse dir
         tempDir := ""
@@ -249,6 +300,7 @@ class Program {
         global DEFAULT_MONITOR
         
         this.time := A_TickCount
+        this.launching := true
         this.requestedMonitorNum := DEFAULT_MONITOR
 
         restoreCritical := A_IsCritical
@@ -267,6 +319,8 @@ class Program {
         if (this.requireInternet) {
             if (!waitForInternetProgram(this.id, 30)) {
                 writeLog("Failed to launch " . this.id . " - no internet", "PROGRAM")
+                this.launching := false
+
                 Critical(restoreCritical)
                 return
             }
@@ -274,6 +328,8 @@ class Program {
 
         if (this.shouldExit) {
             writeLog(this.id . " exiting...", "PROGRAM")
+            this.launching := false
+
             Critical(restoreCritical)
             resetLoadScreen()
             return
@@ -313,6 +369,8 @@ class Program {
         ; if launch returns false -> assume failed
         if (this._launch(this._launchArgs*) = false) {
             writeLog("Failed to launch " . this.id, "PROGRAM")
+            this.launching := false
+
             Critical(restoreCritical)
             resetLoadScreen()
             return
@@ -328,11 +386,13 @@ class Program {
             writeLog(this.id . " bypassing launcher...", "PROGRAM")    
 
             count := 0
-            maxCount := 30
+            maxCount := 200
             ; wait for executable
             while (!this.exists(!this.background) && !WinShown(launcherWNDW) && count < maxCount) {
                 if (this.shouldExit) {
                     writeLog(this.id . " exiting...", "PROGRAM")
+                    this.launching := false
+
                     Critical(restoreCritical)
                     resetLoadScreen()
                     return
@@ -345,6 +405,8 @@ class Program {
             ; cancel launch if launcher never shows
             if (!this.exists(!this.background) && !WinShown(launcherWNDW)) {
                 writeLog("Failed to launch " . this.id . " - waiting for launcher timeout", "PROGRAM")
+                this.launching := false
+
                 Critical(restoreCritical)
                 resetLoadScreen()
                 return
@@ -368,12 +430,28 @@ class Program {
 
             globalStatus["loadscreen"]["overrideWNDW"] := launcherWNDW
 
+            while (!this.exists(!this.background) 
+                && (globalStatus["currGui"] = "pause" || globalStatus["suspendScript"] || globalStatus["desktopmode"] || globalStatus["kbmmode"])) {
+
+                if (this.shouldExit) {
+                    writeLog(this.id . " exiting...", "PROGRAM")
+                    this.launching := false
+
+                    Critical(restoreCritical)
+                    resetLoadScreen()
+                    return
+                }
+
+                Sleep(250)
+            }
+
             hiddenCount := 0
             maxCount := 3
             ; try to skip launcher as long as exectuable is shown
             while (!this.exists(!this.background) && hiddenCount < maxCount) {
                 if (this.shouldExit) {
                     globalStatus["loadscreen"]["overrideWNDW"] := ""
+                    this.launching := false
 
                     writeLog(this.id . " exiting...", "PROGRAM")
                     Critical(restoreCritical)
@@ -396,6 +474,7 @@ class Program {
                         }
                         if (this.shouldExit) {
                             globalStatus["loadscreen"]["overrideWNDW"] := ""
+                            this.launching := false
         
                             writeLog(this.id . " exiting...", "PROGRAM")
                             Critical(restoreCritical)
@@ -454,6 +533,7 @@ class Program {
 
         if (count = maxCount) {
             writeLog("Failed to launch " . this.id . " - waiting for program timeout", "PROGRAM")
+            this.launching := false
             
             Critical(restoreCritical)
             resetLoadScreen()
@@ -470,6 +550,7 @@ class Program {
 
             if (count = maxCount) {
                 writeLog("Failed to launch " . this.id . " - waiting for program timeout", "PROGRAM")
+                this.launching := false
 
                 Critical(restoreCritical)
                 resetLoadScreen()
@@ -485,9 +566,10 @@ class Program {
         }
 
         writeLog(this.id . " launched successfully", "PROGRAM")
+        this.launching := false
+
         Critical(restoreCritical)
         resetLoadScreen()
-
         return
 
         ; saves screenshot & updates program data
@@ -557,7 +639,9 @@ class Program {
                 return false
             }
         }
-        catch {
+        catch as e {
+            writeLog("Failed to launch program", "PROGRAM")
+            writeErrorLog(e, "Return")
             return false
         }
     }
@@ -809,35 +893,40 @@ class Program {
                 return
             }
 
-            hwnd := this.getHWND()
+            try {
+                hwnd := this.getHWND()
 
-            ; don't interact if window is a TOOLWINDOW (for launchers)
-            if (hwnd && WinShown(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {
-                this.checkMonitor()
-                ; set program to requested monitor num if launched from consolizer
-                if (this.requestedMonitorNum != -1 && this.requestedMonitorNum != this.monitorNum) {
-                    this.switchMonitor(this.requestedMonitorNum)
-                }
-
-                this._launchSetDefaultMonitor := true
-
-                WinGetPos(&X, &Y, &W, &H, hwnd)
-                if ((X + (W * 0.05)) < this._monitorX || X >= ((this._monitorX + this._monitorW) * 0.95)
-                    || (Y + (H * 0.05)) < this._monitorY || Y >= ((this._monitorY + this._monitorH) * 0.95)) {
-                    
-                    WinMove(this._monitorX, this._monitorY,,, hwnd)
-                }
-
-                if (this.requireFullscreen && !this.checkFullscreen()) {
-                    this.fullscreen()
-
-                    ; if fullscreen failed, try again
-                    if (!this.fullscreened) {
-                        this._waitingFullscreenTimer := false
+                ; don't interact if window is a TOOLWINDOW (for launchers)
+                if (hwnd && WinShown(hwnd) && !(WinGetExStyle(hwnd) & 0x00000080)) {
+                    this.checkMonitor()
+                    ; set program to requested monitor num if launched from consolizer
+                    if (this.requestedMonitorNum != -1 && this.requestedMonitorNum != this.monitorNum) {
+                        this.switchMonitor(this.requestedMonitorNum)
                     }
+
+                    this._launchSetDefaultMonitor := true
+
+                    WinGetPos(&X, &Y, &W, &H, hwnd)
+                    if ((X + (W * 0.05)) < this._monitorX || X >= ((this._monitorX + this._monitorW) * 0.95)
+                        || (Y + (H * 0.05)) < this._monitorY || Y >= ((this._monitorY + this._monitorH) * 0.95)) {
+                        
+                        WinMove(this._monitorX, this._monitorY,,, hwnd)
+                    }
+
+                    if (this.requireFullscreen && !this.checkFullscreen()) {
+                        this.fullscreen()
+
+                        ; if fullscreen failed, try again
+                        if (!this.fullscreened) {
+                            this._waitingFullscreenTimer := false
+                        }
+                    }
+                ; window is not valid for interaction - wait till it is
+                } else {
+                    this._waitingFullscreenTimer := false
                 }
-            ; window is not valid for interaction - wait till it is
-            } else {
+            }
+            catch {
                 this._waitingFullscreenTimer := false
             }
 
@@ -1061,6 +1150,9 @@ class Program {
         }
 
         this.monitorNum := this._checkMonitor()
+        if (!MonitorGetValid(this.monitorNum)) {
+            return
+        }
 
         monitorInfo := getMonitorInfo(this.monitorNum)
         this._monitorX := monitorInfo[1]
@@ -1083,6 +1175,9 @@ class Program {
         global DEFAULT_MONITOR
 
         hwnd := this.getHWND()
+        if (!hwnd) {
+            return -1
+        }
 
         try {
             WinGetPos(&X, &Y, &W, &H, hwnd) 
@@ -1209,14 +1304,36 @@ class Program {
         validWidths  := [this._monitorW, 21, 16, 4]
         validHeights := [this._monitorH,  9,  9, 3]
 
-        minDiff := 69
-        aspectIndex := 1
-        loop validWidths.Length {
-            currDiff := Abs((W / H) - (validWidths[A_Index] / validHeights[A_Index]))
+        useAspectRatio := False
+        if (InStr(this.aspectRatio, ":")) {
+            useAspectRatio := True
+            aspectArr := StrSplit(this.aspectRatio, ":",, 2)
+            validWidths.Push(Float(Trim(aspectArr[1])))
+            validHeights.Push(Float(Trim(aspectArr[2])))
+        }
+        else if (InStr(this.aspectRatio, "/")) {
+            useAspectRatio := True
+            aspectArr := StrSplit(this.aspectRatio, "/",, 2)
+            validWidths.Push(Float(Trim(aspectArr[1])))
+            validHeights.Push(Float(Trim(aspectArr[2])))
+        }
 
-            if (currDiff < minDiff) {
-                minDiff := currDiff
-                aspectIndex := A_Index
+        aspectIndex := 0
+        if (useAspectRatio) {
+            aspectIndex := validWidths.Length
+        }
+        else if (InStr(StrLower(this.aspectRatio), "screen")) {
+            aspectIndex := 1
+        }
+        else {
+            minDiff := 69
+            loop validWidths.Length {
+                currDiff := Abs((W / H) - (validWidths[A_Index] / validHeights[A_Index]))
+
+                if (currDiff < minDiff) {
+                    minDiff := currDiff
+                    aspectIndex := A_Index
+                }
             }
         }
 
@@ -1445,8 +1562,6 @@ class Program {
             maxCount := 60
             ; wait for program executable to close
             while (this.exists() && count < maxCount) {
-                ; update PID list
-                this.getEXE()
                 if (this._currPIDList.Length = 0) {
                     return
                 }
@@ -1476,12 +1591,14 @@ class Program {
                                     WinCloseAll("ahk_pid " currPID)
                                 }
     
-                                Sleep(75)
+                                Sleep(100)
                             }
                             ; THIS IS THE HARD IN THE PAINT PART
                             else {
                                 writeLog(this.id . " gone nuclear (PID: " . currPID . ")", "PROGRAM")
                                 ProcessKill(currPID)
+                                
+                                Sleep(100)
                             }
 
 
@@ -1510,6 +1627,16 @@ class Program {
                 count += 1
                 Sleep(500)
             }
+
+            ; BIG ASSUMPTION - if we got this far and its still not dead
+            ;                  just assume it is
+            this._currPIDList := []
+            this._currHWNDList := []
+            this._currEXE := ""
+            this._currShownEXE := ""
+            this._currHWND := 0
+
+            return
         }
     }
 
@@ -1673,7 +1800,6 @@ class Program {
     ; get program exe name
     getEXE() {
         global globalStatus
-        global wmiCOM
         global mainPID
         
         maintainerPID := WinHidden(MAINLOOP) ? WinGetPID(WinHidden(MAINLOOP)) : 0
@@ -1787,7 +1913,10 @@ class Program {
                 ignoredEXE .= StrLower(exe) . "|"
             }
 
-            for process in wmiCOM.ExecQuery(query) {
+            ; TODO - this is by far the most expensive part of the consolizer
+            ; this wmi command contributes to like 5% CPU usage - something needs to be done
+            results := ComObjGet("winmgmts:{impersonationLevel=impersonate}!\\.\root\CIMV2").ExecQuery(query)
+            for process in results {
                 name := process.Name
                 pid  := process.ProcessId
                 if ((launcherEXE = "" || StrLower(launcherEXE) != StrLower(name)) && name != "" 
@@ -1828,7 +1957,6 @@ class Program {
                     }
                 }
             }
-
             ; check all exes
             if (this.exe != "") {
                 exe := checkRunningEXEs(this.exe, true, requireShown)
@@ -2016,17 +2144,28 @@ class Program {
     ; update the volume value of the program
     checkVolume() {
         volumeInterface := this._getVolumeInterfacePtrs()
-        if (volumeInterface.Length = 0) {
-            this.volume := -1
-            return
+
+        numValid := 0
+        for ptr in volumeInterface {
+            if (ptr["query"] != 0) {
+                currVal := 0
+                DllCall(NumGet(NumGet(ptr["query"], 0, "UPtr") + 4 * A_PtrSize, 0, "UPtr"), "Ptr", ptr["query"], "Float*", &currVal)
+                this.volume := Round(currVal * 100)
+            
+                ObjRelease(ptr["query"])
+                numValid += 1
+            }
+            
+            if (ptr["session"] != 0) {
+                ObjRelease(ptr["session"])
+            }           
+            if (ptr["interface"] != 0) {
+                ObjRelease(ptr["interface"])
+            }
         }
 
-        for ptr in volumeInterface {
-            currVal := 0
-            DllCall(NumGet(NumGet(ptr, 0, "UPtr") + 4 * A_PtrSize, 0, "UPtr"), "Ptr", ptr, "Float*", &currVal)
-
-            this.volume := Round(currVal * 100)
-            return
+        if (numValid = 0) {
+            this.volume := -1
         }
     }
 
@@ -2034,35 +2173,61 @@ class Program {
     ;  newVal - new value for volume (0-100)
     setVolume(newVal) {
         volumeInterface := this._getVolumeInterfacePtrs()
-        if (volumeInterface.Length = 0) {
-            return
-        }
 
+        numValid := 0
         for ptr in volumeInterface {
-            programGUID := Buffer(16, 0)
-            DllCall("ole32\CLSIDFromString", "WStr", "", "Ptr", programGUID.Ptr)
-            DllCall(NumGet(NumGet(ptr, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", ptr, "Float", newVal / 100, "Ptr", programGUID.Ptr)
+            if (ptr["query"] != 0) {
+                programGUID := Buffer(16, 0)
+                DllCall("ole32\CLSIDFromString", "WStr", "", "Ptr", programGUID.Ptr)
+                DllCall(NumGet(NumGet(ptr["query"], 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", ptr["query"], "Float", newVal / 100, "Ptr", programGUID.Ptr)
+                
+                ObjRelease(ptr["query"])
+                numValid += 1
+            }
+            
+            if (ptr["session"] != 0) {
+                ObjRelease(ptr["session"])
+            }           
+            if (ptr["interface"] != 0) {
+                ObjRelease(ptr["interface"])
+            }
         }
 
-        this.volume := newVal
+        if (numValid > 0) {
+            this.volume := newVal
+        }
     }
 
     ; sets volume of program to 0
     muteVolume() {
         volumeInterface := this._getVolumeInterfacePtrs()
-        if (volumeInterface.Length = 0) {
+
+        numValid := 0
+        for ptr in volumeInterface {
+            if (ptr["query"] != 0) {
+                programGUID := Buffer(16, 0)
+                DllCall("ole32\CLSIDFromString", "WStr", "", "Ptr", programGUID.Ptr)
+                DllCall(NumGet(NumGet(ptr["query"], 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", ptr["query"], "Float", ((this.muted) ? (this.volume / 100) : 0), "Ptr", programGUID.Ptr)
+                
+                ObjRelease(ptr["query"])
+                numValid += 1
+            }
+
+            if (ptr["session"] != 0) {
+                ObjRelease(ptr["session"])
+            }           
+            if (ptr["interface"] != 0) {
+                ObjRelease(ptr["interface"])
+            }
+        }
+        
+        if (numValid = 0) {
             this.volume := -1
             this.muted  := false
-            return
         }
-
-        for ptr in volumeInterface {
-            programGUID := Buffer(16, 0)
-            DllCall("ole32\CLSIDFromString", "WStr", "", "Ptr", programGUID.Ptr)
-            DllCall(NumGet(NumGet(ptr, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", ptr, "Float", ((this.muted) ? (this.volume / 100) : 0), "Ptr", programGUID.Ptr)
+        else {
+            this.muted := !this.muted
         }
-
-        this.muted := !this.muted
     }
 
     ; internal function to initialize volume checkers
@@ -2081,14 +2246,17 @@ class Program {
         if (DllCall(NumGet(NumGet(deviceEnum.Ptr, 0, "UPtr") + 5 * A_PtrSize, 0, "UPtr"), "Ptr", deviceEnum.Ptr, "WStr", "playback", "Ptr*", &device) != 0) {
             DllCall(NumGet(NumGet(deviceEnum.Ptr, 0, "UPtr") + 4 * A_PtrSize, 0, "UPtr"), "Ptr", deviceEnum.Ptr, "Int", 0, "Int", 0, "Ptr*", &device)
         }
+        ObjRelease(deviceEnum.Ptr)
 
         volGUID := Buffer(16, 0)
         deviceInterface := 0
         DllCall("ole32\CLSIDFromString", "WStr", iasm2, "Ptr", volGUID.Ptr)
         DllCall(NumGet(NumGet(device, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", device, "Ptr", volGUID.Ptr, "UInt", 0, "UInt", 0, "Ptr*", &deviceInterface)
-        
+        ObjRelease(device)
+
         sessionEnum := 0
         DllCall(NumGet(NumGet(deviceInterface, 0, "UPtr") + 5 * A_PtrSize, 0, "UPtr"), "Ptr", deviceInterface, "Ptr*", &sessionEnum)
+        ObjRelease(deviceInterface)
         
         sessionCount := 0
         DllCall(NumGet(NumGet(sessionEnum, 0, "UPtr") + 3 * A_PtrSize, 0, "UPtr"), "Ptr", sessionEnum, "Ptr*", &sessionCount)
@@ -2101,31 +2269,21 @@ class Program {
             
             sessionPID := 0
             DllCall(NumGet(NumGet(sessionInterface.Ptr, 0, "UPtr") + 14 * A_PtrSize, 0, "UPtr"), "Ptr", sessionInterface.Ptr, "UInt*", &sessionPID)
-            if (sessionPID = 0) {
-                continue
-            }
-            
-            processPtr := DllCall("OpenProcess", "UInt", 0x0010 | 0x0400, "UInt", 0, "UInt", sessionPID, "UPtr")
-            processName := ""
+            if (sessionPID != 0) {
+                queryPtr := 0
+                if (inArray(sessionPID, this._currPIDList)) {
+                    queryPtr := ComObjQuery(sessionInterface.Ptr, isav).Ptr
+                }
 
-            size := 4096
-            processNameBuff := Buffer(size, 0)
-            processNamePtr  := DllCall("psapi.dll\GetModuleBaseName", "Ptr", processPtr, "Ptr", 0, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
-            if (processNamePtr) {
-                processName := StrGet(processNameBuff)
-            }
-            else {
-                DllCall("psapi.dll\GetProcessImageFileName", "Ptr", processPtr, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
-                processNameArr := StrSplit(StrGet(processNameBuff), "\")
-                processName := processNameArr[processNameArr.Length]
-            }
-
-            DllCall("CloseHandle", "Ptr", processPtr)
-            if (sessionPID = this.getPID() || processName = this.getEXE()) {
-                interfacePtrs.Push(ComObjQuery(sessionInterface.Ptr, isav).Ptr)
+                interfacePtrs.Push(Map(
+                    "query", queryPtr,
+                    "session", currSession,
+                    "interface", sessionInterface.Ptr
+                ))
             }
         }
-
+        
+        ObjRelease(sessionEnum)
         return interfacePtrs
     }
 }
@@ -2163,7 +2321,9 @@ checkRunningEXEs(exe, retName := false, requireShown := false) {
             else {
                 DllCall("psapi.dll\GetProcessImageFileName", "Ptr", processPtr, "Ptr", processNameBuff.Ptr, "UInt", size // 2)
                 processNameArr := StrSplit(StrGet(processNameBuff), "\")
-                processName := processNameArr[processNameArr.Length]
+                if (processNameArr.Length > 0) {
+                    processName := processNameArr[processNameArr.Length]
+                }
             }
 
             DllCall("CloseHandle", "Ptr", processPtr)
@@ -2188,7 +2348,6 @@ checkRunningEXEs(exe, retName := false, requireShown := false) {
 ;
 ; return either "" if the process is not running, or the name of the process
 checkRunningDIRs(dir, retName := false, ignoreEXE := "", requireShown := false) {
-    global wmiCOM
     global mainPID
     
     maintainerPID := WinHidden(MAINLOOP) ? WinGetPID(WinHidden(MAINLOOP)) : 0
@@ -2220,7 +2379,9 @@ checkRunningDIRs(dir, retName := false, ignoreEXE := "", requireShown := false) 
 
     ; check if any programs exist where dir is subset of exe path 
     query := joinArray(dirArr, "%' OR ExecutablePath Like '%")
-    for process in wmiCOM.ExecQuery("Select ExecutablePath from Win32_Process Where ExecutablePath Like '%" . query . "%'") {
+    results := ComObjGet("winmgmts:{impersonationLevel=impersonate}!\\.\root\CIMV2")
+                .ExecQuery("Select ExecutablePath from Win32_Process Where ExecutablePath Like '%" . query . "%'")
+    for process in results {
         processPath := process.ExecutablePath
         processPathArr := StrSplit(processPath, "\")
 
@@ -2473,7 +2634,7 @@ getMostRecentProgram(checkBackground := false, monitorNum := -1) {
             prevTime := value.time
             prevProgram := key
         }
-        if (Integer(value.monitorNum) = Integer(monitorNum) && value.time > prevMonitorTime) {
+        if ((value.launching || Integer(value.monitorNum) = Integer(monitorNum)) && value.time > prevMonitorTime) {
             prevMonitorTime := value.time
             prevMonitorProgram := key
         }
@@ -2613,6 +2774,8 @@ checkAllPrograms() {
     global globalConsoles
 
     runningKeys := []
+    newPrograms := []
+    ; check if any supported programs were launched outside of consolizer
     for key, value in globalPrograms {
         if (globalRunning.Has(key)) {
             runningKeys.Push(key)
@@ -2630,12 +2793,7 @@ checkAllPrograms() {
 
                     checkArr := checkProgramExists(tempValue)
                     if (checkArr[1]) {
-                        if (checkArr[2] != "") {
-                            createConsole([checkArr[2], ""], false, false)
-                        }
-                        else {
-                            createProgram(key, false, false)
-                        }
+                        newPrograms.Push([key, checkArr[2]])
                     }   
                 }
             }
@@ -2643,20 +2801,29 @@ checkAllPrograms() {
 
         checkArr := checkProgramExists(value)
         if (checkArr[1]) {
-            if (checkArr[2] != "") {
-                createConsole([checkArr[2], ""], false, false)
-            }
-            else {
-                writeLog(key . " was detected as already running")
-                createProgram(key, false, false)
-            }
+            newPrograms.Push([key, checkArr[2]])
         }
+    }
+
+    ; create new programs that were found
+    for newArr in newPrograms {
+        if (newArr[2] != "") {
+            createConsole([newArr[2], ""], false, false)
+        }
+        else {
+            createProgram(newArr[1], false, false)
+        }
+
+        ; check the monitor after creating the program to set proper monitorNum
+        try globalRunning[newArr[1]].checkMonitor()
+        writeLog(newArr[1] . " was detected as already running", "PROGRAM")
     }
 
     currSuspended   := globalStatus["suspendScript"]
     currDesktopMode := globalStatus["desktopmode"]
 
     activeProgram := false
+    ; remove programs that don't exist a anymore
     for key in runningKeys {
         if (!globalRunning.Has(key)) {
             continue
@@ -2705,11 +2872,18 @@ updatePrograms() {
     checkAllPrograms()
 
     mostRecentProgram := getMostRecentProgram(false, currProgramMonitor)
+    ; reset input buffer on change of current program
     if (mostRecentProgram = "") {
         resetCurrentProgram()
+        while (globalStatus["input"]["buffer"].Length > 0) {
+            globalStatus["input"]["buffer"].RemoveAt(1)
+        }
     }
     else if (mostRecentProgram != currProgram) {
         setCurrentProgram(mostRecentProgram)
+        while (globalStatus["input"]["buffer"].Length > 0) {
+            globalStatus["input"]["buffer"].RemoveAt(1)
+        }
     }
 }
 

@@ -58,7 +58,7 @@ class PowerInterface extends Interface {
         super._Show("x" . guiX . " y" . guiY . " w" . this.guiWidth . " h" . this.guiHeight)
 
         ; hide the mouse in the gui
-        HideMouseCursor()
+        HideMouseCursor(true)
     }
 
     _Destroy() {

@@ -1,12 +1,17 @@
 {
     "extends": {
         "id": "wingame",
-        "args": "soh.exe",
-        "matchType": "partial"
+        "args": [
+            "soh.exe",
+            "Spaghettify.exe",
+            "2ship.exe",
+            "Starship.exe"
+        ],
+        "matchType": "partial",
+        "multiType": "or"
     },
 
-    "exe": "soh.exe",
-    "className": "HarkinianProgram",
+    "className": "HarborMasterProgram",
     "hotkeys": {
         "15&7": "program.loadState",
         "15&8": "program.saveState",
@@ -19,5 +24,10 @@
         "Load State": "program.loadState",
         "Reset Game": "program.reset"
     },
-    "pauseOrder": ["Toggle Menu", "Save State", "Load State", "Reset Game"]
+    "pauseOrder": [
+        "Save State", 
+        "Load State", 
+        "Reset Game",
+        "Toggle Menu"
+    ]
 }

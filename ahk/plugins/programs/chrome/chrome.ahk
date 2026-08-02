@@ -3,6 +3,10 @@ class ChromeProgram extends Program {
         retVal := super._restore()
 
         hwnd := this.getHWND()
+        if (!hwnd || !WinShown(hwnd)) {
+            return
+        }
+
         WinGetClientPos(&X, &Y,,, hwnd)
 
         if (WinGetMinMax(hwnd) = 1
@@ -22,7 +26,7 @@ class ChromeProgram extends Program {
         }
 
         ; for some reason chrome's display area is smaller than the window (cool!)
-        WinMove(Round(this._monitorX - (this._monitorW * 0.003)), this._monitorY, Round(this._monitorW + (this._monitorW * 0.007)), Round(this._monitorH + (this._monitorH * 0.006)), hwnd)
+        WinMove(Round(this._monitorX - (this._monitorW * 0.0045)), Round(this._monitorY - (this._monitorH * 0.003)), Round(this._monitorW + (this._monitorW * 0.009)), Round(this._monitorH + (this._monitorH * 0.01)), hwnd)
     }
 
     _checkFullscreen() {

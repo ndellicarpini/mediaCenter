@@ -3,8 +3,9 @@
 ;
 ; returns null
 statusBackup() {
-    global globalRunning
     global globalStatus
+    global globalRunning
+    global globalInputStatus
 
     if (!DirExist("data\")) {
         DirCreate("data\")
@@ -12,21 +13,22 @@ statusBackup() {
 
     backup := Map()
 
+    backup["globalStatus"] := Map()
     for key, value in globalStatus {    
         ; don't backup input buffer   
         if (key = "input") {
-            backup[key] := Map()
+            backup["globalStatus"][key] := Map()
             for key2, value2 in globalStatus[key] {
                 if (key2 = "buffer") {
-                    backup[key][key2] := []
+                    backup["globalStatus"][key][key2] := []
                 }
                 else {
-                    backup[key][key2] := value2
+                    backup["globalStatus"][key][key2] := value2
                 }
             }
         }
         else {
-            backup[key] := globalStatus[key]
+            backup["globalStatus"][key] := globalStatus[key]
         }
     }
     
@@ -34,13 +36,17 @@ statusBackup() {
     for key, value in globalRunning {
         attrMap := Map()
         for name, attr in value.OwnProps() {
-            if (SubStr(name, 1, 8) != "_waiting") {
+            if (StrLower(name) != "monitornum" && 
+                !(SubStr(name, 1, 1) = "_" && (InStr(StrLower(name), "timer") || InStr(StrLower(name), "delay")))) {
+                
                 attrMap[name] := attr
             }
         }
 
         backup["globalRunning"][key] := attrMap
     }
+
+    backup["globalInputStatus"] := globalInputStatus
 
     backupFile := FileOpen("data\backup.json", "w")
     backupFile.Write(JSON.stringify(backup))
@@ -55,6 +61,7 @@ statusBackup() {
 statusRestore() {
     global globalStatus
     global globalPrograms
+    global globalInputStatus
 
     if (!FileExist("data\backup.json")) {
         return
@@ -63,37 +70,45 @@ statusRestore() {
     backupFile := FileOpen("data\backup.json", "r -rwd")
     backup := JSON.parse(backupFile.Read())
     backupFile.Close()
+
     
-    for key, value in backup {
-        if (key = "globalRunning") {
-            for name, attr in backup["globalRunning"] {
-                if (!globalPrograms.Has(name)) {
-                    continue
-                }
+    if backup.Has("globalStatus") {
+        for key, value in backup["globalStatus"] {
+            globalStatus[key] := value
+        }
+    }
+    
+    if backup.Has("globalInputStatus") {
+        for key, value in backup["globalInputStatus"] {
+            globalInputStatus[key] := value
+        }
+    }
+    
+    if backup.Has("globalRunning") {
+        for name, attr in backup["globalRunning"] {
+            if (!globalPrograms.Has(name)) {
+                continue
+            }
 
-                ; clean attr so changes in configs workp
-                cleanAttr := Map()
-                for key2, value2 in attr {
-                    if (!globalPrograms[name].Has(key2)) {
-                        cleanAttr[key2] := value2
-                    }
-                }
-
-                if (cleanAttr.Has("console")) {
-                    createConsole([cleanAttr["console"], cleanAttr["rom"]], false, false, cleanAttr)
-                }
-                else {
-                    params := [name]
-                    if (cleanAttr["_launchArgs"].Length > 0) {
-                        params.Push(((IsObject(cleanAttr["_launchArgs"])) ? cleanAttr["_launchArgs"] : [cleanAttr["_launchArgs"]])*)
-                    }
-
-                    createProgram(params, false, false, cleanAttr)
+            ; clean attr so changes in configs workp
+            cleanAttr := Map()
+            for key2, value2 in attr {
+                if (!globalPrograms[name].Has(key2)) {
+                    cleanAttr[key2] := value2
                 }
             }
-        }
-        else {
-            globalStatus[key] := value
+
+            if (cleanAttr.Has("console")) {
+                createConsole([cleanAttr["console"], cleanAttr["rom"]], false, false, cleanAttr)
+            }
+            else {
+                params := [name]
+                if (cleanAttr["_launchArgs"].Length > 0) {
+                    params.Push(((IsObject(cleanAttr["_launchArgs"])) ? cleanAttr["_launchArgs"] : [cleanAttr["_launchArgs"]])*)
+                }
+
+                createProgram(params, false, false, cleanAttr)
+            }
         }
     }
 }
@@ -156,30 +171,6 @@ statusUpdated() {
     } 
 
     return false
-}
-
-; writes to the log
-;  text - text to write
-;  prefix - prefix for log line
-;
-; returns null
-writeLog(text, prefix := "") {
-    if (!DirExist("data\")) {
-        DirCreate("data\")
-    }
-    if (!DirExist("data\logs")) {
-        DirCreate("data\logs")
-    }
-
-    if (FileExist("data\logs\log.txt")) {
-        modifiedTime := FileGetTime("data\logs\log.txt", "M")
-        if (SubStr(modifiedTime, 1, 8) != SubStr(A_Now, 1, 8)) {
-            FileMove("data\logs\log.txt", "data\logs\log." . FormatTime(modifiedTime, "yyyy-MM-dd") . ".txt", true)
-        }
-    }
-
-    newLine := "[" . FormatTime(, "MM-dd-yyyy HH:mm:ss") . ((prefix != "") ? ("] " . prefix . " | ") : "] ") . text . "`r`n"
-    FileAppend(newLine, "data\logs\log.txt")
 }
 
 ; takes a screenshot & saves it w/ the requested params

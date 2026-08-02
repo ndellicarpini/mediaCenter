@@ -42,7 +42,8 @@ class WinGameProgram extends Program {
             else {
                 this.dir.Push(path)
             }
-        
+
+            setDirectoryApplicationDPI(path)
             RunAsUser(game, cleanArgs, path)
         }
         catch {

@@ -1,0 +1,9 @@
+{
+    "extends": {
+        "id": "wingame",
+        "args": "shadPS4QtLauncher.exe",
+        "matchType": "partial"
+    },
+
+    "defaultArgs": ["-d", "-g", "D:/Games/Bloodborne/roms/CUSA00900/eboot.bin"]
+}
