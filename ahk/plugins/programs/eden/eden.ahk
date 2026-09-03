@@ -15,9 +15,9 @@ class EdenEmulator extends Emulator {
         this.send("{F11}")
     }
 
-    _pause() {
-        this.send("{F4}", 150)
-    }
+    ; _pause() {
+    ;     this.send("{F4}", 150)
+    ; }
 
     _resume() {
         this._pause()

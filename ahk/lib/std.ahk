@@ -509,18 +509,19 @@ WindowSend(key, window, time := -1, async := false) {
 		return
 	}
 
-	; if there's a space, just control send
-	if (InStr(key, A_Space)) {
-		if (time = -1) {
-			ControlSend(key,, window)
+	; if its a hold key, just control send & wait the appropriate time
+	if (StrLower(SubStr(key, -4)) = " up}" || StrLower(SubStr(key, -6)) = " down}") {
+		ControlSend(key,, window)
+		if (time > 0) {
+			Sleep(time)
 		}
-
+		
 		return
 	}
 
-	; if its a hold key, just control send 
-	if (StrLower(SubStr(key, -4)) = " up}" || StrLower(SubStr(key, -6)) = " down}") {
-		ControlSend(key,, window)
+	; if there's a space, just control send
+	if (InStr(key, A_Space)) {
+		ControlSend(key,, window)	
 		return
 	}
 
@@ -586,17 +587,14 @@ WindowSend(key, window, time := -1, async := false) {
 ;
 ; returns null
 SendSafe(key, time := -1, async := false) {
-	; if there's a space, just send
-	if (InStr(key, A_Space)) {
-		if (time = -1) {
-			Send(key)
-		}
-
+	; if its a hold key, just send 
+	if (StrLower(SubStr(key, -4)) = " up}" || StrLower(SubStr(key, -6)) = " down}") {
+		Send(key)
 		return
 	}
 
-	; if its a hold key, just send 
-	if (StrLower(SubStr(key, -4)) = " up}" || StrLower(SubStr(key, -6)) = " down}") {
+	; if there's a space, just send
+	if (InStr(key, A_Space)) {
 		Send(key)
 		return
 	}

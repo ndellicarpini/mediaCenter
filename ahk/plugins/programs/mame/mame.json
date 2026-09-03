@@ -1,0 +1,44 @@
+{
+    "id": "mame",
+    "name": "Mame",
+    "className": "MameEmulator",
+
+    "exe": "mame.exe",
+    "dir": "C:\\Emulators\\Mame",
+
+    "numStates": 1,
+
+    "requireFullscreen": true,
+    "fullscreenDelay": 500,
+    "priority": "H",
+
+    "pauseOptions": {
+        "Toggle Menu": "program.menu"
+    },
+
+    "pauseOrder": [
+        "Save State", 
+        "Load State", 
+        "Reset Game",
+        "Toggle Menu"
+    ],
+
+    "controls": ["Xbox Controller"],
+
+    "hotkeys": {
+        "keyboard": {
+            "blockKeyboard": false,
+            "blockMouse": false,
+            "TAB&1": "program.saveState",
+            "TAB&5": "program.loadState",
+            "TAB&NumpadEnter": "program.fastForward"
+        }
+    },
+
+    "pauseHotkey": "{F5}",
+    "saveStateHotkey": ["{Shift down}", "{F6}", "{Shift up}"],
+    "loadStateHotkey": ["{Shift down}", "{F7}", "{Shift up}"],
+    "resetHotkey": "{F3}",
+    "fastForwardHotkey": "{Insert}",
+    "fastForwardHold": true
+}

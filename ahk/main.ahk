@@ -5,6 +5,9 @@
 #Include plugins\ahk\delfinovin.ahk
 #Include plugins\ahk\expressvpn.ahk
 #Include plugins\ahk\loadscreen.ahk
+#Include plugins\inputs\keyboard\keyboard.ahk
+#Include plugins\inputs\keyboard\lib\AutoHotInterception\Lib\AutoHotInterception.ahk
+#Include plugins\inputs\keyboard\lib\AutoHotInterception\Lib\CLR.ahk
 #Include plugins\inputs\xinput\xinput.ahk
 #Include plugins\programs\azahar\azahar.ahk
 #Include plugins\programs\bigbox\bigbox.ahk
@@ -15,6 +18,7 @@
 #Include plugins\programs\eagame\eagame.ahk
 #Include plugins\programs\eden\eden.ahk
 #Include plugins\programs\kodi\kodi.ahk
+#Include plugins\programs\mame\mame.ahk
 #Include plugins\programs\melonds\melonds.ahk
 #Include plugins\programs\pcsx2\pcsx2.ahk
 #Include plugins\programs\ppsspp\ppsspp.ahk
@@ -210,6 +214,8 @@ globalStatus["currProgram"]["id"] := ""
 globalStatus["currProgram"]["exe"] := ""
 globalStatus["currProgram"]["hwnd"] := 0
 globalStatus["currProgram"]["monitor"] := -1
+globalStatus["currProgram"]["launching"] := false
+globalStatus["currProgram"]["exiting"] := false
 
 ; load screen info
 globalStatus["loadscreen"] := Map()
@@ -251,7 +257,9 @@ if (globalConfig["Plugins"].Has("ProgramPluginDir") && globalConfig["Plugins"]["
     loop files validateDir(globalConfig["Plugins"]["ProgramPluginDir"]) . "*.json", "FR" {
         tempConfig := Config(A_LoopFileFullPath, "json")
 
-        if (tempConfig.data.Has("id") && tempConfig.data["id"] != "") { 
+        if (tempConfig.data.Has("id") && tempConfig.data["id"] != "" 
+            && (!tempConfig.data.Has("enabled") || tempConfig.data["enabled"])) {
+
             ; convert array of exe to map for efficient lookup
             if (tempConfig.data.Has("exe") && Type(tempConfig.data["exe"]) = "Array") {
                 tempMap := Map()
@@ -315,7 +323,9 @@ if (globalConfig["Plugins"].Has("InputPluginDir") && globalConfig["Plugins"]["In
                 globalInputStatus[controlID].Push(Map())
             }
 
-            inputThreadsToStart.Push(controlID)
+            if (!tempConfig.data.Has("enabled") || tempConfig.data["enabled"]) {
+                inputThreadsToStart.Push(controlID)
+            }
         }
         else {
             ErrorMsg(A_LoopFileFullPath . " does not have required 'id' parameter")
@@ -862,9 +872,10 @@ ShutdownScript(restoreTaskbar := true) {
 
     writeLog("Exiting Threads...", "MAIN")
 
+    globalStatus["exitThreads"] := true
+
     ; tell the threads to close
     for key, value in globalThreads {
-        value.ExitApp()
         value.Wait()
     }
 

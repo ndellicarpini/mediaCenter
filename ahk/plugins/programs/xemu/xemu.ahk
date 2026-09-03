@@ -7,11 +7,11 @@ class XemuEmulator extends Emulator {
         this.send("{Ctrl up}")
     }
 
-    _pause() {
-        this.send("{Ctrl down}")
-        this.send("p", 150)
-        this.send("{Ctrl up}")
-    }
+    ; _pause() {
+    ;     this.send("{Ctrl down}")
+    ;     this.send("p", 150)
+    ;     this.send("{Ctrl up}")
+    ; }
 
     _resume() {
         this._pause()
@@ -20,9 +20,9 @@ class XemuEmulator extends Emulator {
         this.send("{Escape}")
     }
 
-    _reset() {
-        this.send("{Ctrl down}")
-        this.send("r")
-        this.send("{Ctrl up}")
-    }
+    ; _reset() {
+    ;     this.send("{Ctrl down}")
+    ;     this.send("r")
+    ;     this.send("{Ctrl up}")
+    ; }
 }

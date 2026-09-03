@@ -185,9 +185,23 @@ class SteamGameProgram extends Program {
                     Sleep(75)
 
                     HideMouseCursor()
-                    Sleep(250)
+                    Sleep(750)
 
-                    return
+                    if (StrLower(WinGetTitle(wndw)) = "steam dialog") {                        
+                        MouseClick("Left"
+                            , percentWidthRelativeWndw(0.5, wndw)
+                            , percentHeightRelativeWndw(0.95, wndw)
+                            ,,, "D"
+                        )
+                        Sleep(75)
+                        MouseClick("Left",,,,, "U")
+                        Sleep(75)
+
+                        HideMouseCursor()
+                        Sleep(250)
+
+                        return
+                    }
                 }
             }
         }

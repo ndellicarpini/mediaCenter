@@ -18,5 +18,14 @@
 
     "pauseOrder": [
         "Show Menu"
-    ]
+    ],
+
+    "hotkeys": {
+        "keyboard": {
+            "blockKeyboard": false,
+            "blockMouse": true
+        }
+    },
+    
+    "pauseHotkey": ["{Ctrl down}", "p", "{Ctrl up}"]
 }

@@ -12,9 +12,11 @@
 
     "hotkeys": {
         "buttonTime": 0,
-        "7": {
-            "up": "Send '{Escape up}'", 
-            "down": "Send '{Escape down}'"
+        "xinput": {
+            "SELECT": {
+                "up": "Send '{Escape up}'", 
+                "down": "Send '{Escape down}'"
+            }
         }
     }
 }

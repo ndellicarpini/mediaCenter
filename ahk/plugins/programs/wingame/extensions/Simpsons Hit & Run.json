@@ -8,7 +8,7 @@
     "defaultArgs": "-launch",
     "hotkeys": {
         "buttonTime": 0,
-        "8": {
+        "START": {
             "up": "Send '{Escape up}'", 
             "down": "Send '{Escape down}'"
         }

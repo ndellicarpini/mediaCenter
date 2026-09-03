@@ -3,6 +3,7 @@
     "name": "MelonDS",
     "className": "MelonDSEmulator",
 
+    "enabled": false,
     "exe": "melonDS.exe",
     "dir": "C:\\Emulators\\MelonDS",
 
@@ -19,25 +20,29 @@
 
     "mouse": {
         "initialPos": [0.875, 0.5],
-        "x": 3,
-        "y": -4,
-        "lclick": 10,
-        "deadzone": 0.15
+        "xinput": {
+            "x": "RSX",
+            "y": "-RSY",
+            "lclick": "RSB",
+            "deadzone": 0.15
+        }
     },
 
     "hotkeys": {
         "buttonTime": 0,
-        "15&8": {
-            "down": "program.saveState",
-            "time": 70
-        },
-        "15&7": {
-            "down": "program.loadState",
-            "time": 70
-        },
-        "15&6>0.3": {
-            "down": "program.fastForward",
-            "time": 70
+        "xinput": {
+            "HOME&START": {
+                "down": "program.saveState",
+                "time": 70
+            },
+            "HOME&SELECT": {
+                "down": "program.loadState",
+                "time": 70
+            },
+            "HOME&RT>0.3": {
+                "down": "program.fastForward",
+                "time": 70
+            }
         }
     },
 

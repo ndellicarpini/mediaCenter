@@ -30,8 +30,6 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         prevDPIContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -3, "Ptr")
         CoordMode "Mouse", "Screen"
         Critical("Off")
-        
-        global exitThread := false
 
         global mainPID            := Integer(A_Args[1])
         global inputID            := A_Args[2]
@@ -80,7 +78,9 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             global thisInput
             
             for key, value in thisInput[index].OwnProps() {
-                if (key = "vibrating" || (thisInput[index].batteryCheckBlocking && key = "batteryLevel")) {
+                if (SubStr(key, 1, 1) = "_" || key = "vibrating" || key = "initResults" 
+                    || key = "buttons" || key = "axis"
+                    || (thisInput[index].batteryCheckBlocking && key = "batteryLevel")) {
                     continue
                 }
 
@@ -100,7 +100,10 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 return
             }
 
-            if (SubStr(hotkeyFunction, 1, 5) = "Send " && globalStatus["currProgram"]["id"] != ""
+            if (SubStr(hotkeyFunction, 1, 10) = "ForceSend ") {
+                hotkeyFunction := StrReplace(hotkeyFunction, "ForceSend ", "Send ",,, 1)
+            }
+            else if (SubStr(hotkeyFunction, 1, 5) = "Send " && globalStatus["currProgram"]["id"] != ""
                 && !globalStatus["currGui"] && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
                 
                 hotkeyFunction := StrReplace(hotkeyFunction, "Send ", "ProgramSend ",,, 1)
@@ -173,10 +176,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         inputInterval := 14
         maxConnected  := globalInputConfigs[inputID]["maxConnected"]
 
-        inputInit   := %globalInputConfigs[inputID]["className"]%.initialize()
+        inputInit := %globalInputConfigs[inputID]["className"]%.initialize()
         ; intialize input type & devices
         loop maxConnected {
             thisInput.Push(%globalInputConfigs[inputID]["className"]%(inputInit, A_Index - 1, globalInputConfigs[inputID], globalInputStatus[inputID][A_Index]))
+            thisInput[A_Index].initDevice()
             currConnected.Push(thisInput[A_Index].connected)
             
             updateGlobalStatus(A_Index)
@@ -195,11 +199,6 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
         loopSleep := Round(globalConfig["General"]["AvgLoopSleep"])
 
         loop {
-            ; close if main is no running
-            if (!ProcessExist(mainPID)) {
-                return
-            }
-
             buttonTime := globalStatus["input"]["buttonTime"]
 
             if (globalStatus["input"]["hotkeys"].Has(inputID)) {
@@ -217,6 +216,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                 ; check if the device is connected
                 if (!thisInput[currIndex].connected) {
                     if (currConnected[currIndex]) {
+                        thisInput[currIndex].destroyDevice()
                         currConnected[currIndex] := false
                     }
 
@@ -453,11 +453,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                     ; check mouse move x axis
                     if (checkX) {
-                        currAxis := Integer(thisMouse["x"])
+                        currAxis := thisMouse["x"]
                         inverted := false
 
-                        if (currAxis < 0) {
-                            currAxis := Abs(currAxis)
+                        if (SubStr(currAxis, 1, 1) = "-") {
+                            currAxis := SubStr(currAxis, 2)
                             inverted := true
                         }
 
@@ -468,11 +468,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     }
                     ; check mouse move y axis
                     if (checkY) {
-                        currAxis := Integer(thisMouse["y"])
+                        currAxis := thisMouse["y"]
                         inverted := false
 
-                        if (currAxis < 0) {
-                            currAxis := Abs(currAxis)
+                        if (SubStr(currAxis, 1, 1) = "-") {
+                            currAxis := SubStr(currAxis, 2)
                             inverted := true
                         }
 
@@ -484,11 +484,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                     ; check mouse horizontal scroll axis
                     if (checkH) {
-                        currAxis := Integer(thisMouse["hscroll"])
+                        currAxis := thisMouse["hscroll"]
                         inverted := false
 
-                        if (currAxis < 0) {
-                            currAxis := Abs(currAxis)
+                        if (SubStr(currAxis, 1, 1) = "-") {
+                            currAxis := SubStr(currAxis, 2)
                             inverted := true
                         }
 
@@ -499,11 +499,11 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     }
                     ; check mouse vertical scroll axis
                     if (checkV) {
-                        currAxis := Integer(thisMouse["vscroll"])
+                        currAxis := thisMouse["vscroll"]
                         inverted := false
 
-                        if (currAxis < 0) {
-                            currAxis := Abs(currAxis)
+                        if (SubStr(currAxis, 1, 1) = "-") {
+                            currAxis := SubStr(currAxis, 2)
                             inverted := true
                         }
 
@@ -515,7 +515,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
 
                     ; check left click button
                     if (checkL) {
-                        if (status["buttons"][Integer(thisMouse["lclick"])]) {
+                        if (status["buttons"][thisMouse["lclick"]]) {
                             if (!(currMouseInput[currIndex]["lclick"] & (2 ** A_Index))) {
                                 MouseClick("Left",,,,, "D")
                                 currMouseInput[currIndex]["lclick"] := currMouseInput[currIndex]["lclick"] | (2 ** A_Index)
@@ -530,7 +530,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     }
                     ; check right click button
                     if (checkR) {
-                        if (status["buttons"][Integer(thisMouse["rclick"])]) {
+                        if (status["buttons"][thisMouse["rclick"]]) {
                             if (!(currMouseInput[currIndex]["rclick"] & (2 ** A_Index))) {
                                 MouseClick("Right",,,,, "D")
                                 currMouseInput[currIndex]["rclick"] := currMouseInput[currIndex]["rclick"] | (2 ** A_Index)
@@ -545,7 +545,7 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
                     }
                     ; check middle click button
                     if (checkM) {
-                        if (status["buttons"][Integer(thisMouse["mclick"])]) {
+                        if (status["buttons"][thisMouse["mclick"]]) {
                             if (!(currMouseInput[currIndex]["mclick"] & (2 ** A_Index))) {
                                 MouseClick("Middle",,,,, "D")
                                 currMouseInput[currIndex]["mclick"] := currMouseInput[currIndex]["mclick"] | (2 ** A_Index)
@@ -620,6 +620,22 @@ inputThread(inputID, globalConfigPtr, globalStatusPtr, globalInputStatusPtr, glo
             }
 
             Sleep(inputInterval)
+            
+            ; close if main is no running
+            if ((globalStatus.Has("exitThreads") && globalStatus["exitThreads"]) || !ProcessExist(mainPID)) {
+                if (!globalInputConfigs.Has(inputID)) {
+                    ExitApp()
+                }
+
+                ; destroy all input devices
+                loop maxConnected {
+                    thisInput[A_Index].destroyDevice()
+                }
+
+                ; destroy input driver
+                %globalInputConfigs[inputID]["className"]%.destroy()
+                ExitApp()
+            }
         }
 
         return
@@ -805,7 +821,9 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                         checkMouse   := globalRunning[currProgram].mouse.Count > 0
                         for key, value in globalInputConfigs {
                             if (checkHotkeys) {
-                                currHotkeys[key] := addHotkeys(currHotkeys[key], globalRunning[currProgram].hotkeys)
+                                if (globalRunning[currProgram].hotkeys.Has(key)) {
+                                    currHotkeys[key] := addHotkeys(currHotkeys[key], globalRunning[currProgram].hotkeys[key])
+                                }
                                 if (value.Has("defaultHotkeys") && value["defaultHotkeys"].Has(currProgram)) {
                                     currHotkeys[key] := addHotkeys(currHotkeys[key], value["defaultHotkeys"][currProgram])
                                 }
@@ -813,8 +831,8 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
                                 globalStatus["input"]["buttonTime"] := Min(globalStatus["input"]["buttonTime"], globalRunning[currProgram].hotkeyButtonTime)
                             }
         
-                            if (checkMouse) {
-                                currMouse[key] := globalRunning[currProgram].mouse
+                            if (checkMouse && globalRunning[currProgram].mouse.Has(key)) {
+                                currMouse[key] := globalRunning[currProgram].mouse[key]
                             }
                         }
                     }
@@ -828,8 +846,8 @@ hotkeyThread(globalConfigPtr, globalStatusPtr, globalInputConfigsPtr, globalRunn
             Sleep(loopSleep)
 
             ; close if main is no running
-            if (!ProcessExist(mainPID)) {
-                return
+            if ((globalStatus.Has("exitThreads") && globalStatus["exitThreads"]) || !ProcessExist(mainPID)) {
+                ExitApp()
             }
         }
     )"
@@ -868,6 +886,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
     ref := Worker(includeString . "
     (   
         #Include lib\std.ahk
+        #Include lib\log.ahk
         #Include lib\gui\std.ahk
         #Include lib\gui\constants.ahk
         #Include lib\gui\interface.ahk
@@ -876,6 +895,8 @@ miscThread(globalConfigPtr, globalStatusPtr) {
         ; #WinActivateForce
         
         Critical("Off")
+
+        OnError(writeErrorLog)
 
         ; --- GLOBAL VARIABLES ---
 
@@ -997,13 +1018,22 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                 }
             
                 ; automatically accept firewall
-                ; TODO - update for new W11 firewall pop-up
-                if (bypassFirewall && WinShown("Windows Security Alert")) {
-                    WinActivateForeground("Windows Security Alert")
-                    Sleep(50)
-                    Send "{Enter}"
+                if (bypassFirewall) {
+                    if (WinShown("Windows Security Alert")) {
+                        WinActivateForeground("Windows Security Alert")
+                        Sleep(50)
+                        Send "{Enter}"
+                    }
+                    else if (WinShown("Windows Security")) {    
+                        MouseClick("Left", percentWidthRelativeWndw(0.25, "Windows Security")
+                                         , percentHeightRelativeWndw(0.91, "Windows Security"),,, "D")
+                        Sleep(75)
+                        MouseClick("Left",,,,, "U") 
+                        Sleep(75)
+                        HideMouseCursor()
+                    }
                 }
-            
+
                 ; check that taskbar is hidden
                 if (disableTaskbar && taskbarExists()) {
                     hideTaskbar()
@@ -1027,8 +1057,8 @@ miscThread(globalConfigPtr, globalStatusPtr) {
             Sleep(loopSleep)
 
             ; close if main is no running
-            if (!ProcessExist(mainPID)) {
-                return
+            if ((globalStatus.Has("exitThreads") && globalStatus["exitThreads"]) || !ProcessExist(mainPID)) {
+                ExitApp()
             }
         }
     )"

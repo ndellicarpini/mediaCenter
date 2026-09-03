@@ -1,6 +1,9 @@
 class SteamProgram extends Program {
-    __New(args*) {
-        super.__New(args*)
+    backgroundLaunch := false
+
+    __New(exeConfig) {
+        super.__New(exeConfig)
+        this.backgroundLaunch := (exeConfig.Has("backgroundLaunch")) ? exeConfig["backgroundLaunch"] : this.backgroundLaunch
 
         try {
             pathArr := StrSplit(RegRead("HKEY_CURRENT_USER\Software\Valve\Steam", "SteamExe"), "/")
@@ -21,6 +24,10 @@ class SteamProgram extends Program {
         }
         catch {
             return false
+        }
+
+        if (this.backgroundLaunch) {
+            return
         }
         
         resetTTM := A_TitleMatchMode

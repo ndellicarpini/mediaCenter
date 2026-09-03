@@ -30,19 +30,34 @@ class Input {
     initResults := Map()
 
     ; state of input buttons/axis
-    buttons := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    axis    := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    buttons := Map()
+    axis    := Map()
 
     buttNames := []
     axisNames := []
 
     __New(initResults, pluginPort, inputConfigRef, restoreAttributes := "") {
         inputConfig := ObjDeepClone(inputConfigRef)
+        this.buttons.CaseSense := "Off"
+        this.buttons.Default := 0
+        this.axis.CaseSense := "Off"
+        this.axis.Default := 0
 
         ; restore controller details from backup
         if (restoreAttributes != "") {                
             for key, value in restoreAttributes {
-                this.%key% := value
+                if (key = "initResults") {
+                    continue
+                }
+
+                if (Type(value) = "Map") {
+                    for key2, value2 in value {
+                        this.%key%[key2] := value2
+                    }
+                }
+                else {
+                    this.%key% := value
+                }
             }
         }
         
@@ -53,9 +68,14 @@ class Input {
         this.buttNames := (inputConfig.Has("buttons")) ? inputConfig["buttons"] : this.buttNames
         this.axisNames := (inputConfig.Has("axis"))    ? inputConfig["axis"]    : this.axisNames
 
+        for item in this.buttNames {
+            this.buttons[toString(item)] := false
+        }
+        for item in this.axisNames {
+            this.axis[toString(item)] := 0
+        }
+
         this.initResults := initResults
-        
-        this.initDevice()
     }
 
     ; this should only run once to intialize the driver (beginning of script)
@@ -86,9 +106,6 @@ class Input {
 
     ; returns the state of the pressed buttons and each axis's current state
     getStatus() {
-        this.buttons := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        this.axis    := [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        
         return Map("buttons", this.buttons, "axis", this.axis)
     }
 
@@ -130,44 +147,40 @@ class Input {
 ; returns true if key matches
 inputCheckStatus(key, statusResult) {
     cleanKey := Trim(key, " `t`r`n")
-    if (IsInteger(cleanKey)) {
-        return statusResult["buttons"][Integer(cleanKey)]
-    }
-    else {
-        return inputCompareAxis(cleanKey, statusResult)
-    }
-}
-
-; checks if a hotkey is an axis comparison, then checks if the input status satisfies the comparison
-;  axisComparison - hotkey that will be compared if its in the appropriate format
-;  statusResults - the results from 1 input device's getStatus
-;
-; returns true if the axis comparison is satisfied
-inputCompareAxis(axisComparison, statusResult) {
-    if (InStr(axisComparison, ">")) {
-        if (InStr(axisComparison, ">=")) {
-            compareArr := StrSplit(axisComparison, ">=")
-            return (statusResult["axis"][Integer(compareArr[1])] >= Float(compareArr[2]))
+    if (InStr(cleanKey, ">")) {
+        if (InStr(cleanKey, ">=")) {
+            compareArr := StrSplit(cleanKey, ">=")
+            if (compareArr.Length = 2) {
+                return (statusResult["axis"][compareArr[1]] >= Float(compareArr[2]))
+            }
         }
         else {
-            compareArr := StrSplit(axisComparison, ">")
-            return (statusResult["axis"][Integer(compareArr[1])] > Float(compareArr[2]))
+            compareArr := StrSplit(cleanKey, ">")
+            if (compareArr.Length = 2) {
+                return (statusResult["axis"][compareArr[1]] > Float(compareArr[2]))
+            }
         }
     }
-    else if (InStr(axisComparison, "<")) {
-        if (InStr(axisComparison, "<=")) {
-            compareArr := StrSplit(axisComparison, "<=")
-            return (statusResult["axis"][Integer(compareArr[1])] <= Float(compareArr[2]))
+    else if (InStr(cleanKey, "<")) {
+        if (InStr(cleanKey, "<=")) {
+            compareArr := StrSplit(cleanKey, "<=")
+            if (compareArr.Length = 2) {
+                return (statusResult["axis"][compareArr[1]] <= Float(compareArr[2]))
+            }
         }
         else {
-            compareArr := StrSplit(axisComparison, "<")
-            return (statusResult["axis"][Integer(compareArr[1])] < Float(compareArr[2]))
+            compareArr := StrSplit(cleanKey, "<")
+            if (compareArr.Length = 2) {
+                return (statusResult["axis"][compareArr[1]] < Float(compareArr[2]))
+            }
         }
     }
-    else if (InStr(axisComparison, "=")) {
-        compareArr := StrSplit(axisComparison, "=")
-        return (statusResult["axis"][Integer(compareArr[1])] = Float(compareArr[2]))
+    else if (InStr(cleanKey, "=")) {
+        compareArr := StrSplit(cleanKey, "=")
+        if (compareArr.Length = 2) {
+            return (statusResult["axis"][compareArr[1]] = Float(compareArr[2]))
+        }
     }
 
-    return false
+    return statusResult["buttons"][cleanKey]
 }

@@ -22,6 +22,19 @@ class Emulator extends Program {
     rewinding := false
     fastForwarding := false
 
+    hotkeyHoldTime  := 100
+    pauseHotkey     := []
+    resumeHotkey    := []
+    resetHotkey     := []
+    swapDiskHotkey  := []
+    saveStateHotkey := []
+    loadStateHotkey := []
+    
+    fastForwardHotkey := []
+    fastForwardHold   := false
+    rewindHotkey      := []
+    rewindHold        := false
+
     __New(console, exeConfigRef, consoleConfigRef) {
         exeConfig := ObjDeepClone(exeConfigRef)
         consoleConfig := ObjDeepClone(consoleConfigRef)
@@ -31,11 +44,56 @@ class Emulator extends Program {
         ; control versions of console read from config files
         this.controlVersions := (exeConfig.Has("controls")) ? exeConfig["controls"] : this.controlVersions
         
-        this.numStates     := (exeConfig.Has("numStates"))   ? exeConfig["numStates"]   : this.numStates
-        this.ffSupport     := (exeConfig.Has("fastForward")) ? exeConfig["fastForward"] : this.ffSupport
-        this.rewindSupport := (exeConfig.Has("rewind"))      ? exeConfig["rewind"]      : this.rewindSupport
-        this.resetSupport  := (exeConfig.Has("reset"))       ? exeConfig["reset"]       : this.resetSupport
+        this.numStates := (exeConfig.Has("numStates"))   ? exeConfig["numStates"]   : this.numStates
+        
+        ; TODO - this should be read from emulator config files
+        hotkeyTypes := [
+            "pauseHotkey",   
+            "resumeHotkey",
+            "resetHotkey", 
+            "swapDiskHotkey",
+            "saveStateHotkey",
+            "loadStateHotkey",
+            "fastForwardHotkey",
+            "rewindHotkey"
+        ]
+
+        for hotkey in hotkeyTypes {
+            if (exeConfig.Has(hotkey)) {
+                this.%hotkey% := (Type(exeConfig[hotkey]) = "Array") ? exeConfig[hotkey] : [exeConfig[hotkey]]
+            }
+            else if (exeConfig.Has(hotkey . "s")) {
+                this.%hotkey% := (Type(exeConfig[hotkey . "s"]) = "Array") ? exeConfig[hotkey . "s"] : [exeConfig[hotkey . "s"]]  
+            }
+
+            loop this.%hotkey%.Length {
+                cleanHotkey := String(this.%hotkey%[A_Index])
+                if (IsFloat(cleanHotkey)) {
+                    this.%hotkey%[A_Index] := String(Integer(cleanHotkey))
+                }
+                else {
+                    this.%hotkey%[A_Index] := cleanHotkey
+                }
+            }
+        }
+
+        if (this.pauseHotkey.Length > 0 && this.resumeHotkey.Length = 0) {
+            this.resumeHotkey := this.pauseHotkey
+        }
+        else if (this.pauseHotkey.Length = 0 && this.resumeHotkey.Length > 0) {
+            this.pauseHotkey := this.resumeHotkey
+        }
+
+        this.hotkeyHoldTime  := (exeConfig.Has("hotkeyHoldTime"))  ? exeConfig["hotkeyHoldTime"]  : this.hotkeyHoldTime
+
+        this.fastForwardHold   := (exeConfig.Has("fastForwardHold"))   ? exeConfig["fastForwardHold"]   : this.fastForwardHold
+        this.rewindHold        := (exeConfig.Has("rewindHold"))        ? exeConfig["rewindHold"]        : this.rewindHold
   
+        this.ffSupport     := this.fastForwardHotkey.Length > 0
+        this.rewindSupport := this.rewindHotkey.Length > 0
+        this.resetSupport  := this.resetHotkey.Length > 0
+        
+
         dirFound        := false
         nameIndexFound  := false
         emulatorsFound  := false
@@ -107,6 +165,25 @@ class Emulator extends Program {
     _postExit() {
         super._postExit()
     }
+    
+    _pause() {
+        if (this.pauseHotkey.Length = 0) {
+            return
+        }
+
+        for hotkey in this.pauseHotkey {
+            this.send(hotkey, this.hotkeyHoldTime)
+        }
+    }
+    _resume() {
+        if (this.resumeHotkey.Length = 0) {
+            return
+        }
+
+        for hotkey in this.resumeHotkey {
+            this.send(hotkey, this.hotkeyHoldTime)
+        }
+    }
 
     saveState(slot := 0) {
         if (this.numStates = 0) {
@@ -116,7 +193,13 @@ class Emulator extends Program {
         this._saveState(slot)
     }
     _saveState(slot) {
-        return
+        if (this.saveStateHotkey.Length = 0) {
+            return
+        }
+
+        for hotkey in this.saveStateHotkey {
+            this.send(hotkey, this.hotkeyHoldTime)
+        }
     }
 
     loadState(slot := 0) {
@@ -127,7 +210,13 @@ class Emulator extends Program {
         this._loadState(slot)
     }
     _loadState(slot) {
-        return
+        if (this.loadStateHotkey.Length = 0) {
+            return
+        }
+
+        for hotkey in this.loadStateHotkey {
+            this.send(hotkey, this.hotkeyHoldTime)
+        }
     }
 
     swapDisk() {
@@ -145,7 +234,13 @@ class Emulator extends Program {
         this._swapDisk()
     }
     _swapDisk() {
-        return
+        if (this.swapDiskHotkey.Length = 0) {
+            return
+        }
+
+        for hotkey in this.swapDiskHotkey {
+            this.send(hotkey, this.hotkeyHoldTime)
+        }
     }
 
     reset() {
@@ -165,7 +260,13 @@ class Emulator extends Program {
         this._reset()
     }
     _reset() {
-        return
+        if (this.resetHotkey.Length = 0) {
+            return
+        }
+
+        for hotkey in this.resetHotkey {
+            this.send(hotkey, this.hotkeyHoldTime)
+        }
     }
 
     rewind() {
@@ -182,7 +283,25 @@ class Emulator extends Program {
         this.rewinding := !this.rewinding
     }
     _rewind() {
-        return
+        if (this.rewindHotkey.Length = 0) {
+            return
+        }
+
+        loop this.rewindHotkey.Length {
+            if (this.rewindHold) {
+                if (this.rewinding) {
+                    rewindClean := RTrim(LTrim(Trim(this.rewindHotkey[this.rewindHotkey.Length - (A_Index - 1)]), "{"), "}")
+                    this.send("{" . rewindClean . " up}")
+                }
+                else {
+                    rewindClean := RTrim(LTrim(Trim(this.rewindHotkey[A_Index]), "{"), "}")
+                    this.send("{" . rewindClean . " down}")
+                }
+            }
+            else {
+                this.send(this.rewindHotkey[A_Index], this.hotkeyHoldTime)
+            }
+        }
     }
 
     fastForward() {
@@ -199,7 +318,25 @@ class Emulator extends Program {
         this.fastForwarding := !this.fastForwarding
     }
     _fastForward() {
-        return
+        if (this.fastForwardHotkey.Length = 0) {
+            return
+        }
+
+        loop this.fastForwardHotkey.Length {
+            if (this.fastForwardHold) {
+                if (this.fastForwarding) {
+                    ffClean := RTrim(LTrim(Trim(this.fastForwardHotkey[this.fastForwardHotkey.Length - (A_Index - 1)]), "{"), "}")
+                    this.send("{" . ffClean . " up}")
+                }
+                else {
+                    ffClean := RTrim(LTrim(Trim(this.fastForwardHotkey[A_Index]), "{"), "}")
+                    this.send("{" . ffClean . " down}")
+                }
+            }
+            else {
+                this.send(this.fastForwardHotkey[A_Index], this.hotkeyHoldTime)
+            }
+        }
     }
 }
 
@@ -326,16 +463,16 @@ getExtendedRomConfig(programConfig, consoleConfig, rom) {
     internalProgramConfig := ObjDeepClone(programConfig)
     internalConsoleConfig := ObjDeepClone(consoleConfig)
 
-    consoleOverride := ""
-    if (internalConsoleConfig.Has("consoleOverride")) {
-        consoleOverride := internalConsoleConfig["consoleOverride"]
+    emulatorOverride := ""
+    if (internalConsoleConfig.Has("emulatorOverride")) {
+        emulatorOverride := internalConsoleConfig["emulatorOverride"]
     }
-    else if (internalConsoleConfig.Has("consoleOverrides")) {
-        consoleOverride := internalConsoleConfig["consoleOverrides"]
+    else if (internalConsoleConfig.Has("emulatorOverride")) {
+        emulatorOverride := internalConsoleConfig["emulatorOverride"]
     }
 
-    if (consoleOverride != "") {
-        for key, value in consoleOverride {
+    if (emulatorOverride != "" && internalProgramConfig.Has("id") && emulatorOverride.Has(internalProgramConfig["id"])) {
+        for key, value in emulatorOverride[internalProgramConfig["id"]] {
             internalProgramConfig[key] := value
         }
     }

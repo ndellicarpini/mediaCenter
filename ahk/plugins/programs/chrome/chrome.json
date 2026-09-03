@@ -3,7 +3,6 @@
     "name": "Google Chrome",
     "className": "ChromeProgram",
 
-    "allowQuickAccess": true,
     "requireFullscreen": true,
     "keyboardMode": "Windows",
 
@@ -16,39 +15,80 @@
 
     "mouse": {
         "initialPos": [0.5, 0.5],
-        "x": 1,
-        "y": -2,
-        "vscroll": -4,
-        "lclick": 1,
-        "rclick": 3,
-        "deadzone": 0.15
+        "xinput": {
+            "x": "LSX",
+            "y": "-LSY",
+            "vscroll": "-RSY",
+            "lclick": "A",
+            "rclick": "X",
+            "deadzone": 0.15
+        }
     },
 
     "hotkeys": {
         "buttonTime": 0,
-        "[REPEAT]3>0.75": "program.zoomIn",
-        "[REPEAT]3<-0.75": "program.zoomOut",
+        "xinput": {
+            "[REPEAT]RSX>0.75": "program.zoomIn",
+            "[REPEAT]RSX<-0.75": "program.zoomOut",
 
-        "[REPEAT]11": "Send {Up}",
-        "[REPEAT]12": "Send {Down}",
-        "[REPEAT]13": "Send {Left}",
-        "[REPEAT]14": "Send {Right}",
+            "[REPEAT]DU": "Send {Up}",
+            "[REPEAT]DD": "Send {Down}",
+            "[REPEAT]DL": "Send {Left}",
+            "[REPEAT]DR": "Send {Right}",
 
-        "[REPEAT]2": "Send {Backspace}",
-        "4": "Send !{Home}",
-        "5": "Send ^+{Tab}",
-        "6": "Send ^{Tab}",
-        "5>0.75": "Send !{Left}",
-        "6>0.75": "Send !{Right}",
+            "[REPEAT]B": "Send {Backspace}",
+            "Y": "Send !{Home}",
+            "LB": "Send ^+{Tab}",
+            "RB": "Send ^{Tab}",
+            "LT>0.75": "Send !{Left}",
+            "RT>0.75": "Send !{Right}",
 
-        "7": {
-            "down": "toggleKeyboard",
-            "time": 70
+            "SELECT": {
+                "down": "toggleKeyboard",
+                "time": 70
+            },
+            "START": {
+                "down": "Send ^t",
+                "time": 70
+            }
         },
-        "8": {
-            "down": "Send ^t",
-            "time": 70
-        },
+        "keyboard": {
+            "vinput": [
+                {
+                    "Up": "DU",
+                    "Down": "DD",
+                    "Left": "DL",
+                    "Right": "DR",
+                    "C": "A",
+                    "J": "A",
+                    "LControl": "A",
+                    "V": "B",
+                    "L": "B",
+                    "LAlt": "B",
+                    "LShift": "X",
+                    "Z": "Y",
+                    "Space": "LB",
+                    "X": "RB",
+                    "1": "START",
+                    "NumpadEnter": "START",
+                    "5": "SELECT"
+                },
+                {
+                    "R": "DU",
+                    "F": "DD",
+                    "D": "DL",
+                    "G": "DR",
+                    "A": "A",
+                    "S": "B",
+                    "W": "X",
+                    "I": "Y",
+                    "Q": "LB",
+                    "K": "RB",
+                    "2": "START",
+                    "6": "SELECT"
+                }
+            ]
+        }
     },
 
     "pauseOptions": {

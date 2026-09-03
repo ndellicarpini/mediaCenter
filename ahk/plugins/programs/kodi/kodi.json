@@ -3,6 +3,7 @@
 	"name": "Kodi",
     "className": "KodiProgram",
 
+    "enabled": false,
     "dir": "C:\\Kodi",
     "exe": "kodi.exe",
     "defaultArgs": "-fs -p",
@@ -12,7 +13,7 @@
     "checkVPN": "expressVPNConnected",
 
     "requireFullscreen": true,
-    "allowQuickAccess": true,
+    "allowQuickAccess": false,
     "allowExit": false,
 
     "pauseOptions": {

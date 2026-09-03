@@ -41,13 +41,13 @@ class PauseInterface extends Interface {
             this.Add("Text", "Section Center 0x200 Background" . COLOR2 . " xm0 ym5 h" . this._calcPercentHeight(0.05) . " w" . itemWidth, "Control Menu")
                 
             ; --- ADD PAUSE OPTIONS ---
-            basicOptions := this._basicPauseOptions()
+            basicOptions := this._defaultPauseOptions(true)
 
             optionHeight := this._calcPercentHeight(0.045)
             optionSpacing := this._calcPercentHeight(0.007)
 
             y_index := 1
-
+    
             ; global options
             if (basicOptions.items.Count > 0) {
                 this.SetFont("norm s19")
@@ -108,32 +108,35 @@ class PauseInterface extends Interface {
             }
 
             ; --- ADD TOP ROW BUTTONS ---
-            if (globalConfig["Plugins"].Has("DefaultProgram") && globalConfig["Plugins"]["DefaultProgram"] != "") {
-                buttonSpacing := this._calcPercentWidth(0.0097)
+            y_index := 0
+            if (!globalConfig["GUI"].Has("EnablePauseHomeRow") || globalConfig["GUI"]["EnablePauseHomeRow"]) {
+                if (globalConfig["Plugins"].Has("DefaultProgram") && globalConfig["Plugins"]["DefaultProgram"] != "") {
+                    buttonSpacing := this._calcPercentWidth(0.0097)
 
-                this.Add("Picture", "vHome Section f(createDefaultProgram) xpos1 ypos1 xm0 y+" . this._calcPercentHeight(0.02) . " w" . this._calcPercentWidth(0.039) . " h" . this._calcPercentWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
-                this.Add("Picture", "vVolume f(createInterface volume) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
-                this.Add("Picture", "vControllers f(createInterface input) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-                this.Add("Picture", "vMulti f(createInterface program) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
-                this.Add("Picture", "vPower f(createInterface power) xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+                    this.Add("Picture", "vHome Section f(createDefaultProgram) xpos1 ypos1 xm0 y+" . this._calcPercentHeight(0.02) . " w" . this._calcPercentWidth(0.039) . " h" . this._calcPercentWidth(0.039), getAssetPath("icons\gui\home.png", globalConfig))
+                    this.Add("Picture", "vVolume f(createInterface volume) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\volume.png", globalConfig))
+                    this.Add("Picture", "vControllers f(createInterface input) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+                    this.Add("Picture", "vMulti f(createInterface program) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+                    this.Add("Picture", "vPower f(createInterface power) xpos5 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+                }
+                else {
+                    buttonSpacing := this._calcPercentWidth(0.0257)
+
+                    this.Add("Picture", "vVolume Section f(createInterface volume) xpos1 ypos1 xm0 y+" . this._calcPercentHeight(0.02) . " w" . this._calcPercentWidth(0.039) . " h" . this._calcPercentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
+                    this.Add("Picture", "vControllers f(createInterface input) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
+                    this.Add("Picture", "vMulti f(createInterface program) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
+                    this.Add("Picture", "vPower f(createInterface power) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
+                }
+                
+                y_index := 1
             }
-            else {
-                buttonSpacing := this._calcPercentWidth(0.0257)
-
-                this.Add("Picture", "vVolume Section f(createInterface volume) xpos1 ypos1 xm0 y+" . this._calcPercentHeight(0.02) . " w" . this._calcPercentWidth(0.039) . " h" . this._calcPercentWidth(0.039), getAssetPath("icons\gui\volume.png", globalConfig))
-                this.Add("Picture", "vControllers f(createInterface input) xpos2 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\controller.png", globalConfig))
-                this.Add("Picture", "vMulti f(createInterface program) xpos3 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\multitasking.png", globalConfig))
-                this.Add("Picture", "vPower f(createInterface power) xpos4 ypos1 wp0 hp0 ys0 x+" . buttonSpacing, getAssetPath("icons\gui\power.png", globalConfig))
-            }
-
+            
             ; --- ADD PAUSE OPTIONS ---
             defaultOptions := this._defaultPauseOptions()
             programOptions := this._programPauseOptions((currProgram != "") ? globalRunning[currProgram] : "")
 
             optionWidth := this.guiWidth - (2 * this._calcPercentWidth(0.0095))
             optionHeight := this._calcPercentHeight(0.045)
-
-            y_index := 1
 
             ; program options
             if (!globalStatus["desktopmode"] && !globalStatus["suspendScript"] && programOptions.items.Count > 0) {
@@ -178,7 +181,7 @@ class PauseInterface extends Interface {
         currProgram := globalStatus["currProgram"]["id"]
         ; set activate currProgram pause
         if (currProgram != "") {
-            globalRunning[currProgram].pause()
+            try globalRunning[currProgram].pause()
         }
 
         ; close the keyboard if open
@@ -301,7 +304,7 @@ class PauseInterface extends Interface {
     ; adds default to pause options based on selected options from global config
     ; 
     ; returns default order & options
-    _defaultPauseOptions() {
+    _defaultPauseOptions(addPowerOptions := false) {
         global globalConfig
         global globalStatus
 
@@ -330,11 +333,32 @@ class PauseInterface extends Interface {
 
         optionsOrder := []
         if (globalConfig["GUI"].Has("DefaultPauseOptions") && IsObject(globalConfig["GUI"]["DefaultPauseOptions"])) {
-            optionsOrder := globalConfig["GUI"]["DefaultPauseOptions"]
+            optionsOrder := ObjDeepClone(globalConfig["GUI"]["DefaultPauseOptions"])
 
-            for item in optionsOrder {           
-                if (!defaultOptions.Has(item)) {
+            for item in optionsOrder { 
+                if (StrLower(Trim(item)) = "poweroptions") {
+                    addPowerOptions := true
+                }          
+                else if (!defaultOptions.Has(item)) {
                     try defaultOptions[item] := runFunction(item)
+                }
+            }       
+        }
+
+        if (addPowerOptions) {
+            defaultOptions["Standby"]  := {title: "Standby Device",  function: "Standby"}
+            defaultOptions["Shutdown"] := {title: "Shutdown Device", function: "PowerOff"}
+            defaultOptions["Restart"]  := {title: "Restart Device",  function: "Restart"}
+            defaultOptions["Reset"] := {title: "Reload Consolizer", function: "ResetScript"}
+            defaultOptions["Exit"] := {title: "Exit Consolizer", function: "ExitScript"}
+
+            if (globalConfig["GUI"].Has("PowerOptions") && IsObject(globalConfig["GUI"]["PowerOptions"])) {
+                optionsOrder.Push(globalConfig["GUI"]["PowerOptions"]*)
+
+                for item in optionsOrder {
+                    if (!defaultOptions.Has(item)) {
+                        defaultOptions.Delete(item)
+                    }
                 }
             }
         }
@@ -385,67 +409,5 @@ class PauseInterface extends Interface {
         }
 
         return {order: programOrder, items: programOptions}
-    }
-
-    ; adds basic options for control menu
-    ; 
-    ; returns default order & options
-    _basicPauseOptions() {
-        global globalConfig
-        global globalStatus
-        global globalRunning
-
-        optionsOrder := []
-        defaultOptions := Map()
-        
-        currKBMMode     := globalStatus["kbmmode"]
-        currDesktopMode := globalStatus["desktopmode"]
-        currSuspend     := globalStatus["suspendScript"]
-        currProgram     := globalStatus["currProgram"]["id"]
-
-        if (!currSuspend) {        
-            if (!currDesktopMode) {
-                if (currProgram != "" && globalRunning.Has(currProgram) && globalRunning[currProgram].allowExit) {
-                    optionsOrder.Push("ExitProgram")
-                    defaultOptions["ExitProgram"] := {title: "Exit " . globalRunning[currProgram].name, function: "program.exit"}
-                }
-
-                optionsOrder.Push("KBMMode")
-                defaultOptions["KBMMode"] := {
-                    title: (!currKBMMode) ? "Enable KB && Mouse Mode" : "Disable KB && Mouse Mode", 
-                    function: "kbmmode"
-                }
-            }
-
-            optionsOrder.Push("DesktopMode")
-            defaultOptions["DesktopMode"] := {
-                title: (!currDesktopMode) ? "Enable Desktop Mode" : "Disable Desktop Mode", 
-                function: "desktopmode"
-            }
-        }
-
-        optionsOrder.Push("Suspend")
-        defaultOptions["Suspend"] := {
-            title: (!currSuspend) ? "Suspend Consolizer" : "Resume Consolizer", 
-            function: "suspendScript"
-        }
-
-        defaultOptions["Standby"]  := {title: "Standby Device",  function: "Standby"}
-        defaultOptions["Shutdown"] := {title: "Shutdown Device", function: "PowerOff"}
-        defaultOptions["Restart"]  := {title: "Restart Device",  function: "Restart"}
-        defaultOptions["Reset"] := {title: "Reload Consolizer", function: "ResetScript"}
-        defaultOptions["Exit"] := {title: "Exit Consolizer", function: "ExitScript"}
-
-        if (globalConfig["GUI"].Has("PowerOptions") && IsObject(globalConfig["GUI"]["PowerOptions"])) {
-            optionsOrder.Push(globalConfig["GUI"]["PowerOptions"]*)
-
-            for item in optionsOrder {
-                if (!defaultOptions.Has(item)) {
-                    defaultOptions.Delete(item)
-                }
-            }
-        }
-
-        return {order: optionsOrder, items: defaultOptions}
     }
 }

@@ -5,3 +5,6 @@
 /ahk/data/**
 /ahk/test.ahk
 !/ahk/bin/README.MD
+
+/ahk/plugins/inputs/keyboard/lib/**
+!/ahk/plugins/inputs/keyboard/lib/README.MD

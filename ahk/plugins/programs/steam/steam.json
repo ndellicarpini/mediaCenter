@@ -6,6 +6,7 @@
     "defaultArgs": "-silent",
 
     "background": true,
+    "backgroundLaunch": true,
 
     "allowHungCheck": false
 }

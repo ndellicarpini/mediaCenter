@@ -4,83 +4,132 @@
     "className": "BigBoxProgram",
 
     "allowQuickAccess": true,
+    "allowExit": false,
 
-    "dir": "C:\\LaunchBox\\",
+    "dir": "C:\\LaunchBox\\",   
     "exe": "BigBox.exe",
 
     "hotkeys": {
         "buttonTime": 0,
-        "1": {
-            "down": "Send '{Enter down}'",
-            "up": "Send '{Enter up}'"
+        "keyboard": {
+            "C|J|LControl|A|1|2|Enter": {
+                "down": "Send '{Enter down}'",
+                "up": "Send '{Enter up}'"
+            },
+            "V|L|LAlt|S": {
+                "down": "Send '{Escape down}'",
+                "up": "Send '{Escape up}'"
+            },
+            "LShift|W": {
+                "down": "Send '{Y down}'",
+                "up": "Send '{Y up}'"
+            },
+            "Z|I": {
+                "down": "Send '{T down}'",
+                "up": "Send '{T up}'"
+            },
+            "5|6": {
+                "down": "Send '{S down}'",
+                "up": "Send '{S up}'"
+            },
+            "[REPEAT]Space|Q": {
+                "down": "Send '{PgUp down}'",
+                "up": "Send '{PgUp up}'"
+            },
+            "[REPEAT]X|K": {
+                "down": "Send '{PgDn down}'",   
+                "up": "Send '{PgDn up}'"
+            },
+            "[REPEAT]Up|R|MOUSEX=-1|MOUSEY=-1": {
+                "down": "Send '{Up down}'",
+                "up": "Send '{Up up}'"
+            },
+            "[REPEAT]Down|F|MOUSEX=1|MOUSEY=1": {
+                "down": "Send '{Down down}'",
+                "up": "Send '{Down up}'"
+            },
+            "[REPEAT]Left|D": {
+                "down": "Send '{Left down}'",
+                "up": "Send '{Left up}'"
+            },
+            "[REPEAT]Right|G": {
+                "down": "Send '{Right down}'",
+                "up": "Send '{Right up}'"
+            }
         },
-        "2": {
-            "down": "Send '{Escape down}'",
-            "up": "Send '{Escape up}'"
-        },
-        "3": {
-            "down": "Send '{Y down}'",
-            "up": "Send '{Y up}'"
-        },
-        "4": {
-            "down": "Send '{T down}'",
-            "up": "Send '{T up}'"
-        },
-        "8": {
-            "down": "Send '{S down}'",
-            "up": "Send '{S up}'"
-        },
-        "10": {
-            "down": "Send '{3 down}'",
-            "up": "Send '{3 up}'"
-        },
-        "[REPEAT]5": {
-            "down": "Send '{PgUp down}'",
-            "up": "Send '{PgUp up}'"
-        },
-        "[REPEAT]6": {
-            "down": "Send '{PgDn down}'",
-            "up": "Send '{PgDn up}'"
-        },
-        "[REPEAT]11|2>0.4": {
-            "down": "Send '{Up down}'",
-            "up": "Send '{Up up}'"
-        },
-        "[REPEAT]12|2<-0.4": {
-            "down": "Send '{Down down}'",
-            "up": "Send '{Down up}'"
-        },
-        "[REPEAT]13|1<-0.4": {
-            "down": "Send '{Left down}'",
-            "up": "Send '{Left up}'"
-        },
-        "[REPEAT]14|1>0.4": {
-            "down": "Send '{Right down}'",
-            "up": "Send '{Right up}'"
-        },
-        "[HOLD]3<-0.4": {
-            "down": "Send '{J down}'",
-            "up": "Send '{J up}'"
-        },
-        "[HOLD]3>0.4": {
-            "down": "Send '{L down}'",
-            "up": "Send '{L up}'"
-        },
-        "[HOLD]4<-0.4": {
-            "down": "Send '{K down}'",
-            "up": "Send '{K up}'"
-        },
-        "[HOLD]4>0.4": {
-            "down": "Send '{I down}'",
-            "up": "Send '{I up}'"
-        },
-        "[REPEAT]5>0.2": {
-            "down": "Send '{N down}'",
-            "up": "Send '{N up}'"
-        },
-        "[REPEAT]6>0.2": {
-            "down": "Send '{M down}'",
-            "up": "Send '{M up}'"
+        "xinput": {
+            "A": {
+                "down": "Send '{Enter down}'",
+                "up": "Send '{Enter up}'"
+            },
+            "B": {
+                "down": "Send '{Escape down}'",
+                "up": "Send '{Escape up}'"
+            },
+            "X": {
+                "down": "Send '{Y down}'",
+                "up": "Send '{Y up}'"
+            },
+            "Y": {
+                "down": "Send '{T down}'",
+                "up": "Send '{T up}'"
+            },
+            "START": {
+                "down": "Send '{S down}'",
+                "up": "Send '{S up}'"
+            },
+            "RSB": {
+                "down": "Send '{3 down}'",
+                "up": "Send '{3 up}'"
+            },
+            "[REPEAT]LB": {
+                "down": "Send '{PgUp down}'",
+                "up": "Send '{PgUp up}'"
+            },
+            "[REPEAT]RB": {
+                "down": "Send '{PgDn down}'",
+                "up": "Send '{PgDn up}'"
+            },
+            "[REPEAT]DU|LSY>0.4": {
+                "down": "Send '{Up down}'",
+                "up": "Send '{Up up}'"
+            },
+            "[REPEAT]DD|LSY<-0.4": {
+                "down": "Send '{Down down}'",
+                "up": "Send '{Down up}'"
+            },
+            "[REPEAT]DL|LSX<-0.4": {
+                "down": "Send '{Left down}'",
+                "up": "Send '{Left up}'"
+            },
+            "[REPEAT]DR|LSX>0.4": {
+                "down": "Send '{Right down}'",
+                "up": "Send '{Right up}'"
+            },
+            "[HOLD]RSX<-0.4": {
+                "down": "Send '{J down}'",
+                "up": "Send '{J up}'"
+            },
+            "[HOLD]RSX>0.4": {
+                "down": "Send '{L down}'",
+                "up": "Send '{L up}'"
+            },
+            "[HOLD]RSY<-0.4": {
+                "down": "Send '{K down}'",
+                "up": "Send '{K up}'"
+            },
+            "[HOLD]RSY>0.4": {
+                "down": "Send '{I down}'",
+                "up": "Send '{I up}'"
+            },
+            "[REPEAT]LT>0.2": {
+                "down": "Send '{N down}'",
+                "up": "Send '{N up}'"
+            },
+            "[REPEAT]RT>0.2": {
+                "down": "Send '{M down}'",
+                "up": "Send '{M up}'"
+            }
         }
     }
 }

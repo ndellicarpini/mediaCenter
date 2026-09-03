@@ -5,34 +5,34 @@ class PPSSPPEmulator extends Emulator {
         this.send("{Alt up}")
     }
 
-    _pause() {
-        this.send("{Escape}", 150)
-    }
+    ; _pause() {
+    ;     this.send("{Escape}", 150)
+    ; }
 
-    _resume() {
-        this._pause()
-    }
+    ; _resume() {
+    ;     this._pause()
+    ; }
     
-    _saveState(slot) {
-        this.send("{F1}")
-    }
+    ; _saveState(slot) {
+    ;     this.send("{F1}")
+    ; }
 
-    _loadState(slot) {
-        this.send("{F3}")
-    }
+    ; _loadState(slot) {
+    ;     this.send("{F3}")
+    ; }
 
-    _reset() {
-        this.send("{Ctrl down}")
-        this.send("b")
-        this.send("{Ctrl up}")
-    }
+    ; _reset() {
+    ;     this.send("{Ctrl down}")
+    ;     this.send("b")
+    ;     this.send("{Ctrl up}")
+    ; }
 
-    _fastForward() {
-        if (this.fastForwarding) {
-            this.send("{Tab up}")
-        }
-        else {
-            this.send("{Tab down}")
-        }
-    }
+    ; _fastForward() {
+    ;     if (this.fastForwarding) {
+    ;         this.send("{Tab up}")
+    ;     }
+    ;     else {
+    ;         this.send("{Tab down}")
+    ;     }
+    ; }
 }

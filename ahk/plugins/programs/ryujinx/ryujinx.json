@@ -11,5 +11,12 @@
 
     "controls": ["Xbox Controller"],
 
-    "hotkeys": {}
-}
+    "hotkeys": {
+        "keyboard": {
+            "blockKeyboard": false,
+            "blockMouse": true
+        }
+    },
+
+    "pauseHotkey": "{F5}"
+}       

@@ -5,15 +5,15 @@ class RPCS3Emulator extends Emulator {
         this.send("{Alt up}")
     }
     
-    _pause() {
-        this.send("{Ctrl down}")
-        this.send("p", 150)
-        this.send("{Ctrl up}")
-    }
+    ; _pause() {
+    ;     this.send("{Ctrl down}")
+    ;     this.send("p", 150)
+    ;     this.send("{Ctrl up}")
+    ; }
 
-    _resume() {
-        this._pause()
-    }
+    ; _resume() {
+    ;     this._pause()
+    ; }
 
     ; custom function
     menu() {

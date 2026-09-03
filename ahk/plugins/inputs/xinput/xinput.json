@@ -3,6 +3,7 @@
     "name": "Xbox Controller",
     "className": "XInputDevice",
 
+    "enabled": false,
     "maxConnected": 4,
     "vibration": true,
 
@@ -11,92 +12,92 @@
 
     "default": {
         "hotkeys": {
-            "15": {
+            "HOME": {
                 "up": "pausemenu",
                 "time": 100
             },
-            "7&8": {
+            "START&SELECT": {
                 "down": "program.exit",
                 "time": 100
             },
-            "[PATTERN]15&4>0.7,15&4>0.7,15&4<-0.7,15&4<-0.7,15&3<-0.7,15&3>0.7,15&3<-0.7,15&3>0.7,15&2,15&1,15&8": "enableDesktopMode",
-            "[PATTERN]15&4>0.7,15&4>0.7,15&4<-0.7,15&4<-0.7,15&3<-0.7,15&3>0.7,15&3<-0.7,15&3>0.7,15&2,15&1,15&7": "Shutdown 2"
+            "[PATTERN]HOME&RSY>0.7,HOME&RSY>0.7,HOME&RSY<-0.7,HOME&RSY<-0.7,HOME&RSX<-0.7,HOME&RSX>0.7,HOME&RSX<-0.7,HOME&RSX>0.7,HOME&B,HOME&A,HOME&START": "enableDesktopMode",
+            "[PATTERN]HOME&RSY>0.7,HOME&RSY>0.7,HOME&RSY<-0.7,HOME&RSY<-0.7,HOME&RSX<-0.7,HOME&RSX>0.7,HOME&RSX<-0.7,HOME&RSX>0.7,HOME&B,HOME&A,HOME&SELECT": "Shutdown 2"
         }
     },
 
     "kbmmode": {
         "hotkeys": {
-            "7": "toggleKeyboard",
-            "[REPEAT]2": "Send {Backspace}"
+            "SELECT": "toggleKeyboard",
+            "[REPEAT]B": "Send {Backspace}"
         },
         "mouse": {
-            "x": 1, 
-            "y": -2, 
-            "lclick": 1,
-            "rclick": 3,
-            "hscroll": 3,
-            "vscroll": -4
+            "x": "LSX", 
+            "y": "-LSY", 
+            "lclick": "A",
+            "rclick": "X",
+            "hscroll": "RSX",
+            "vscroll": "-RSY"
         }
     },
 
     "desktopmode": {
         "hotkeys": {
-            "15": {
+            "HOME": {
                 "up": "pausemenu",
                 "time": 100
             },
             
-            "7": "toggleKeyboard",
-            "8": "Send {LWin}",
+            "SELECT": "toggleKeyboard",
+            "START": "Send {LWin}",
 
-            "[REPEAT]11": "Send {Up}",
-            "[REPEAT]12": "Send {Down}",
-            "[REPEAT]13": "Send {Left}",
-            "[REPEAT]14": "Send {Right}",
+            "[REPEAT]DU": "Send {Up}",
+            "[REPEAT]DD": "Send {Down}",
+            "[REPEAT]DL": "Send {Left}",
+            "[REPEAT]DR": "Send {Right}",
 
-            "[REPEAT]2": "Send {Backspace}",
+            "[REPEAT]B": "Send {Backspace}",
 
-            "5>0.3": "desktopAltTab",
-            "6>0.3": {
+            "LT>0.3": "desktopAltTab",
+            "RT>0.3": {
                 "down": "desktopAltDown",
                 "up": "desktopAltUp"
             }
         },
         "mouse": {
-            "x": 1, 
-            "y": -2, 
-            "lclick": 1,
-            "rclick": 3,
-            "hscroll": 3,
-            "vscroll": -4
+            "x": "LSX", 
+            "y": "-LSY", 
+            "lclick": "A",
+            "rclick": "X",
+            "hscroll": "RSX",
+            "vscroll": "-RSY"
        }
     },
 
     "interfaceHotkeys": {
         "default": {
-            "[REPEAT]11|2>0.4": "gui.up",
-            "[REPEAT]12|2<-0.4": "gui.down",
-            "[REPEAT]13|1<-0.4": "gui.left",
-            "[REPEAT]14|1>0.4": "gui.right",
-            "15": "pausemenu",
-            "2": "gui.back",
-            "1": {
+            "[REPEAT]DU|LSY>0.4": "gui.up",
+            "[REPEAT]DD|LSY<-0.4": "gui.down",
+            "[REPEAT]DL|LSX<-0.4": "gui.left",
+            "[REPEAT]DR|LSX>0.4": "gui.right",
+            "HOME": "pausemenu",
+            "B": "gui.back",
+            "A": {
                 "down": "gui.select",
                 "up": "gui.unselect"
             }
         },
         "keyboard": {
-            "3": "gui.keyboard space",
-            "4": "gui.keyboard caps",
-            "5": "gui.cursorLeft",
-            "6": "gui.cursorRight",
-            "7": "gui.Destroy",
-            "8": "gui.sendText",
-            "5>0.1": {
+            "X": "gui.keyboard space",
+            "Y": "gui.keyboard caps",
+            "LB": "gui.cursorLeft",
+            "RB": "gui.cursorRight",
+            "SELECT": "gui.Destroy",
+            "START": "gui.sendText",
+            "LT>0.1": {
                 "down": "gui.keyboard ctrl",
                 "up": "gui.keyboard ctrl"
             },
-            "6>0.1": {
+            "RT>0.1": {
                 "down": "gui.keyboard shift",
                 "up": "gui.keyboard shift"
             }

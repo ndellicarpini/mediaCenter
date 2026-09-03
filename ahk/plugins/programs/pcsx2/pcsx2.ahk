@@ -19,27 +19,27 @@ class PCSX2Emulator extends Emulator {
         this.send("{Alt up}")
     }
 
-    _pause() {
-        this.send("{Space}", 150)
-    }
+    ; _pause() {
+    ;     this.send("{Space}", 150)
+    ; }
 
-    _resume() {
-        this._pause()
-    }
+    ; _resume() {
+    ;     this._pause()
+    ; }
     
-    _saveState(slot) {
-        this.send("{F1}")
-    }
+    ; _saveState(slot) {
+    ;     this.send("{F1}")
+    ; }
 
-    _loadState(slot) {
-        this.send("{F3}")
-    }
+    ; _loadState(slot) {
+    ;     this.send("{F3}")
+    ; }
 
-    _reset() {
-        this.send("r")
-    }
+    ; _reset() {
+    ;     this.send("r")
+    ; }
 
-    _fastForward() {
-        this.send("{Tab}", 120)
-    }
+    ; _fastForward() {
+    ;     this.send("{Tab}", 120)
+    ; }
 }

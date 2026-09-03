@@ -1,0 +1,47 @@
+{
+    "extends": {
+        "id": "steamgame",
+        "args": "steam://rungameid/1904480",
+        "matchType": "partial"
+    },
+
+    "hotkeys": {
+        "keyboard": {
+            "vinput": [
+                {
+                    "R": "DU",
+                    "F": "DD",
+                    "D": "DL",
+                    "G": "DR",
+                    "A": "A",
+                    "S": "B",
+                    "W": "X",
+                    "I": "Y",
+                    "Q": "LB",
+                    "K": "RB",
+                    "2": "START",
+                    "6": "SELECT",
+                    "V": "RT",
+                    "L": "LT"
+                },
+                {
+                    "Up": "DU",
+                    "Down": "DD",
+                    "Left": "DL",
+                    "Right": "DR",
+                    "LControl": "A",
+                    "LAlt": "B",
+                    "C": "LT",
+                    "J": "RT",
+                    "LShift": "X",
+                    "Z": "Y",
+                    "Space": "LB",
+                    "X": "RB",
+                    "1": "START",
+                    "NumpadEnter": "START",
+                    "5": "SELECT"
+                }
+            ]
+        }
+    }
+}

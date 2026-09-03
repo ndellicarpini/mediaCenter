@@ -245,7 +245,7 @@ class Program {
         }
 
         ; parse hotkeys
-        this.mouse := (exeConfig.Has("mouse"))   ? exeConfig["mouse"]   : this.mouse
+        this.mouse := (exeConfig.Has("mouse")) ? exeConfig["mouse"] : this.mouse
         if (exeConfig.Has("hotkeys")){
             if (exeConfig["hotkeys"].Has("buttonTime")) {
                 this.hotkeyButtonTime := exeConfig["hotkeys"]["buttonTime"]
@@ -303,6 +303,9 @@ class Program {
         this.launching := true
         this.requestedMonitorNum := DEFAULT_MONITOR
 
+        globalStatus["currProgram"]["exiting"]   := false
+        globalStatus["currProgram"]["launching"] := true
+
         restoreCritical := A_IsCritical
         Critical("Off")
 
@@ -319,6 +322,7 @@ class Program {
         if (this.requireInternet) {
             if (!waitForInternetProgram(this.id, 30)) {
                 writeLog("Failed to launch " . this.id . " - no internet", "PROGRAM")
+                globalStatus["currProgram"]["launching"] := false
                 this.launching := false
 
                 Critical(restoreCritical)
@@ -328,6 +332,7 @@ class Program {
 
         if (this.shouldExit) {
             writeLog(this.id . " exiting...", "PROGRAM")
+            globalStatus["currProgram"]["launching"] := false
             this.launching := false
 
             Critical(restoreCritical)
@@ -369,6 +374,7 @@ class Program {
         ; if launch returns false -> assume failed
         if (this._launch(this._launchArgs*) = false) {
             writeLog("Failed to launch " . this.id, "PROGRAM")
+            globalStatus["currProgram"]["launching"] := false
             this.launching := false
 
             Critical(restoreCritical)
@@ -391,6 +397,7 @@ class Program {
             while (!this.exists(!this.background) && !WinShown(launcherWNDW) && count < maxCount) {
                 if (this.shouldExit) {
                     writeLog(this.id . " exiting...", "PROGRAM")
+                    globalStatus["currProgram"]["launching"] := false
                     this.launching := false
 
                     Critical(restoreCritical)
@@ -405,6 +412,7 @@ class Program {
             ; cancel launch if launcher never shows
             if (!this.exists(!this.background) && !WinShown(launcherWNDW)) {
                 writeLog("Failed to launch " . this.id . " - waiting for launcher timeout", "PROGRAM")
+                globalStatus["currProgram"]["launching"] := false
                 this.launching := false
 
                 Critical(restoreCritical)
@@ -435,6 +443,7 @@ class Program {
 
                 if (this.shouldExit) {
                     writeLog(this.id . " exiting...", "PROGRAM")
+                    globalStatus["currProgram"]["launching"] := false
                     this.launching := false
 
                     Critical(restoreCritical)
@@ -451,6 +460,7 @@ class Program {
             while (!this.exists(!this.background) && hiddenCount < maxCount) {
                 if (this.shouldExit) {
                     globalStatus["loadscreen"]["overrideWNDW"] := ""
+                    globalStatus["currProgram"]["launching"] := false
                     this.launching := false
 
                     writeLog(this.id . " exiting...", "PROGRAM")
@@ -474,6 +484,7 @@ class Program {
                         }
                         if (this.shouldExit) {
                             globalStatus["loadscreen"]["overrideWNDW"] := ""
+                            globalStatus["currProgram"]["launching"] := false
                             this.launching := false
         
                             writeLog(this.id . " exiting...", "PROGRAM")
@@ -533,6 +544,7 @@ class Program {
 
         if (count = maxCount) {
             writeLog("Failed to launch " . this.id . " - waiting for program timeout", "PROGRAM")
+            globalStatus["currProgram"]["launching"] := false
             this.launching := false
             
             Critical(restoreCritical)
@@ -550,6 +562,7 @@ class Program {
 
             if (count = maxCount) {
                 writeLog("Failed to launch " . this.id . " - waiting for program timeout", "PROGRAM")
+                globalStatus["currProgram"]["launching"] := false
                 this.launching := false
 
                 Critical(restoreCritical)
@@ -566,6 +579,7 @@ class Program {
         }
 
         writeLog(this.id . " launched successfully", "PROGRAM")
+        globalStatus["currProgram"]["launching"] := false
         this.launching := false
 
         Critical(restoreCritical)
@@ -1531,6 +1545,7 @@ class Program {
         this.shouldExit := true
         
         writeLog(this.id . " exiting...", "PROGRAM")
+        globalStatus["currProgram"]["exiting"] := true
 
         ; close the keyboard if open
         if (keyboardExists()) {
@@ -1553,6 +1568,7 @@ class Program {
             updatePrograms()
         }
 
+        globalStatus["currProgram"]["exiting"] := false
         Critical(restoreCritical)
         return
     }
@@ -1793,7 +1809,7 @@ class Program {
     _send(key, time := -1) {
         exe := (this._currShownEXE != "" && ProcessExist(this._currShownEXE)) ? this._currShownEXE : this.getEXE()
         exeWNDW := (IsInteger(exe) ? "ahk_pid " : "ahk_exe ") . exe
-
+        
         try WindowSend(key, exeWNDW, time)
     }
 

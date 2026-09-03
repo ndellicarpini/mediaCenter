@@ -27,38 +27,38 @@ class RetroArchEmulator extends Emulator {
         this.send("{Alt up}")
     }
 
-    _pause() {
-        this.send("p", 150)
-    }
+    ; _pause() {
+    ;     this.send("p", 150)
+    ; }
 
-    _resume() {
-        this._pause()
-    }
+    ; _resume() {
+    ;     this._pause()
+    ; }
     
-    _saveState(slot) {
-        this.send("{F2}")
-    }
+    ; _saveState(slot) {
+    ;     this.send("{F2}")
+    ; }
 
-    _loadState(slot) {
-        this.send("{F4}")
-    }
+    ; _loadState(slot) {
+    ;     this.send("{F4}")
+    ; }
 
-    _reset() {
-        this.send("h")
-    }
+    ; _reset() {
+    ;     this.send("h")
+    ; }
 
-    _fastForward() {
-        this.send("{Space}")
-    }
+    ; _fastForward() {
+    ;     this.send("{Space}")
+    ; }
 
-    _rewind() {
-        if (this.rewinding) {
-            this.send("{r up}")
-        }
-        else {
-            this.send("{r down}")
-        }
-    }
+    ; _rewind() {
+    ;     if (this.rewinding) {
+    ;         this.send("{r up}")
+    ;     }
+    ;     else {
+    ;         this.send("{r down}")
+    ;     }
+    ; }
 
     ; custom function
     menu() {

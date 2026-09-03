@@ -17,11 +17,11 @@ class RyujinxEmulator extends Emulator {
         this.send("{Alt up}")
     }
 
-    _pause() {
-        this.send("{F5}", 150)
-    }
+    ; _pause() {
+    ;     this.send("{F5}", 150)
+    ; }
 
-    _resume() {
-        this._pause()
-    }
+    ; _resume() {
+    ;     this._pause()
+    ; }
 }

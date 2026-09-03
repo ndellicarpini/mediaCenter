@@ -11,17 +11,23 @@
     "priority": "H",
 
     "numStates": 1,
-    "fastForward": true,
-    "rewind": true,
-    "reset": true,
 
     "controls": ["Xbox Controller"],
 
     "hotkeys": {
-        "15&8": "program.saveState",
-        "15&7": "program.loadState",
-        "15&5>0.3": "program.rewind",
-        "15&6>0.3": "program.fastForward"
+        "xinput": {
+            "HOME&START": "program.saveState",
+            "HOME&SELECT": "program.loadState",
+            "HOME&LT>0.3": "program.rewind",
+            "HOME&RT>0.3": "program.fastForward"
+        },
+        "keyboard": {
+            "blockKeyboard": false,
+            "blockMouse": true,
+            "TAB&1": "program.saveState",
+            "TAB&5": "program.loadState",
+            "TAB&NumpadEnter": "program.fastForward"
+        }
     },
 
     "pauseOptions": {
@@ -33,5 +39,11 @@
         "Load State", 
         "Reset Game",
         "Toggle Menu"
-    ]
+    ],
+
+    "pauseHotkey": "0",
+    "saveStateHotkey": "{F2}",
+    "loadStateHotkey": "{F4}",
+    "resetHotkey": "-",
+    "fastForwardHotkey": "="
 }

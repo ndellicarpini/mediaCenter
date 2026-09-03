@@ -1,0 +1,46 @@
+{
+    "id": "keyboard",
+    "name": "Arcade Board",
+    "className": "KeyboardDevice",
+
+    "keyboardVID": "0xD209",
+    "keyboardPID": "0x0440",
+    "mouseVID": "0xD209",
+    "mousePID": "0x0440",
+
+    "enabled": true,
+    "maxConnected": 1,
+    "vibration": false,
+
+    "default": {
+        "hotkeys": {
+            "buttonTime": 0,
+            "blockKeyboard": true,
+            "blockMouse": true,
+            "TAB|P": { 
+                "up": "pausemenu"
+             },
+            "Escape": "program.exit",
+            "[REPEAT]lclick": "ForceSend {Volume_Down}",
+            "[REPEAT]rclick": "ForceSend {Volume_Up}"
+        }
+    },
+
+    "interfaceHotkeys": {
+        "default": {
+            "buttonTime": 0,
+            "blockKeyboard": true,
+            "blockMouse": true,
+            "[REPEAT]Up|R": "gui.up",
+            "[REPEAT]Down|F": "gui.down",
+            "[REPEAT]Left|D": "gui.left",
+            "[REPEAT]Right|G": "gui.right",
+            "TAB|P": "pausemenu",
+            "LAlt|S": "gui.back",
+            "LControl|A": {
+                "down": "gui.select",
+                "up": "gui.unselect"
+            }
+        }
+    }
+}

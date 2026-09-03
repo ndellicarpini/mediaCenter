@@ -104,7 +104,7 @@ class XInputDevice extends Input {
         }
 
         currBTGamepads := globalInputStatus["xinput"]
-            .Filter((val) => val["connected"] && val["connectionType"] == 2)
+            .Filter((val) => val["connected"] && val["connectionType"] = 2)
             .Sort((a, b) => a["pluginPort"] - b["pluginPort"])
 
         portBatteries := Map()
@@ -151,9 +151,6 @@ class XInputDevice extends Input {
         xBuf := Buffer(16, 0)
         xResult := DllCall(this.initResults["getStatusPtr"], "UInt", this.pluginPort, "Ptr", xBuf.Ptr)
 
-        ; reset button statuses
-        super.getStatus()
-
         if (xResult = 1167) {
             this.connected := false
             this.connectedTime := -1
@@ -171,59 +168,29 @@ class XInputDevice extends Input {
 
         ; CHECK BUTTONS
         buttonBuf := NumGet(xBuf.Ptr, 4, "UShort")
-        if (buttonBuf & 0x1000) { ; A
-            this.buttons[1] := true 
-        }
-        if (buttonBuf & 0x2000) { ; B
-            this.buttons[2] := true 
-        }
-        if (buttonBuf & 0x4000) { ; X
-            this.buttons[3] := true 
-        }
-        if (buttonBuf & 0x8000) { ; Y
-            this.buttons[4] := true 
-        }
-        if (buttonBuf & 0x0100) { ; LB
-            this.buttons[5] := true 
-        }
-        if (buttonBuf & 0x0200) { ; RB
-            this.buttons[6] := true 
-        }
-        if (buttonBuf & 0x0020) { ; SELECT
-            this.buttons[7] := true
-        }
-        if (buttonBuf & 0x0010) { ; START
-            this.buttons[8] := true
-        }
-        if (buttonBuf & 0x0040) { ; LSB
-            this.buttons[9] := true
-        }
-        if (buttonBuf & 0x0080) { ; RSB
-            this.buttons[10] := true
-        }
-        if (buttonBuf & 0x0001) { ; DU
-            this.buttons[11] := true 
-        }
-        if (buttonBuf & 0x0002) { ; DD
-            this.buttons[12] := true 
-        }
-        if (buttonBuf & 0x0004) { ; DL
-            this.buttons[13] := true 
-        }
-        if (buttonBuf & 0x0008) { ; DR
-            this.buttons[14] := true 
-        }
-        if (buttonBuf & 0x0400) { ; HOME
-            this.buttons[15] := true
-        }
+        this.buttons["A"]      := (buttonBuf & 0x1000) ? true : false
+        this.buttons["B"]      := (buttonBuf & 0x2000) ? true : false 
+        this.buttons["X"]      := (buttonBuf & 0x4000) ? true : false 
+        this.buttons["Y"]      := (buttonBuf & 0x8000) ? true : false 
+        this.buttons["LB"]     := (buttonBuf & 0x0100) ? true : false 
+        this.buttons["RB"]     := (buttonBuf & 0x0200) ? true : false 
+        this.buttons["SELECT"] := (buttonBuf & 0x0020) ? true : false
+        this.buttons["START"]  := (buttonBuf & 0x0010) ? true : false
+        this.buttons["LSB"]    := (buttonBuf & 0x0040) ? true : false
+        this.buttons["RSB"]    := (buttonBuf & 0x0080) ? true : false
+        this.buttons["DU"]     := (buttonBuf & 0x0001) ? true : false
+        this.buttons["DD"]     := (buttonBuf & 0x0002) ? true : false 
+        this.buttons["DL"]     := (buttonBuf & 0x0004) ? true : false 
+        this.buttons["DR"]     := (buttonBuf & 0x0008) ? true : false 
+        this.buttons["HOME"]   := (buttonBuf & 0x0400) ? true : false
 
         ; CHECK AXIS
-        this.axis[1] := NumGet(xBuf.Ptr, 8, "Short") / 32768  ; LSX
-        this.axis[2] := NumGet(xBuf.Ptr, 10, "Short") / 32768 ; LSY
-        this.axis[3] := NumGet(xBuf.Ptr, 12, "Short") / 32768 ; RSX
-        this.axis[4] := NumGet(xBuf.Ptr, 14, "Short") / 32768 ; RSY
-        this.axis[5] := NumGet(xBuf.Ptr, 6, "UChar") / 255    ; LT
-        this.axis[6] := NumGet(xBuf.Ptr, 7, "UChar") / 255    ; RT
+        this.axis["LSX"] := NumGet(xBuf.Ptr, 8, "Short") / 32768 
+        this.axis["LSY"] := NumGet(xBuf.Ptr, 10, "Short") / 32768
+        this.axis["RSX"] := NumGet(xBuf.Ptr, 12, "Short") / 32768
+        this.axis["RSY"] := NumGet(xBuf.Ptr, 14, "Short") / 32768
+        this.axis["LT"]  := NumGet(xBuf.Ptr, 6, "UChar") / 255
+        this.axis["RT"]  := NumGet(xBuf.Ptr, 7, "UChar") / 255
 
         return Map("buttons", this.buttons, "axis", this.axis)
     }

@@ -3,6 +3,7 @@
     "name": "Cemu",
     "className": "CemuEmulator",
 
+    "enabled": false,
     "exe": "Cemu.exe",
     "dir": "C:\\Emulators\\Cemu",
     "defaultArgs": "-f -g",

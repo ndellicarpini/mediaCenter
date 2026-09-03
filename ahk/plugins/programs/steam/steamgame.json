@@ -11,5 +11,45 @@
 
     "pauseOrder": [
         "Toggle Steam Menu"
-    ]
+    ],
+
+    "hotkeys": {
+        "keyboard": {
+            "vinput": [
+                {
+                    "Up": "DU",
+                    "Down": "DD",
+                    "Left": "DL",
+                    "Right": "DR",
+                    "C": "A",
+                    "J": "A",
+                    "LControl": "A",
+                    "V": "B",
+                    "L": "B",
+                    "LAlt": "B",
+                    "LShift": "X",
+                    "Z": "Y",
+                    "Space": "LB",
+                    "X": "RB",
+                    "1": "START",
+                    "NumpadEnter": "START",
+                    "5": "SELECT"
+                },
+                {
+                    "R": "DU",
+                    "F": "DD",
+                    "D": "DL",
+                    "G": "DR",
+                    "A": "A",
+                    "S": "B",
+                    "W": "X",
+                    "I": "Y",
+                    "Q": "LB",
+                    "K": "RB",
+                    "2": "START",
+                    "6": "SELECT"
+                }
+            ]
+        }
+    }
 }
