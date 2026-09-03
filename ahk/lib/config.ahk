@@ -950,32 +950,12 @@ class Config {
 
 		stringPtr := 1
 		while (stringPtr && stringPtr < textLength) {
-			openTagPtr := stringPtr
-			openTagPos := InStr(text, "<",, openTagPtr)
-			while (openTagPos && openTagPos < textLength) {
-				if (!inQuotes(text, "<", openTagPtr)) {
-					break
-				}
-
-				openTagPtr := openTagPos + 1
-				openTagPos := InStr(text, "<",, openTagPtr)
-			}
-		
-			closeTagPtr := stringPtr
-			closeTagPos := InStr(text, ">",, closeTagPtr)
-			while (closeTagPos && closeTagPos < textLength) {
-				if (!inQuotes(text, ">", closeTagPtr)) {
-					break
-				}
-
-				closeTagPtr := closeTagPos + 1
-				closeTagPos := InStr(text, ">",, closeTagPtr)
-			}
-
+			openTagPos := InStr(text, "<",, stringPtr)
+			closeTagPos := InStr(text, ">",, stringPtr)
 			if (!openTagPos || !closeTagPos) {
 				break
 			}
-			if (openTagPos > closeTagPos) {
+			if (openTagPos > closeTagPos || openTagPos = closeTagPos) {
 				ErrorMsg("XML Parsing Error: beans (" . closeTagPos . ") over the frank (" . openTagPos . ")")
 				break
 			}
@@ -998,6 +978,7 @@ class Config {
 		for tagIndex in tags {
 			currElementText := SubStr(text, lastCloseTag, tagIndex[2] - lastCloseTag + 1)
 			currElement := SubStr(text, tagIndex[1], tagIndex[2] - tagIndex[1] + 1)
+			
 			; skip declaration
 			if (StrLower(SubStr(currElement, 1, 5)) = "<?xml") {
 				continue
@@ -1122,7 +1103,7 @@ class Config {
 							"closeTag", closeTag,
 							"attributes", currAttributes,
 							"value", Map(
-								"value", hasChildren ? this._readXML(currValueText) : currValueText, 
+								"value", hasChildren ? this._readXML(currValueText) : Trim(xmlClean(currValueText)), 
 								"text", currValueText
 							)
 						),

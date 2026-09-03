@@ -997,6 +997,7 @@ miscThread(globalConfigPtr, globalStatusPtr) {
                 }
             
                 ; automatically accept firewall
+                ; TODO - update for new W11 firewall pop-up
                 if (bypassFirewall && WinShown("Windows Security Alert")) {
                     WinActivateForeground("Windows Security Alert")
                     Sleep(50)

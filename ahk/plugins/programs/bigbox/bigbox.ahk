@@ -3,28 +3,29 @@ class BigBoxProgram extends Program {
     _storedVolume := false
     _unfocusTime := 0
     _lastCheckedVolumeTime := 0
+    _lastDetectedLaunchTime := 0
 
-    _launch(args*) {
-        global globalStatus
+    ; _launch(args*) {
+    ;     global globalStatus
 
-        if (globalStatus["currProgram"]["id"] = this.id && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
-            count := 0
-            maxCount := 100
-            ; make sure LaunchBox is not open while launching bigbox
-            while (ProcessExist("LaunchBox.exe") && count < maxCount) {
-                count += 1
-                Sleep(200)
-            }
+    ;     if (globalStatus["currProgram"]["id"] = this.id && !globalStatus["suspendScript"] && !globalStatus["desktopmode"]) {
+    ;         count := 0
+    ;         maxCount := 100
+    ;         ; make sure LaunchBox is not open while launching bigbox
+    ;         while (ProcessExist("LaunchBox.exe") && count < maxCount) {
+    ;             count += 1
+    ;             Sleep(200)
+    ;         }
 
-            if (ProcessExist("LaunchBox.exe")) {
-                ProcessClose("LaunchBox.exe")
-                Sleep(500)
-            }
-        }
+    ;         if (ProcessExist("LaunchBox.exe")) {
+    ;             ProcessClose("LaunchBox.exe")
+    ;             Sleep(500)
+    ;         }
+    ;     }
 
-        ; for some reason BigBox freaks out when using RunAsUser (ShellExecute) 
-        Run(this.dir . this.exe . A_Space . joinArray(args), this.dir)
-    }
+    ;     ; for some reason BigBox freaks out when using RunAsUser (ShellExecute) 
+    ;     Run(this.dir . this.exe . A_Space . joinArray(args), this.dir)
+    ; }
 
     _exists(args*) {
         global globalRunning
@@ -67,25 +68,26 @@ class BigBoxProgram extends Program {
     }
 
     _restore() {
-        startupHWND := 0
-        mainHWND := 0
+        restoreTTM := A_TitleMatchMode
+        SetTitleMatchMode(3)
+        gameStartupHWND := WinShown("LaunchBox Game Startup")
+        SetTitleMatchMode(restoreTTM)
 
-        for hwnd in this.getHWNDList() {
-            title := WinGetTitle(hwnd)
-            if (title = "LaunchBox Game Startup") {
-                startupHWND := hwnd
-                break
-            }
-            if (title = "LaunchBox Big Box") {
-                mainHWND := hwnd
-            }
+        if (gameStartupHWND) {
+            this._lastDetectedLaunchTime := A_TickCount
+            return WinActivateForeground(gameStartupHWND)
         }
+        else {
+            if ((this._lastDetectedLaunchTime + 5000) > A_TickCount) {
+                activateLoadScreen()
+            }
+            else {
+                if (this._lastDetectedLaunchTime > 0) {
+                    this._lastDetectedLaunchTime := 0
+                }
 
-        if (startupHWND != 0 && !WinActive(startupHWND)) {
-            WinActivateForeground(startupHWND)
-        }
-        else if (mainHWND != 0 && !WinActive(mainHWND)) {
-            return WinActivateForeground(mainHWND)
+                return super._restore()
+            }
         }
     }
 }

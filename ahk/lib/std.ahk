@@ -1210,6 +1210,20 @@ reverseRegexClean(text) {
 	return retString
 }
 
+; cleans text to have normal special chars from xml escape chars
+;  text - text to clean for string
+;
+; returns text with each character set to match identical in normal string
+xmlClean(text) {
+	retString := StrReplace(text, "&lt;", "<")
+	retString := StrReplace(retString, "&amp;", "&")
+	retString := StrReplace(retString, "&gt;", ">")
+	retString := StrReplace(retString, "&quot;", '"')
+	retString := StrReplace(retString, "&apos;", "'")
+	
+	return retString
+}
+
 ; returns all regex matches like the global flag
 ;  haystack - similar to RegExMatch
 ;  pattern - similar to RegExMatch
